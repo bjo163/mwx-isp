@@ -236,8 +236,14 @@ func TestCustomerRegistrationAndTicketsSharePostgresSequenceConcurrently(t *test
 	}
 	require.Len(t, seen, requestCount)
 
+	// Scope the DB assertion to the ticket/work-order numbers this test actually
+	// created, so unrelated pre-existing TCK/WO rows cannot skew the count.
+	ticketNos := make([]string, 0, len(seen))
+	for no := range seen {
+		ticketNos = append(ticketNos, no)
+	}
 	var ticketCount int64
-	require.NoError(t, db.Model(&domain.TroubleTicket{}).Where("ticket_no LIKE ? OR ticket_no LIKE ?", "TCK-%", "WO-%").Count(&ticketCount).Error)
+	require.NoError(t, db.Model(&domain.TroubleTicket{}).Where("ticket_no IN ?", ticketNos).Count(&ticketCount).Error)
 	assert.EqualValues(t, requestCount, ticketCount)
 	var customerCount int64
 	require.NoError(t, db.Model(&domain.Customer{}).Where("name LIKE ?", "Concurrent customer "+suffix+"%").Count(&customerCount).Error)

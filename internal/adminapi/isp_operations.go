@@ -557,7 +557,7 @@ func runLivePing(c echo.Context) error {
 	}
 
 	// Resolve target address properly handling IPv4, IPv6 (with or without brackets), and host:port
-	targetAddr := rawHost
+	var targetAddr string
 	targetPort := "80"
 
 	// Check if already has a port
