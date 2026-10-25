@@ -31,14 +31,24 @@ def sync_release_commit(repo: str, release_commit: str, attempts: int = 3) -> bo
         if is_ancestor(repo, release_commit, dev_tip):
             return False
 
+        # Prefer a fast-forward when the release commit extends dev's history,
+        # avoiding a cherry-picked duplicate commit on dev.
+        if is_ancestor(repo, dev_tip, release_commit):
+            pushed = git(repo, "push", "origin", f"{release_commit}:refs/heads/dev", check=False)
+            if pushed.returncode == 0:
+                return True
+            if "non-fast-forward" not in pushed.stderr and "fetch first" not in pushed.stderr:
+                raise RuntimeError(pushed.stderr.strip() or pushed.stdout.strip())
+            continue
+
         git(repo, "checkout", "--detach", dev_tip)
-        picked = git(repo, "cherry-pick", release_commit, check=False)
+        picked = git(repo, "merge", "--no-ff", release_commit, check=False)
         if picked.returncode:
             conflicts = git(repo, "ls-files", "-u").stdout.strip()
             if not conflicts and "CONFLICT" not in (picked.stderr + picked.stdout):
-                git(repo, "cherry-pick", "--skip")
+                git(repo, "merge", "--abort", check=False)
                 return False
-            git(repo, "cherry-pick", "--abort", check=False)
+            git(repo, "merge", "--abort", check=False)
             raise RuntimeError(picked.stderr.strip() or picked.stdout.strip())
 
         pushed = git(repo, "push", "origin", "HEAD:refs/heads/dev", check=False)
