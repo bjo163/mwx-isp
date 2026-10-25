@@ -355,15 +355,15 @@ func (a *Application) SchedFUPCheckTask() {
 			Input  int64
 			Output int64
 		}
-		var live trafficTotals
+		var 		live trafficTotals
 		a.gormDB.Model(&domain.RadiusOnline{}).
-			Where("username = ?", user.Username).
+			Where("username = ? AND tenant_id = ?", user.Username, sub.TenantID).
 			Select("COALESCE(SUM(acct_input_total), 0) as input, COALESCE(SUM(acct_output_total), 0) as output").
 			Scan(&live)
 
 		var hist trafficTotals
 		a.gormDB.Model(&domain.RadiusAccounting{}).
-			Where("username = ? AND acct_start_time >= ?", user.Username, monthStart).
+			Where("username = ? AND tenant_id = ? AND acct_start_time >= ?", user.Username, sub.TenantID, monthStart).
 			Select("COALESCE(SUM(acct_input_total), 0) as input, COALESCE(SUM(acct_output_total), 0) as output").
 			Scan(&hist)
 
@@ -380,7 +380,7 @@ func (a *Application) SchedFUPCheckTask() {
 			}
 			if handler := a.sessionDisconnectHandler(); handler != nil {
 				var sessions []domain.RadiusOnline
-				if a.gormDB.Where("username = ?", user.Username).Find(&sessions).Error == nil {
+				if a.gormDB.Where("username = ? AND tenant_id = ?", user.Username, sub.TenantID).Find(&sessions).Error == nil {
 					for _, s := range sessions {
 						_ = handler(context.Background(), s)
 					}
@@ -403,8 +403,8 @@ func (a *Application) SchedFUPCheckTask() {
 					"updated_at": now,
 				})
 				if handler := a.sessionDisconnectHandler(); handler != nil {
-					var sessions []domain.RadiusOnline
-					if a.gormDB.Where("username = ?", user.Username).Find(&sessions).Error == nil {
+				var sessions []domain.RadiusOnline
+				if a.gormDB.Where("username = ? AND tenant_id = ?", user.Username, sub.TenantID).Find(&sessions).Error == nil {
 						for _, s := range sessions {
 							_ = handler(context.Background(), s)
 						}
