@@ -76,6 +76,7 @@ func registerISPRoutes() {
 	admin := requireAdmin()
 	webserver.ApiGET("/isp/customers", listCustomers)
 	webserver.ApiGET("/isp/customers/:id", getCustomer)
+	webserver.ApiGET("/isp/customers/:id/timeline", getCustomerTimeline)
 	webserver.ApiPOST("/isp/customers", createCustomer, admin)
 	webserver.ApiPUT("/isp/customers/:id", updateCustomer, admin)
 	webserver.ApiDELETE("/isp/customers/:id", deleteCustomer, admin)

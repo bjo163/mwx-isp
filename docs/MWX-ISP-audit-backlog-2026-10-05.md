@@ -826,10 +826,10 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### F02 — Timeline aktivitas pelanggan
 
-- **Prioritas / status:** P2 / Usulan; belum dijadwalkan.
-- **Pemetaan scope:** TR-F013 / TR-F028.
+- **Prioritas / status:** P2 / Delivered (#54; lihat [customer-timeline](customer-timeline.md)).
+- **Pemetaan scope:** TR-F027.
 - **Dependensi:** H05, H12.
-- **Entry point:** `web/src/resources/isp.tsx`; `internal/billing`; `internal/domain`.
+- **Entry point:** `internal/adminapi/customer_timeline.go`; `web/src/components/CustomerTimeline.tsx`; `web/src/resources/isp.tsx`.
 
 **Masalah atau nilai:** Operator sulit menghubungkan invoice, payment dan alasan putus koneksi.
 
@@ -837,10 +837,10 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Urutan waktu stabil, paginated, role-safe; satu insiden dapat ditelusuri dari invoice ke reactivate.
 
-- [ ] F02.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] F02.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] F02.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] F02.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+- [x] F02.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] F02.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] F02.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] F02.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="f03"></a>
 

@@ -53,7 +53,7 @@ Sumber detail dan kriteria penerimaan: [45 kartu audit, penguatan, dan brainstor
 ### Brainstorming — belum dijadwalkan
 
 - [ ] [F01 — Halaman kesiapan operasional](MWX-ISP-audit-backlog-2026-10-05.md#f01) (P2; Usulan; belum dijadwalkan).
-- [ ] [F02 — Timeline aktivitas pelanggan](MWX-ISP-audit-backlog-2026-10-05.md#f02) (P2; Usulan; belum dijadwalkan).
+- [x] [F02 — Timeline aktivitas pelanggan](MWX-ISP-audit-backlog-2026-10-05.md#f02) (P2; ditutup #54; lihat [customer-timeline](customer-timeline.md)).
 - [ ] [F03 — Integrasi satu payment gateway sungguhan](MWX-ISP-audit-backlog-2026-10-05.md#f03) (P2; Usulan; keputusan scope/provider diperlukan).
 - [ ] [F04 — Portal pelanggan minimum dengan login](MWX-ISP-audit-backlog-2026-10-05.md#f04) (P2; Usulan; keputusan scope diperlukan).
 - [ ] [F05 — Work order teknisi minimum](MWX-ISP-audit-backlog-2026-10-05.md#f05) (P3; Usulan; keputusan scope diperlukan).

@@ -20,6 +20,7 @@ import {
   WhatsApp as WhatsAppIcon,
 } from '@mui/icons-material';
 import { apiRequest } from '../utils/apiClient';
+import { CustomerTimeline } from '../components/CustomerTimeline';
 import { MrtgTrafficGraph } from '../components/MrtgTrafficGraph';
 import { Mono, StatusChip, PageHeader, KpiStrip, KpiTile, Panel } from '../components/Enterprise';
 
@@ -334,6 +335,12 @@ export const CustomerShow = () => (
               <DateField source="paid_at" showTime />
             </Datagrid>
           </ArrayField>
+        </Panel>
+      </Box>
+
+      <Box sx={{ width: '100%', mb: 1 }}>
+        <Panel title="CUSTOMER 360 TIMELINE" subtitle="Chronological activity across billing, RADIUS sessions and support tickets">
+          <CustomerTimeline pageSize={15} />
         </Panel>
       </Box>
     </SimpleShowLayout>
