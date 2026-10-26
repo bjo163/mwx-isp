@@ -15,6 +15,7 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/shirou/gopsutil/v4/process"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 var cronParser = cron.NewParser(
@@ -320,8 +321,17 @@ func (a *Application) SchedClearExpireData() {
 	a.gormDB.Where("created_at < ?", time.Now().AddDate(0, 0, -7)).Delete(&domain.SyslogEvent{})
 }
 
+type fupTrafficTotals struct {
+	Input  int64
+	Output int64
+}
+
 // SchedFUPCheckTask evaluates subscriber traffic usage against package FUP quotas,
 // automatically throttling accounts exceeding thresholds and resetting restored quotas.
+//
+// Each active tenant is processed with its own database context so duplicate
+// usernames in different organizations cannot share traffic totals, throttled
+// rates, audit events or disconnect actions.
 func (a *Application) SchedFUPCheckTask() {
 	defer func() {
 		if err := recover(); err != nil {
@@ -329,95 +339,221 @@ func (a *Application) SchedFUPCheckTask() {
 			a.enqueueSchedulerFailure("isp-fup", "scheduler recovered from a task error")
 		}
 	}()
+	if a.gormDB == nil {
+		return
+	}
 
 	now := time.Now()
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 
-	var activeSubs []domain.Subscription
-	if err := a.gormDB.Where("status = ?", domain.SubscriptionActive).Find(&activeSubs).Error; err != nil {
+	var tenants []domain.Tenant
+	if err := a.gormDB.Where("status = ?", "active").Order("id ASC").Find(&tenants).Error; err != nil {
+		zap.S().Error("active tenant query failed for FUP", zap.Error(err))
+		a.enqueueSchedulerFailure("isp-fup-tenants", "active tenant query failed")
 		return
 	}
+	for _, tenant := range tenants {
+		if err := a.runFUPCheckForTenant(tenant.ID, now, monthStart); err != nil {
+			zap.S().Error("tenant FUP check failed", zap.Int64("tenant_id", tenant.ID), zap.Error(err))
+			a.enqueueSchedulerFailure("isp-fup", fmt.Sprintf("FUP failed for tenant %d", tenant.ID))
+		}
+	}
+}
 
-	for _, sub := range activeSubs {
+func (a *Application) runFUPCheckForTenant(tenantID int64, now, monthStart time.Time) error {
+	if tenantID <= 0 {
+		return fmt.Errorf("invalid tenant ID %d", tenantID)
+	}
+	ctx := tenancy.WithTenantID(context.Background(), tenantID)
+	db := a.gormDB.WithContext(ctx)
+
+	var activeSubs []domain.Subscription
+	if err := db.Where("status = ?", domain.SubscriptionActive).Find(&activeSubs).Error; err != nil {
+		return fmt.Errorf("load active subscriptions: %w", err)
+	}
+
+	var firstErr error
+	for i := range activeSubs {
+		sub := &activeSubs[i]
 		var pkg domain.InternetPackage
-		if err := a.gormDB.First(&pkg, sub.PackageID).Error; err != nil || pkg.FupLimitGB <= 0 {
+		if err := db.First(&pkg, sub.PackageID).Error; err != nil || pkg.FupLimitGB <= 0 {
 			continue
 		}
-
 		var user domain.RadiusUser
-		if sub.RadiusUserID <= 0 || a.gormDB.First(&user, sub.RadiusUserID).Error != nil {
+		if sub.RadiusUserID <= 0 || db.First(&user, sub.RadiusUserID).Error != nil {
 			continue
 		}
 
+		totalTraffic, err := a.fupMonthlyTraffic(db, user.Username, monthStart)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = fmt.Errorf("aggregate FUP traffic for %q: %w", user.Username, err)
+			}
+			continue
+		}
 		limitBytes := pkg.FupLimitGB * 1024 * 1024 * 1024
 
-		type trafficTotals struct {
-			Input  int64
-			Output int64
-		}
-		var 		live trafficTotals
-		a.gormDB.Model(&domain.RadiusOnline{}).
-			Where("username = ? AND tenant_id = ?", user.Username, sub.TenantID).
-			Select("COALESCE(SUM(acct_input_total), 0) as input, COALESCE(SUM(acct_output_total), 0) as output").
-			Scan(&live)
-
-		var hist trafficTotals
-		a.gormDB.Model(&domain.RadiusAccounting{}).
-			Where("username = ? AND tenant_id = ? AND acct_start_time >= ?", user.Username, sub.TenantID, monthStart).
-			Select("COALESCE(SUM(acct_input_total), 0) as input, COALESCE(SUM(acct_output_total), 0) as output").
-			Scan(&hist)
-
-		totalTraffic := live.Input + live.Output + hist.Input + hist.Output
-
 		if totalTraffic >= limitBytes && !sub.FupTriggered && pkg.FupRateDown > 0 {
-			a.gormDB.Model(&sub).Update("fup_triggered", true)
-			if pkg.FupRateUp > 0 && pkg.FupRateDown > 0 {
-				a.gormDB.Model(&user).Updates(map[string]interface{}{
-					"up_rate":    pkg.FupRateUp,
-					"down_rate":  pkg.FupRateDown,
-					"updated_at": now,
-				})
-			}
-			if handler := a.sessionDisconnectHandler(); handler != nil {
-				var sessions []domain.RadiusOnline
-				if a.gormDB.Where("username = ? AND tenant_id = ?", user.Username, sub.TenantID).Find(&sessions).Error == nil {
-					for _, s := range sessions {
-						_ = handler(context.Background(), s)
-					}
+			changed, err := a.throttleSubscriptionFUP(db, sub, &pkg, &user, now)
+			if err != nil {
+				if firstErr == nil {
+					firstErr = fmt.Errorf("apply FUP throttle for subscription %d: %w", sub.ID, err)
 				}
+				continue
 			}
-			_ = a.gormDB.Create(&domain.BillingEvent{
-				CustomerID:     sub.CustomerID,
-				SubscriptionID: sub.ID,
-				Type:           "fup_throttled",
-				Description:    fmt.Sprintf("Auto FUP quota (%d GB) reached: speed throttled", pkg.FupLimitGB),
-				CreatedAt:      now,
-			})
-		} else if totalTraffic < limitBytes && sub.FupTriggered && now.Day() == 1 {
-			var profile domain.RadiusProfile
-			if a.gormDB.First(&profile, pkg.RadiusProfileID).Error == nil {
-				a.gormDB.Model(&sub).Update("fup_triggered", false)
-				a.gormDB.Model(&user).Updates(map[string]interface{}{
-					"up_rate":    profile.UpRate,
-					"down_rate":  profile.DownRate,
-					"updated_at": now,
-				})
-				if handler := a.sessionDisconnectHandler(); handler != nil {
-				var sessions []domain.RadiusOnline
-				if a.gormDB.Where("username = ? AND tenant_id = ?", user.Username, sub.TenantID).Find(&sessions).Error == nil {
-						for _, s := range sessions {
-							_ = handler(context.Background(), s)
-						}
-					}
+			if changed {
+				a.disconnectTenantSessions(ctx, user.Username)
+			}
+			continue
+		}
+
+		if totalTraffic < limitBytes && sub.FupTriggered {
+			// A throttle recorded in the current period must survive temporary
+			// traffic drops (for example accounting retention pruning) until the
+			// next period. The persisted event is the period marker because the
+			// subscription row only stores the boolean state.
+			throttled, err := a.fupThrottledThisMonth(db, sub.ID, monthStart)
+			if err != nil {
+				if firstErr == nil {
+					firstErr = fmt.Errorf("load FUP period marker for subscription %d: %w", sub.ID, err)
 				}
-				_ = a.gormDB.Create(&domain.BillingEvent{
-					CustomerID:     sub.CustomerID,
-					SubscriptionID: sub.ID,
-					Type:           "fup_restored",
-					Description:    "Monthly cycle start: FUP quota reset and normal speed restored",
-					CreatedAt:      now,
-				})
+				continue
 			}
+			if throttled {
+				continue
+			}
+			changed, err := a.restoreSubscriptionFUP(db, sub, &pkg, &user, now)
+			if err != nil {
+				if firstErr == nil {
+					firstErr = fmt.Errorf("restore FUP for subscription %d: %w", sub.ID, err)
+				}
+				continue
+			}
+			if changed {
+				a.disconnectTenantSessions(ctx, user.Username)
+			}
+		}
+	}
+	return firstErr
+}
+
+// fupMonthlyTraffic sums current online sessions plus closed accounting records
+// for the current period. Open accounting rows mirror online sessions and are
+// excluded to avoid counting an active session twice.
+func (a *Application) fupMonthlyTraffic(db *gorm.DB, username string, monthStart time.Time) (int64, error) {
+	var live, hist fupTrafficTotals
+	if err := db.Model(&domain.RadiusOnline{}).
+		Where("username = ?", username).
+		Select("COALESCE(SUM(acct_input_total), 0) as input, COALESCE(SUM(acct_output_total), 0) as output").
+		Scan(&live).Error; err != nil {
+		return 0, err
+	}
+	if err := db.Model(&domain.RadiusAccounting{}).
+		Where("username = ? AND acct_start_time >= ? AND acct_stop_time > ?", username, monthStart, time.Unix(0, 0)).
+		Select("COALESCE(SUM(acct_input_total), 0) as input, COALESCE(SUM(acct_output_total), 0) as output").
+		Scan(&hist).Error; err != nil {
+		return 0, err
+	}
+	return live.Input + live.Output + hist.Input + hist.Output, nil
+}
+
+func (a *Application) fupThrottledThisMonth(db *gorm.DB, subscriptionID int64, monthStart time.Time) (bool, error) {
+	var count int64
+	if err := db.Model(&domain.BillingEvent{}).
+		Where("subscription_id = ? AND type = ? AND created_at >= ?", subscriptionID, "fup_throttled", monthStart).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (a *Application) throttleSubscriptionFUP(db *gorm.DB, sub *domain.Subscription, pkg *domain.InternetPackage, user *domain.RadiusUser, now time.Time) (bool, error) {
+	changed := false
+	err := db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&domain.Subscription{}).
+			Where("id = ? AND fup_triggered = ?", sub.ID, false).
+			Updates(map[string]interface{}{"fup_triggered": true, "updated_at": now})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return nil
+		}
+		if pkg.FupRateUp > 0 && pkg.FupRateDown > 0 {
+			if err := tx.Model(&domain.RadiusUser{}).Where("id = ?", user.ID).Updates(map[string]interface{}{
+				"up_rate":    pkg.FupRateUp,
+				"down_rate":  pkg.FupRateDown,
+				"updated_at": now,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Create(&domain.BillingEvent{
+			CustomerID:     sub.CustomerID,
+			SubscriptionID: sub.ID,
+			Type:           "fup_throttled",
+			Description:    fmt.Sprintf("Auto FUP quota (%d GB) reached: speed throttled", pkg.FupLimitGB),
+			CreatedAt:      now,
+		}).Error; err != nil {
+			return err
+		}
+		changed = true
+		return nil
+	})
+	return changed, err
+}
+
+func (a *Application) restoreSubscriptionFUP(db *gorm.DB, sub *domain.Subscription, pkg *domain.InternetPackage, user *domain.RadiusUser, now time.Time) (bool, error) {
+	var profile domain.RadiusProfile
+	if err := db.First(&profile, pkg.RadiusProfileID).Error; err != nil {
+		return false, fmt.Errorf("load package profile: %w", err)
+	}
+	changed := false
+	err := db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&domain.Subscription{}).
+			Where("id = ? AND fup_triggered = ?", sub.ID, true).
+			Updates(map[string]interface{}{"fup_triggered": false, "updated_at": now})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return nil
+		}
+		if err := tx.Model(&domain.RadiusUser{}).Where("id = ?", user.ID).Updates(map[string]interface{}{
+			"up_rate":    profile.UpRate,
+			"down_rate":  profile.DownRate,
+			"updated_at": now,
+		}).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(&domain.BillingEvent{
+			CustomerID:     sub.CustomerID,
+			SubscriptionID: sub.ID,
+			Type:           "fup_restored",
+			Description:    "Monthly cycle start: FUP quota reset and normal speed restored",
+			CreatedAt:      now,
+		}).Error; err != nil {
+			return err
+		}
+		changed = true
+		return nil
+	})
+	return changed, err
+}
+
+func (a *Application) disconnectTenantSessions(ctx context.Context, username string) {
+	handler := a.sessionDisconnectHandler()
+	if handler == nil {
+		return
+	}
+	var sessions []domain.RadiusOnline
+	if err := a.gormDB.WithContext(ctx).Where("username = ?", username).Find(&sessions).Error; err != nil {
+		zap.L().Warn("load FUP sessions for disconnect failed", zap.String("username", username), zap.Error(err))
+		return
+	}
+	for _, session := range sessions {
+		if err := handler(ctx, session); err != nil {
+			zap.L().Warn("FUP session disconnect failed", zap.String("username", username), zap.Error(err))
 		}
 	}
 }

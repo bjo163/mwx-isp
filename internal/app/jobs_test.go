@@ -190,3 +190,179 @@ func TestInitJobRegistersCleanup(t *testing.T) {
 	require.Len(t, a.sched.Entries(), 4,
 		"expected monitor, tenant-aware retention, billing and FUP cron entries")
 }
+
+type fupFixture struct {
+	sub     domain.Subscription
+	user    domain.RadiusUser
+	pkg     domain.InternetPackage
+	profile domain.RadiusProfile
+}
+
+func newFUPDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:fup-%d?mode=memory&cache=shared", time.Now().UnixNano())), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, tenancy.RegisterCallbacks(db))
+	require.NoError(t, db.AutoMigrate(
+		&domain.Tenant{}, &domain.Customer{}, &domain.InternetPackage{}, &domain.RadiusProfile{},
+		&domain.RadiusUser{}, &domain.Subscription{}, &domain.RadiusOnline{}, &domain.RadiusAccounting{},
+		&domain.BillingEvent{},
+	))
+	return db
+}
+
+func seedFUPFixture(t *testing.T, db *gorm.DB, tenantID int64) fupFixture {
+	t.Helper()
+	require.NoError(t, db.Create(&domain.Tenant{
+		ID: tenantID, Name: fmt.Sprintf("Tenant %d", tenantID), Slug: fmt.Sprintf("tenant-%d", tenantID),
+		Kind: "isp", Status: "active",
+	}).Error)
+	tdb := db.WithContext(tenancy.WithTenantID(context.Background(), tenantID))
+	profile := domain.RadiusProfile{Name: "normal", UpRate: 2048, DownRate: 4096, Status: "enabled"}
+	require.NoError(t, tdb.Create(&profile).Error)
+	pkg := domain.InternetPackage{
+		Code: "HOME", Name: "Home", Price: 100000, RadiusProfileID: profile.ID, BillingCycle: "monthly",
+		Status: "active", FupLimitGB: 1, FupRateUp: 256, FupRateDown: 512,
+	}
+	require.NoError(t, tdb.Create(&pkg).Error)
+	user := domain.RadiusUser{Username: "shared-user", Password: "secret", Status: "enabled", UpRate: 2048, DownRate: 4096}
+	require.NoError(t, tdb.Create(&user).Error)
+	customer := domain.Customer{CustomerNo: "MWX-000001", Name: "Customer", Status: domain.CustomerActive}
+	require.NoError(t, tdb.Create(&customer).Error)
+	sub := domain.Subscription{
+		SubscriptionNo: "SUB-000001", CustomerID: customer.ID, PackageID: pkg.ID, RadiusUserID: user.ID,
+		Status: domain.SubscriptionActive, StartDate: time.Now().AddDate(0, -1, 0), BillingDay: 1, GraceDays: 3,
+	}
+	require.NoError(t, tdb.Create(&sub).Error)
+	return fupFixture{sub: sub, user: user, pkg: pkg, profile: profile}
+}
+
+func seedFUPOnline(t *testing.T, db *gorm.DB, tenantID int64, sessionID string, bytes int64) {
+	t.Helper()
+	tdb := db.WithContext(tenancy.WithTenantID(context.Background(), tenantID))
+	require.NoError(t, tdb.Create(&domain.RadiusOnline{
+		Username: "shared-user", AcctSessionId: sessionID, AcctInputTotal: bytes / 2, AcctOutputTotal: bytes / 2,
+		LastUpdate: time.Now(), AcctStartTime: time.Now().Add(-time.Hour),
+	}).Error)
+}
+
+func seedFUPAccounting(t *testing.T, db *gorm.DB, tenantID int64, sessionID string, bytes int64, stopTime time.Time) {
+	t.Helper()
+	tdb := db.WithContext(tenancy.WithTenantID(context.Background(), tenantID))
+	require.NoError(t, tdb.Create(&domain.RadiusAccounting{
+		Username: "shared-user", AcctSessionId: sessionID, AcctInputTotal: bytes / 2, AcctOutputTotal: bytes / 2,
+		AcctStartTime: time.Now().Add(-2 * time.Hour), AcctStopTime: stopTime,
+	}).Error)
+}
+
+func TestSchedFUPCheckScopesUsageEventsAndDisconnectsPerTenant(t *testing.T) {
+	db := newFUPDB(t)
+	fixtures := map[int64]fupFixture{
+		10: seedFUPFixture(t, db, 10),
+		20: seedFUPFixture(t, db, 20),
+		30: seedFUPFixture(t, db, 30),
+	}
+
+	seedFUPOnline(t, db, 10, "session-10", 2<<30)
+	seedFUPOnline(t, db, 20, "session-20", 512<<20)
+	// An open accounting row mirrors a live session and must not be added again.
+	seedFUPAccounting(t, db, 20, "accounting-20-open", 10<<30, time.Time{})
+	// Closed accounting history must count even when the online row is gone.
+	seedFUPOnline(t, db, 30, "session-30", 1<<20)
+	seedFUPAccounting(t, db, 30, "accounting-30-closed", 2<<30, time.Now().Add(-time.Minute))
+
+	a := &Application{gormDB: db}
+	var disconnectedTenantIDs []int64
+	a.SetSessionDisconnectHandler(func(ctx context.Context, session domain.RadiusOnline) error {
+		tenantID, ok := tenancy.TenantID(ctx)
+		require.True(t, ok, "FUP disconnect must carry a tenant context")
+		disconnectedTenantIDs = append(disconnectedTenantIDs, tenantID)
+		return nil
+	})
+
+	a.SchedFUPCheckTask()
+
+	for tenantID, wantTriggered := range map[int64]bool{10: true, 20: false, 30: true} {
+		var sub domain.Subscription
+		require.NoError(t, db.WithContext(tenancy.WithTenantID(context.Background(), tenantID)).First(&sub, fixtures[tenantID].sub.ID).Error)
+		require.Equal(t, wantTriggered, sub.FupTriggered, "tenant %d FUP state", tenantID)
+
+		var user domain.RadiusUser
+		require.NoError(t, db.WithContext(tenancy.WithTenantID(context.Background(), tenantID)).First(&user, fixtures[tenantID].user.ID).Error)
+		if wantTriggered {
+			require.Equal(t, 256, user.UpRate, "tenant %d upload rate", tenantID)
+			require.Equal(t, 512, user.DownRate, "tenant %d download rate", tenantID)
+		} else {
+			require.Equal(t, 2048, user.UpRate, "tenant %d upload rate", tenantID)
+			require.Equal(t, 4096, user.DownRate, "tenant %d download rate", tenantID)
+		}
+	}
+
+	var events []domain.BillingEvent
+	require.NoError(t, db.Find(&events).Error)
+	require.Len(t, events, 2)
+	var eventTenantIDs []int64
+	for _, event := range events {
+		require.Equal(t, "fup_throttled", event.Type)
+		eventTenantIDs = append(eventTenantIDs, event.TenantID)
+	}
+	assert.ElementsMatch(t, []int64{10, 30}, eventTenantIDs, "FUP audit events must belong to the affected tenants")
+	assert.ElementsMatch(t, []int64{10, 30}, disconnectedTenantIDs, "only throttled tenants may be disconnected")
+}
+
+func TestSchedFUPCheckResetIsPeriodAwareAndIdempotent(t *testing.T) {
+	db := newFUPDB(t)
+	fixture := seedFUPFixture(t, db, 10)
+	seedFUPOnline(t, db, 10, "session-10", 1<<20)
+	tdb := db.WithContext(tenancy.WithTenantID(context.Background(), 10))
+	require.NoError(t, tdb.Model(&domain.Subscription{}).Where("id = ?", fixture.sub.ID).Update("fup_triggered", true).Error)
+	require.NoError(t, tdb.Model(&domain.RadiusUser{}).Where("id = ?", fixture.user.ID).Updates(map[string]interface{}{"up_rate": 256, "down_rate": 512}).Error)
+	require.NoError(t, tdb.Create(&domain.BillingEvent{
+		CustomerID: fixture.sub.CustomerID, SubscriptionID: fixture.sub.ID, Type: "fup_throttled",
+		CreatedAt: time.Now().AddDate(0, -1, 0),
+	}).Error)
+
+	a := &Application{gormDB: db}
+	var disconnectCount int
+	a.SetSessionDisconnectHandler(func(ctx context.Context, session domain.RadiusOnline) error {
+		tenantID, ok := tenancy.TenantID(ctx)
+		require.True(t, ok)
+		require.Equal(t, int64(10), tenantID)
+		disconnectCount++
+		return nil
+	})
+
+	a.SchedFUPCheckTask()
+
+	var sub domain.Subscription
+	require.NoError(t, tdb.First(&sub, fixture.sub.ID).Error)
+	require.False(t, sub.FupTriggered, "a throttle from the previous period must reset on the next run")
+	var user domain.RadiusUser
+	require.NoError(t, tdb.First(&user, fixture.user.ID).Error)
+	require.Equal(t, fixture.profile.UpRate, user.UpRate)
+	require.Equal(t, fixture.profile.DownRate, user.DownRate)
+	require.Equal(t, 1, disconnectCount)
+
+	var events []domain.BillingEvent
+	require.NoError(t, tdb.Order("id ASC").Find(&events).Error)
+	require.Len(t, events, 2)
+	require.Equal(t, "fup_restored", events[1].Type)
+	require.Equal(t, int64(10), events[1].TenantID)
+
+	a.SchedFUPCheckTask()
+	require.NoError(t, tdb.Find(&events).Error)
+	require.Len(t, events, 2, "repeated runs must not duplicate the restore event")
+	require.Equal(t, 1, disconnectCount, "repeated runs must not disconnect again")
+
+	require.NoError(t, tdb.Model(&domain.Subscription{}).Where("id = ?", fixture.sub.ID).Update("fup_triggered", true).Error)
+	require.NoError(t, tdb.Create(&domain.BillingEvent{
+		CustomerID: fixture.sub.CustomerID, SubscriptionID: fixture.sub.ID, Type: "fup_throttled",
+		CreatedAt: time.Now(),
+	}).Error)
+	a.SchedFUPCheckTask()
+	require.NoError(t, tdb.First(&sub, fixture.sub.ID).Error)
+	require.True(t, sub.FupTriggered, "a current-period throttle must not be reset by a temporary traffic drop")
+	require.NoError(t, tdb.Find(&events).Error)
+	require.Len(t, events, 3)
+	require.Equal(t, 1, disconnectCount)
+}
