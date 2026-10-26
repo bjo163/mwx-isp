@@ -27,6 +27,7 @@ import {
 } from '@mui/material';
 import {
   Add,
+  Block,
   ConfirmationNumber,
   DeleteOutline,
   Print,
@@ -179,6 +180,16 @@ export const HotspotVouchersPage: React.FC = () => {
     },
   });
 
+  const revokeVoucherMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest(`/isp/vouchers/${id}/revoke`, { method: 'POST' }),
+    onSuccess: () => {
+      notify('Voucher revoked; credential disabled and live session disconnected', { type: 'success' });
+      void queryClient.invalidateQueries({ queryKey: ['isp', 'vouchers'] });
+    },
+    onError: (err: any) => notify(err.message || 'Revoke failed', { type: 'error' }),
+  });
+
   const batches = batchesQuery.data ?? [];
   const vouchers = vouchersQuery.data ?? [];
 
@@ -229,6 +240,7 @@ export const HotspotVouchersPage: React.FC = () => {
         <KpiTile label="Active / Unused" value={countStatus('active')} tone="success" hint="Ready for customers" />
         <KpiTile label="Used / Online" value={countStatus('used')} tone="info" hint="Logged in" />
         <KpiTile label="Expired" value={countStatus('expired')} tone="error" hint="Validity window ended" />
+        <KpiTile label="Revoked" value={countStatus('revoked')} tone="error" hint="Disabled by operator" />
         <KpiTile label="Total Batches" value={batches.length} tone="warning" hint="Created batches" />
         <KpiTile
           label="Total Face Value"
@@ -271,6 +283,7 @@ export const HotspotVouchersPage: React.FC = () => {
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="used">Used / Online</MenuItem>
                 <MenuItem value="expired">Expired</MenuItem>
+                <MenuItem value="revoked">Revoked</MenuItem>
               </Select>
             </FormControl>
 
@@ -332,6 +345,7 @@ export const HotspotVouchersPage: React.FC = () => {
                   <TableCell>Quota</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Created Date</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -351,6 +365,23 @@ export const HotspotVouchersPage: React.FC = () => {
                     </TableCell>
                     <TableCell sx={{ color: 'text.secondary', fontSize: '0.78rem' }}>
                       {new Date(v.created_at).toLocaleDateString()} {new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </TableCell>
+                    <TableCell align="right">
+                      {(v.status === 'active' || v.status === 'used') && (
+                        <Button
+                          size="small"
+                          color="error"
+                          startIcon={<Block fontSize="small" />}
+                          disabled={revokeVoucherMutation.isPending}
+                          onClick={() => {
+                            if (window.confirm(`Revoke voucher ${v.code}? The credential will be disabled and any live session disconnected.`)) {
+                              revokeVoucherMutation.mutate(v.id);
+                            }
+                          }}
+                        >
+                          Revoke
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

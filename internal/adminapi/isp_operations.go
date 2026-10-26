@@ -1,6 +1,7 @@
 package adminapi
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -14,9 +15,11 @@ import (
 	"github.com/bjo163/mwx-isp/internal/app"
 	"github.com/bjo163/mwx-isp/internal/billing"
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"github.com/bjo163/mwx-isp/internal/radiusd"
 	"github.com/bjo163/mwx-isp/internal/webserver"
 	"github.com/bjo163/mwx-isp/pkg/common"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -25,6 +28,7 @@ func registerISPOperationsRoutes() {
 	// Hotspot Voucher Management
 	webserver.ApiPOST("/isp/vouchers/generate", generateVouchers, requireAdmin())
 	webserver.ApiGET("/isp/vouchers", listVouchers)
+	webserver.ApiPOST("/isp/vouchers/:id/revoke", revokeVoucher, requireAdmin())
 	webserver.ApiGET("/isp/vouchers/batches", listVoucherBatches)
 	webserver.ApiDELETE("/isp/vouchers/batches/:id", deleteVoucherBatch, requireAdmin())
 	webserver.ApiGET("/public/vouchers/check", checkPublicVoucher)
@@ -336,6 +340,121 @@ func deleteVoucherBatch(c echo.Context) error {
 		return fail(c, 500, "DATABASE_ERROR", "Failed to delete voucher batch", nil)
 	}
 	return ok(c, map[string]any{"id": strconv.FormatInt(id, 10)})
+}
+
+var errVoucherStateChanged = errors.New("voucher state changed during revoke")
+
+// revokeVoucher permanently disables a voucher: the RADIUS credential is
+// disabled, the voucher status becomes revoked, and any live session is
+// disconnected best-effort. Revoking an already-revoked voucher is idempotent.
+// Expired vouchers cannot be revoked because they are already unusable.
+func revokeVoucher(c echo.Context) error {
+	id, err := parseIDParam(c, "id")
+	if err != nil {
+		return fail(c, 400, "INVALID_ID", "Invalid voucher ID", nil)
+	}
+	db := GetDB(c)
+	var voucher domain.HotspotVoucher
+	if err := db.First(&voucher, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fail(c, 404, "NOT_FOUND", "Voucher not found", nil)
+		}
+		return fail(c, 500, "DATABASE_ERROR", "Failed to load voucher", nil)
+	}
+
+	switch voucher.Status {
+	case "revoked":
+		return ok(c, voucherRevokeResponse(voucher, true, 0, 0))
+	case "expired":
+		return fail(c, http.StatusConflict, "VOUCHER_EXPIRED",
+			"Expired vouchers cannot be revoked; generate a new batch instead", nil)
+	}
+
+	err = db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&domain.HotspotVoucher{}).
+			Where("id = ? AND status IN ?", voucher.ID, []string{"active", "used"}).
+			Update("status", "revoked")
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errVoucherStateChanged
+		}
+		if voucher.RadiusUserID > 0 {
+			return tx.Model(&domain.RadiusUser{}).
+				Where("id = ?", voucher.RadiusUserID).
+				Update("status", common.DISABLED).Error
+		}
+		return tx.Model(&domain.RadiusUser{}).
+			Where("username = ? AND password = ?", voucher.Code, voucher.Password).
+			Update("status", common.DISABLED).Error
+	})
+	if errors.Is(err, errVoucherStateChanged) {
+		// A concurrent revoke won the conditional update, or the voucher expired
+		// between the initial read and the transaction.
+		if reloadErr := db.First(&voucher, id).Error; reloadErr == nil {
+			if voucher.Status == "revoked" {
+				return ok(c, voucherRevokeResponse(voucher, true, 0, 0))
+			}
+			if voucher.Status == "expired" {
+				return fail(c, http.StatusConflict, "VOUCHER_EXPIRED",
+					"Expired vouchers cannot be revoked; generate a new batch instead", nil)
+			}
+		}
+		return fail(c, http.StatusConflict, "INVALID_STATE", "Voucher status changed; reload and retry", nil)
+	}
+	if err != nil {
+		return fail(c, 500, "DATABASE_ERROR", "Failed to revoke voucher", nil)
+	}
+
+	disconnected, failed := disconnectVoucherSessions(c.Request().Context(), db, voucher.Code)
+	if failed > 0 {
+		zap.L().Warn("voucher revoked with failed session disconnects",
+			zap.String("namespace", "adminapi"),
+			zap.String("voucher", voucher.Code),
+			zap.Int("disconnected", disconnected),
+			zap.Int("failed", failed),
+		)
+	}
+	return ok(c, voucherRevokeResponse(voucher, false, disconnected, failed))
+}
+
+func voucherRevokeResponse(voucher domain.HotspotVoucher, alreadyRevoked bool, disconnected, failed int) map[string]any {
+	return map[string]any{
+		"id":                    strconv.FormatInt(voucher.ID, 10),
+		"code":                  voucher.Code,
+		"status":                "revoked",
+		"already_revoked":       alreadyRevoked,
+		"disconnected_sessions": disconnected,
+		"failed_disconnects":    failed,
+	}
+}
+
+// disconnectVoucherSessions sends an RFC 5176 Disconnect-Request for every live
+// session owned by the voucher. Failures are counted, not fatal: the credential
+// is already disabled, so the client cannot open a new session and the NAS will
+// drop the old one on its next accounting/authentication cycle.
+func disconnectVoucherSessions(ctx context.Context, db *gorm.DB, username string) (disconnected, failed int) {
+	var sessions []domain.RadiusOnline
+	if err := db.Where("username = ?", username).Find(&sessions).Error; err != nil {
+		return 0, 0
+	}
+	for i := range sessions {
+		var nas domain.NetNas
+		if err := db.Where("ipaddr = ?", sessions[i].NasAddr).First(&nas).Error; err != nil {
+			failed++
+			continue
+		}
+		target := radiusd.CoATargetFromNas(&nas)
+		identity := radiusd.SessionIdentityFromOnline(&sessions[i])
+		result, err := sessionCoAService().Disconnect(ctx, target, identity)
+		if err != nil || result == nil || !result.Success {
+			failed++
+			continue
+		}
+		disconnected++
+	}
+	return disconnected, failed
 }
 
 // --- 2. IPAM SUBNET MANAGEMENT & AUDIT ---
