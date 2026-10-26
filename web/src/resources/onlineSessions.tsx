@@ -111,6 +111,42 @@ interface CoaActionResult {
   error?: string;
 }
 
+// SessionActionRecord mirrors GET /session-actions. The scheduler queues a
+// Disconnect-Request when billing suspends a subscription; a failed attempt stays
+// visible here until it succeeds, exhausts its attempt budget, or is retried by
+// an operator.
+interface SessionActionRecord {
+  id: string;
+  session_id?: string;
+  acct_session_id?: string;
+  username?: string;
+  nas_addr?: string;
+  action?: string;
+  reason?: string;
+  status: string;
+  attempts: number;
+  max_attempts: number;
+  manual_retries?: number;
+  next_retry_at?: string;
+  last_attempt_at?: string;
+  last_response_code?: string;
+  last_error_cause_text?: string;
+  last_error?: string;
+  last_timed_out?: boolean;
+}
+
+interface SessionActionRetryResult {
+  action: SessionActionRecord;
+  outcome: {
+    success: boolean;
+    response_code?: string;
+    error_cause_text?: string;
+    error?: string;
+    timed_out?: boolean;
+    rtt_ms?: number;
+  };
+}
+
 const formatDuration = (seconds?: number): string => {
   if (seconds === undefined || seconds === null) {
     return '-';
@@ -1639,6 +1675,167 @@ const OnlineSessionActions = () => {
 
 // ============ List content ============
 
+// SessionActionQueuePanel surfaces billing-driven disconnects that have not yet
+// converged: pending actions waiting for the next retry and failed actions whose
+// automatic budget is exhausted. Each row can be retried immediately (admin only
+// on the backend); a successful retry removes the row on the next load.
+const SessionActionQueuePanel = () => {
+  const translate = useTranslate();
+  const notify = useNotify();
+  const [actions, setActions] = useState<SessionActionRecord[]>([]);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const rows = await apiRequest<SessionActionRecord[]>(
+        '/session-actions?status=pending,failed&pageSize=20',
+      );
+      setActions(rows ?? []);
+    } catch {
+      // Supplementary panel: a failure to load it must not interfere with the
+      // session list itself.
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleRetry = useCallback(async (action: SessionActionRecord) => {
+    setRetryingId(action.id);
+    try {
+      const result = await apiRequest<SessionActionRetryResult>(
+        `/session-actions/${action.id}/retry`,
+        { method: 'POST' },
+      );
+      if (result.outcome?.success) {
+        notify(translate('resources.radius/online.notifications.action_ack', {
+          _: '%{action} was acknowledged by the NAS (round trip: %{rtt} ms)',
+          action: translate('resources.radius/online.actions.disconnect', { _: 'Disconnect session' }),
+          rtt: result.outcome?.rtt_ms ?? 0,
+        }), { type: 'success' });
+      } else {
+        const cause = result.outcome?.error_cause_text
+          || result.outcome?.response_code
+          || result.outcome?.error
+          || translate('resources.radius/online.notifications.unknown_cause', { _: 'Unknown reason' });
+        notify(translate('resources.radius/online.notifications.action_nak', {
+          _: '%{action} was rejected by the NAS: %{cause}',
+          action: translate('resources.radius/online.actions.disconnect', { _: 'Disconnect session' }),
+          cause,
+        }), { type: result.outcome?.timed_out ? 'warning' : 'error' });
+      }
+      await load();
+    } catch (error) {
+      const message = error instanceof ApiError || error instanceof Error
+        ? error.message
+        : String(error);
+      notify(message, { type: 'error' });
+    } finally {
+      setRetryingId(null);
+    }
+  }, [load, notify, translate]);
+
+  if (actions.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        mb: 2,
+        borderRadius: 0.5,
+        border: theme => `1px solid ${alpha(theme.palette.warning.main, 0.4)}`,
+        bgcolor: theme => alpha(theme.palette.warning.main, 0.04),
+      }}
+    >
+      <CardContent sx={{ p: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            {translate('resources.radius/online.session_actions.title', {
+              _: 'Pending billing disconnects',
+            })}
+          </Typography>
+          <Chip size="small" color="warning" label={actions.length} />
+        </Box>
+        <Stack spacing={1}>
+          {actions.map(action => {
+            const retryTime = action.next_retry_at ? new Date(action.next_retry_at) : null;
+            const hasRetryTime = retryTime !== null && retryTime.getFullYear() > 1;
+            const detail = action.last_error_cause_text
+              || action.last_error
+              || action.last_response_code
+              || '-';
+            return (
+              <Box
+                key={action.id}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  flexWrap: 'wrap',
+                  p: 1.25,
+                  borderRadius: 0.5,
+                  bgcolor: 'background.paper',
+                  border: theme => `1px solid ${theme.palette.divider}`,
+                }}
+              >
+                <Box sx={{ minWidth: 180 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {action.username || '-'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                    {action.acct_session_id || action.nas_addr || '-'}
+                  </Typography>
+                </Box>
+                <Chip
+                  size="small"
+                  label={action.status}
+                  color={action.status === 'failed' ? 'error' : 'warning'}
+                  sx={{ textTransform: 'capitalize' }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {translate('resources.radius/online.session_actions.attempts', {
+                    _: '%{attempts}/%{max} attempts',
+                    attempts: action.attempts,
+                    max: action.max_attempts,
+                  })}
+                </Typography>
+                {action.status === 'pending' && hasRetryTime && (
+                  <Typography variant="caption" color="text.secondary">
+                    {translate('resources.radius/online.session_actions.next_retry', {
+                      _: 'Next retry: %{time}',
+                      time: retryTime.toLocaleString(),
+                    })}
+                  </Typography>
+                )}
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ flex: 1, minWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
+                  {detail}
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={retryingId === action.id}
+                  onClick={() => void handleRetry(action)}
+                >
+                  {retryingId === action.id
+                    ? translate('resources.radius/online.session_actions.retrying', { _: 'Retrying…' })
+                    : translate('resources.radius/online.session_actions.retry', { _: 'Retry now' })}
+                </Button>
+              </Box>
+            );
+          })}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+};
+
 const OnlineSessionListContent = () => {
   const translate = useTranslate();
   const theme = useTheme();
@@ -1669,6 +1866,7 @@ const OnlineSessionListContent = () => {
   if (!data || data.length === 0) {
     return (
       <Box>
+        <SessionActionQueuePanel />
         <SearchHeaderCard />
         <Card
           elevation={0}
@@ -1685,6 +1883,8 @@ const OnlineSessionListContent = () => {
 
   return (
     <Box>
+      <SessionActionQueuePanel />
+
       {/* Search区块 */}
       <SearchHeaderCard />
 

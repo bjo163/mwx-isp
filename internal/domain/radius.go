@@ -160,6 +160,50 @@ func (RadiusSessionActionAudit) TableName() string {
 	return "radius_session_action_audit"
 }
 
+// RadiusSessionAction is a durable, idempotent unit of required NAS work whose
+// desired state may not have been reached yet, for example a Disconnect-Request
+// after a billing suspension when the NAS is offline. The scheduler claims a
+// row, attempts the action, and either records success or schedules a bounded
+// retry. An operator can retry a failed row manually.
+//
+// IdempotencyKey is unique per tenant so repeated billing runs cannot enqueue
+// duplicate Disconnect-Requests for the same online session. ClaimToken is an
+// internal fencing value that prevents a stale or concurrent worker from
+// finalizing an action claimed by another run; it is never exposed by the API.
+type RadiusSessionAction struct {
+	ID                 int64      `json:"id,string"`
+	TenantID           int64      `json:"-" gorm:"not null;default:1;uniqueIndex:udx_radius_session_action_key,priority:1;index"`
+	IdempotencyKey     string     `json:"-" gorm:"size:128;not null;uniqueIndex:udx_radius_session_action_key,priority:2"`
+	SessionID          int64      `gorm:"index" json:"session_id,string"`
+	AcctSessionID      string     `gorm:"index;size:64" json:"acct_session_id"`
+	Username           string     `gorm:"index;size:128" json:"username"`
+	NasAddr            string     `gorm:"index;size:64" json:"nas_addr"`
+	Action             string     `gorm:"index;size:16" json:"action"`
+	Reason             string     `gorm:"index;size:32" json:"reason"`
+	Status             string     `gorm:"index;size:16;not null;default:pending" json:"status"`
+	Attempts           int        `gorm:"not null;default:0" json:"attempts"`
+	MaxAttempts        int        `gorm:"not null;default:8" json:"max_attempts"`
+	ManualRetries      int        `gorm:"not null;default:0" json:"manual_retries"`
+	NextRetryAt        time.Time  `gorm:"index" json:"next_retry_at"`
+	LastAttemptAt      *time.Time `json:"last_attempt_at"`
+	LastResponseCode   string     `gorm:"size:32" json:"last_response_code"`
+	LastErrorCause     int        `json:"last_error_cause"`
+	LastErrorCauseText string     `gorm:"size:128" json:"last_error_cause_text"`
+	LastError          string     `gorm:"size:512" json:"last_error"`
+	LastTimedOut       bool       `json:"last_timed_out"`
+	LastWireAttempts   int        `json:"last_wire_attempts"`
+	LastRTTMillis      int64      `json:"last_rtt_ms"`
+	SucceededAt        *time.Time `json:"succeeded_at"`
+	ClaimToken         string     `gorm:"size:64" json:"-"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
+}
+
+// TableName specifies the durable session action table name.
+func (RadiusSessionAction) TableName() string {
+	return "radius_session_action"
+}
+
 // RadiusAccounting stores finalized accounting records for session history.
 type RadiusAccounting struct {
 	ID                  int64     `json:"id,string"` // Primary key ID

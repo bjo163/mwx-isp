@@ -9,6 +9,7 @@ import (
 	"github.com/bjo163/mwx-isp/config"
 	"github.com/bjo163/mwx-isp/internal/billing"
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"github.com/bjo163/mwx-isp/internal/sessionqueue"
 	"github.com/bjo163/mwx-isp/internal/tenancy"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ func TestRunBillingForTenantScopesInvoiceGenerationAndDisconnect(t *testing.T) {
 	require.NoError(t, db.AutoMigrate(
 		&domain.Customer{}, &domain.InternetPackage{}, &domain.Subscription{}, &domain.Invoice{},
 		&domain.InvoiceItem{}, &domain.BillingEvent{}, &domain.RadiusUser{}, &domain.RadiusOnline{},
-		&domain.DocumentSequence{},
+		&domain.DocumentSequence{}, &domain.RadiusSessionAction{}, &domain.RadiusSessionActionAudit{},
 	))
 
 	now := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
@@ -45,11 +46,11 @@ func TestRunBillingForTenantScopesInvoiceGenerationAndDisconnect(t *testing.T) {
 
 	var disconnectedTenantIDs []int64
 	a := &Application{gormDB: db}
-	a.SetSessionDisconnectHandler(func(ctx context.Context, session domain.RadiusOnline) error {
+	a.SetSessionActionSender(func(ctx context.Context, session domain.RadiusOnline) sessionqueue.Outcome {
 		tenantID, ok := tenancy.TenantID(ctx)
 		require.True(t, ok)
 		disconnectedTenantIDs = append(disconnectedTenantIDs, tenantID)
-		return nil
+		return sessionqueue.Outcome{Success: true, ResponseCode: "Disconnect-ACK", Attempts: 1}
 	})
 	// Mark tenant 10's subscription overdue so this run suspends and disconnects
 	// only tenant 10's duplicate username session.
@@ -70,6 +71,98 @@ func TestRunBillingForTenantScopesInvoiceGenerationAndDisconnect(t *testing.T) {
 	require.NoError(t, db.WithContext(tenancy.WithTenantID(context.Background(), 20)).Find(&tenantBInvoices).Error)
 	require.Len(t, tenantAInvoices, 1)
 	require.Empty(t, tenantBInvoices, "tenant A billing must not generate invoices for tenant B")
+
+	var actions []domain.RadiusSessionAction
+	require.NoError(t, db.Find(&actions).Error)
+	require.Len(t, actions, 1, "only the suspended tenant's session is queued")
+	assert.Equal(t, int64(10), actions[0].TenantID)
+	assert.Equal(t, sessionqueue.StatusSucceeded, actions[0].Status)
+
+	var audits []domain.RadiusSessionActionAudit
+	require.NoError(t, db.Find(&audits).Error)
+	require.Len(t, audits, 1)
+	assert.Equal(t, int64(10), audits[0].TenantID)
+	assert.Equal(t, sessionqueue.SystemActor.Name, audits[0].OperatorName)
+}
+
+// TestBillingQueuesFailedDisconnectForRetry guards #52: when the NAS is
+// unreachable, billing suspension must leave a durable pending action instead of
+// only logging a warning, repeated billing runs must not duplicate it, and the
+// retry scheduler must converge it later.
+func TestBillingQueuesFailedDisconnectForRetry(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, tenancy.RegisterCallbacks(db))
+	require.NoError(t, db.AutoMigrate(
+		&domain.Customer{}, &domain.InternetPackage{}, &domain.Subscription{}, &domain.Invoice{},
+		&domain.InvoiceItem{}, &domain.BillingEvent{}, &domain.RadiusUser{}, &domain.RadiusOnline{},
+		&domain.DocumentSequence{}, &domain.Tenant{}, &domain.RadiusSessionAction{}, &domain.RadiusSessionActionAudit{},
+	))
+
+	now := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+	require.NoError(t, db.Create(&domain.Tenant{ID: 10, Name: "Tenant 10", Slug: "tenant-10", Kind: "isp", Status: "active"}).Error)
+	tenantDB := db.WithContext(tenancy.WithTenantID(context.Background(), 10))
+	customer := domain.Customer{Name: "Overdue", Status: domain.CustomerActive}
+	require.NoError(t, tenantDB.Create(&customer).Error)
+	pkg := domain.InternetPackage{Code: "HOME", Name: "Home", Price: 150000, RadiusProfileID: 1, BillingCycle: "monthly", Status: "active"}
+	require.NoError(t, tenantDB.Create(&pkg).Error)
+	user := domain.RadiusUser{Username: "overdue-user", Password: "secret", Status: "enabled"}
+	require.NoError(t, tenantDB.Create(&user).Error)
+	sub := domain.Subscription{SubscriptionNo: "SUB-001", CustomerID: customer.ID, PackageID: pkg.ID,
+		RadiusUserID: user.ID, Status: domain.SubscriptionActive, StartDate: now.AddDate(0, -1, 0), BillingDay: 1}
+	require.NoError(t, tenantDB.Create(&sub).Error)
+	session := domain.RadiusOnline{Username: user.Username, AcctSessionId: "session-overdue"}
+	require.NoError(t, tenantDB.Create(&session).Error)
+	_, err = billing.GenerateMonthlyInvoices(tenantDB, now, 10)
+	require.NoError(t, err)
+	var invoice domain.Invoice
+	require.NoError(t, tenantDB.First(&invoice).Error)
+	require.NoError(t, tenantDB.Model(&invoice).Update("due_date", now.AddDate(0, 0, -5)).Error)
+
+	failCalls := 0
+	a := &Application{gormDB: db}
+	a.SetSessionActionSender(func(context.Context, domain.RadiusOnline) sessionqueue.Outcome {
+		failCalls++
+		return sessionqueue.Outcome{ResponseCode: "Disconnect-NAK", Error: "NAS unreachable", TimedOut: true}
+	})
+	require.NoError(t, a.runBillingForTenant(10, now, 10, true))
+	require.Equal(t, 1, failCalls)
+
+	var action domain.RadiusSessionAction
+	require.NoError(t, tenantDB.First(&action).Error)
+	assert.Equal(t, sessionqueue.StatusPending, action.Status)
+	assert.Equal(t, 1, action.Attempts)
+	assert.True(t, action.LastTimedOut)
+	assert.Equal(t, now.Add(time.Minute), action.NextRetryAt)
+
+	// A repeated billing run must not create a second action; the due retry is
+	// executed in place without resetting the attempt budget.
+	require.NoError(t, a.runBillingForTenant(10, now.Add(time.Hour), 10, true))
+	var actionCount int64
+	require.NoError(t, tenantDB.Model(&domain.RadiusSessionAction{}).Count(&actionCount).Error)
+	assert.Equal(t, int64(1), actionCount)
+	require.NoError(t, tenantDB.First(&action).Error)
+	assert.Equal(t, 2, action.Attempts, "the retry increments the budget instead of resetting it")
+	assert.Equal(t, now.Add(time.Hour).Add(sessionqueue.Backoff(2)), action.NextRetryAt)
+
+	// Once the NAS recovers and the backoff elapses, the retry task converges it.
+	a.SetSessionActionSender(func(context.Context, domain.RadiusOnline) sessionqueue.Outcome {
+		return sessionqueue.Outcome{Success: true, ResponseCode: "Disconnect-ACK", Attempts: 1}
+	})
+	require.NoError(t, tenantDB.Model(&domain.RadiusSessionAction{}).Where("id = ?", action.ID).
+		Update("next_retry_at", now.Add(-time.Minute)).Error)
+	a.SchedSessionActionRetryTask()
+
+	require.NoError(t, tenantDB.First(&action).Error)
+	assert.Equal(t, sessionqueue.StatusSucceeded, action.Status)
+	assert.Equal(t, 3, action.Attempts)
+
+	var audits []domain.RadiusSessionActionAudit
+	require.NoError(t, db.Order("id").Find(&audits).Error)
+	require.Len(t, audits, 3)
+	assert.False(t, audits[0].Success)
+	assert.False(t, audits[1].Success)
+	assert.True(t, audits[2].Success)
 }
 
 // TestSchedClearExpireData verifies the daily cleanup removes only genuinely
@@ -180,15 +273,15 @@ func accountingUsernames(t *testing.T, db *gorm.DB) []string {
 
 // TestInitJobRegistersCleanup is the regression guard for M6.4: SchedClearExpireData
 // was defined but never registered with cron, so expired online/accounting data was
-// never auto-purged. initJob schedules monitor, tenant-aware retention and
-// billing and subscriber FUP jobs (4 cron entries total).
+// never auto-purged. initJob schedules monitor, tenant-aware retention, billing,
+// subscriber FUP and session action retry jobs (5 cron entries total).
 func TestInitJobRegistersCleanup(t *testing.T) {
 	a := &Application{appConfig: &config.AppConfig{}}
 	a.initJob()
 	defer a.sched.Stop()
 
-	require.Len(t, a.sched.Entries(), 4,
-		"expected monitor, tenant-aware retention, billing and FUP cron entries")
+	require.Len(t, a.sched.Entries(), 5,
+		"expected monitor, tenant-aware retention, billing, FUP and session action retry cron entries")
 }
 
 type fupFixture struct {

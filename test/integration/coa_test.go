@@ -49,12 +49,13 @@ type itFakeNAS struct {
 	server *radius.PacketServer
 	secret string
 
-	mu        sync.Mutex
-	replyCode radius.Code // 0 => drop the request (force a client timeout)
-	errCause  rfc3576.ErrorCause
-	replyAuth itReplyAuth // how the reply carries a Message-Authenticator
-	received  []radius.Code
-	badAuth   int // count of requests missing/failing Message-Authenticator
+	mu         sync.Mutex
+	replyCode  radius.Code // 0 => drop the request (force a client timeout)
+	errCause   rfc3576.ErrorCause
+	replyAuth  itReplyAuth  // how the reply carries a Message-Authenticator
+	replyDelay time.Duration // pause before replying (0 => immediate)
+	received   []radius.Code
+	badAuth    int // count of requests missing/failing Message-Authenticator
 }
 
 // itReplyAuth controls how the fake NAS signs its CoA/Disconnect reply, exercising
@@ -106,8 +107,12 @@ func (fn *itFakeNAS) handle(w radius.ResponseWriter, r *radius.Request) {
 	code := fn.replyCode
 	cause := fn.errCause
 	authMode := fn.replyAuth
+	delay := fn.replyDelay
 	fn.mu.Unlock()
 
+	if delay > 0 {
+		time.Sleep(delay)
+	}
 	if !present || !valid {
 		return
 	}
@@ -200,6 +205,22 @@ func (fn *itFakeNAS) setReplyAuth(mode itReplyAuth) {
 	fn.mu.Lock()
 	defer fn.mu.Unlock()
 	fn.replyAuth = mode
+}
+
+// setReplyCode switches the reply the NAS returns, letting a test bring the NAS
+// back online between retries. Code 0 drops requests (client timeout).
+func (fn *itFakeNAS) setReplyCode(code radius.Code) {
+	fn.mu.Lock()
+	defer fn.mu.Unlock()
+	fn.replyCode = code
+}
+
+// setReplyDelay makes the NAS hold its answer, widening the window in which a
+// concurrent duplicate can observe the action as running.
+func (fn *itFakeNAS) setReplyDelay(delay time.Duration) {
+	fn.mu.Lock()
+	defer fn.mu.Unlock()
+	fn.replyDelay = delay
 }
 
 // seedCoAOnlineSession inserts a NAS (reachable at 127.0.0.1:coaPort) and an

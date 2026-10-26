@@ -55,6 +55,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 		&domain.NetNas{},
 		&domain.RadiusAccounting{},
 		&domain.RadiusOnline{},
+		&domain.RadiusSessionAction{},
 		&domain.RadiusSessionActionAudit{},
 		&domain.SysOpr{},
 		&domain.TenantMembership{},

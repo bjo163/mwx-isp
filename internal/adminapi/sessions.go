@@ -274,4 +274,8 @@ func registerSessionRoutes() {
 	// RFC 5176 Dynamic Authorization actions over a live session (admin/super only).
 	webserver.ApiPOST("/sessions/:id/disconnect", DisconnectOnlineSession, requireAdmin())
 	webserver.ApiPOST("/sessions/:id/coa", ChangeOnlineSessionAuthorization, requireAdmin())
+	// Durable billing-driven session actions: operators can inspect pending
+	// retries and force one immediately.
+	webserver.ApiGET("/session-actions", ListSessionActions)
+	webserver.ApiPOST("/session-actions/:id/retry", RetrySessionAction, requireAdmin())
 }

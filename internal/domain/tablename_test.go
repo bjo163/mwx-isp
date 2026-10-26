@@ -104,6 +104,7 @@ func TestTableNameUniqueness(t *testing.T) {
 		"radius_profile":              true,
 		"radius_user":                 true,
 		"radius_online":               true,
+		"radius_session_action":       true,
 		"radius_session_action_audit": true,
 		"radius_accounting":           true,
 		"isp_customer":                true,

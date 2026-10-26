@@ -8,6 +8,7 @@ import (
 
 	"github.com/bjo163/mwx-isp/internal/billing"
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"github.com/bjo163/mwx-isp/internal/sessionqueue"
 	"github.com/bjo163/mwx-isp/internal/tenancy"
 	"github.com/bjo163/mwx-isp/pkg/metrics"
 	"github.com/robfig/cron/v3"
@@ -59,7 +60,17 @@ func (a *Application) initJob() {
 		zap.S().Errorf("init FUP check job error %s", err.Error())
 	}
 
+	_, err = a.sched.AddFunc("@every 5m", func() {
+		a.SchedSessionActionRetryTask()
+	})
+	if err != nil {
+		zap.S().Errorf("init session action retry job error %s", err.Error())
+	}
+
 	a.sched.Start()
+	// Run one recovery pass at startup so pending actions left behind by a
+	// restart are retried without waiting for the first cron tick.
+	go a.SchedSessionActionRetryTask()
 }
 
 // SchedISPBillingTask creates due monthly invoices, processes overdue invoices
@@ -114,14 +125,13 @@ func (a *Application) runBillingForTenant(tenantID int64, now time.Time, dueDays
 	if err := billing.SuspendOverdueSubscriptions(db, now); err != nil {
 		return fmt.Errorf("suspend overdue subscriptions: %w", err)
 	}
-	handler := a.sessionDisconnectHandler()
-	if handler == nil {
-		return nil
-	}
 	var subs []domain.Subscription
 	if err := db.Where("status = ? AND suspension_reason = ?", domain.SubscriptionSuspended, domain.SuspensionBillingOverdue).Find(&subs).Error; err != nil {
 		return fmt.Errorf("load billing-suspended subscriptions: %w", err)
 	}
+	// Queue a durable Disconnect-Request per online session instead of a
+	// best-effort inline call: if the NAS is unreachable the action stays pending
+	// and the retry scheduler converges it once the NAS is back.
 	for _, sub := range subs {
 		var user domain.RadiusUser
 		if sub.RadiusUserID == 0 || db.First(&user, sub.RadiusUserID).Error != nil {
@@ -132,12 +142,65 @@ func (a *Application) runBillingForTenant(tenantID int64, now time.Time, dueDays
 			return fmt.Errorf("load online sessions for %q: %w", user.Username, err)
 		}
 		for _, session := range sessions {
-			if err := handler(ctx, session); err != nil {
-				zap.S().Warn("billing suspension disconnect failed", zap.Int64("tenant_id", tenantID), zap.String("username", user.Username), zap.Error(err))
+			if _, err := sessionqueue.EnqueueDisconnect(db, session, sessionqueue.ReasonBillingSuspension, now); err != nil {
+				return fmt.Errorf("queue disconnect for %q: %w", user.Username, err)
 			}
 		}
 	}
+	summary, err := sessionqueue.ProcessDue(context.Background(), a.gormDB, tenantID, now, a.sessionActionSender(), 200)
+	if err != nil {
+		zap.L().Warn("billing session action pass failed", zap.Int64("tenant_id", tenantID), zap.Error(err))
+	}
+	if summary.Attempted > 0 {
+		zap.L().Info("billing session actions processed", zap.Int64("tenant_id", tenantID),
+			zap.Int("attempted", summary.Attempted), zap.Int("succeeded", summary.Succeeded),
+			zap.Int("retried", summary.Retried), zap.Int("failed", summary.Failed),
+			zap.Int("canceled", summary.Canceled), zap.Int("audit_errors", summary.AuditErrors))
+	}
 	return nil
+}
+
+// SchedSessionActionRetryTask retries pending session actions whose backoff has
+// elapsed. It runs every five minutes and is safe to overlap: claims are fenced
+// with a token, so two passes cannot execute the same action. A process-local
+// guard additionally avoids stacking passes within one instance.
+func (a *Application) SchedSessionActionRetryTask() {
+	defer func() {
+		if err := recover(); err != nil {
+			zap.L().Error("session action retry scheduler panic", zap.Any("error", err))
+			a.enqueueSchedulerFailure("session-actions", "scheduler recovered from a task error")
+		}
+	}()
+	if a.gormDB == nil {
+		return
+	}
+	if !a.sessionActionBusy.CompareAndSwap(false, true) {
+		return
+	}
+	defer a.sessionActionBusy.Store(false)
+
+	now := time.Now()
+	var tenants []domain.Tenant
+	if err := a.gormDB.Where("status = ?", "active").Order("id ASC").Find(&tenants).Error; err != nil {
+		zap.L().Error("active tenant query failed for session actions", zap.Error(err))
+		a.enqueueSchedulerFailure("session-actions-tenants", "active tenant query failed")
+		return
+	}
+	send := a.sessionActionSender()
+	for _, tenant := range tenants {
+		summary, err := sessionqueue.ProcessDue(context.Background(), a.gormDB, tenant.ID, now, send, 100)
+		if err != nil {
+			zap.L().Warn("tenant session action retry pass failed", zap.Int64("tenant_id", tenant.ID), zap.Error(err))
+			a.enqueueSchedulerFailure("session-actions", fmt.Sprintf("session action retry failed for tenant %d", tenant.ID))
+			continue
+		}
+		if summary.Attempted > 0 || summary.AuditErrors > 0 {
+			zap.L().Info("session actions retried", zap.Int64("tenant_id", tenant.ID),
+				zap.Int("attempted", summary.Attempted), zap.Int("succeeded", summary.Succeeded),
+				zap.Int("retried", summary.Retried), zap.Int("failed", summary.Failed),
+				zap.Int("canceled", summary.Canceled), zap.Int("audit_errors", summary.AuditErrors))
+		}
+	}
 }
 
 func (a *Application) enqueueSchedulerFailure(job, summary string) {
