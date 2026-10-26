@@ -101,9 +101,14 @@ func TestBackupSystem(t *testing.T) {
 	assert.Contains(t, rec.Header().Get("Content-Disposition"), "attachment")
 	assert.Contains(t, rec.Header().Get("Content-Disposition"), "mwx-isp-backup-")
 
-	var backup SystemBackup
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &backup))
-	assert.Equal(t, backupVersion, backup.Version)
+	env, backup := decodeBackupEnvelope(t, rec.Body.Bytes())
+	assert.Equal(t, backupEnvelopeFormat, env.Format)
+	assert.Equal(t, backupVersion, env.Manifest.SchemaVersion)
+	digest, err := backupPayloadDigest(&backup)
+	require.NoError(t, err)
+	assert.Equal(t, digest, env.Manifest.PayloadSHA256)
+	assert.False(t, env.Manifest.Encrypted)
+	assert.Empty(t, env.Ciphertext)
 	assert.Len(t, backup.Profiles, 1)
 	assert.Len(t, backup.Users, 1)
 	assert.Equal(t, "backup_user", backup.Users[0].Username)
@@ -137,8 +142,7 @@ func TestSystemBackupRoundTripsOperationalISPEntities(t *testing.T) {
 	rec := httptest.NewRecorder()
 	ctx := CreateTestContext(setupTestEcho(), srcDB, req, rec, srcAppCtx)
 	require.NoError(t, backupSystem(ctx))
-	var backup SystemBackup
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &backup))
+	_, backup := decodeBackupEnvelope(t, rec.Body.Bytes())
 	assert.Equal(t, "9.3", backup.Version)
 	assert.Len(t, backup.HotspotBatches, 1)
 	assert.Len(t, backup.Vouchers, 1)
@@ -264,8 +268,7 @@ func TestBackupRestoreSystem_CertRoundTrip(t *testing.T) {
 	payload := rec.Body.Bytes()
 
 	// The protected backup payload must carry the private key material.
-	var backup SystemBackup
-	require.NoError(t, json.Unmarshal(payload, &backup))
+	_, backup := decodeBackupEnvelope(t, payload)
 	require.Len(t, backup.Certs, 2)
 	var serverCert *SystemBackupCert
 	for i := range backup.Certs {

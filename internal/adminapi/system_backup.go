@@ -3,6 +3,7 @@ package adminapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/bjo163/mwx-isp/config"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/webserver"
 	"github.com/bjo163/mwx-isp/pkg/common"
@@ -360,14 +362,20 @@ func backupSystem(c echo.Context) error {
 		return fail(c, http.StatusInternalServerError, "BACKUP_ERROR", "Failed to capture tenant ownership", err.Error())
 	}
 
-	bs, err := json.MarshalIndent(backup, "", "  ")
+	bs, encrypted, err := buildBackupEnvelope(&backup, backupPassphrase(GetAppContext(c).Config()))
 	if err != nil {
 		return fail(c, http.StatusInternalServerError, "ENCODE_ERROR", "Failed to encode backup", err.Error())
 	}
 
-	filename := fmt.Sprintf("mwx-isp-backup-%s.json", backup.CreatedAt.Format("20060102-150405"))
+	suffix := ".json"
+	if encrypted {
+		suffix = ".encrypted.json"
+	}
+	filename := fmt.Sprintf("mwx-isp-backup-%s%s", backup.CreatedAt.Format("20060102-150405"), suffix)
 
-	// Best-effort: persist a copy of the backup to the backup directory.
+	// Best-effort: persist a copy of the backup to the backup directory. The
+	// copy is written as produced, so a configured passphrase also protects the
+	// local copy at rest.
 	if cfg := GetAppContext(c).Config(); cfg != nil {
 		if dir := cfg.GetBackupDir(); dir != "" {
 			if mkErr := os.MkdirAll(dir, 0750); mkErr == nil {
@@ -378,6 +386,15 @@ func backupSystem(c echo.Context) error {
 
 	c.Response().Header().Set("Content-Disposition", "attachment;filename="+filename)
 	return c.JSONBlob(http.StatusOK, bs)
+}
+
+// backupPassphrase returns the configured backup encryption passphrase. An
+// unset or nil config disables encryption.
+func backupPassphrase(cfg *config.AppConfig) string {
+	if cfg == nil {
+		return ""
+	}
+	return strings.TrimSpace(cfg.Backup.Passphrase)
 }
 
 // SystemRestoreResult reports how many records restoreSystem upserted into each
@@ -448,6 +465,12 @@ type SystemRestoreResult struct {
 
 // restoreSystem imports a previously exported backup file, upserting records
 // into the core configuration tables inside a single transaction.
+//
+// The payload may be a manifest-carrying envelope (plaintext or AES-256-GCM
+// encrypted with the configured backup passphrase) or a legacy bare
+// SystemBackup document. When dry_run is requested, the archive is parsed,
+// integrity-checked, authorized and validated, then the would-be record counts
+// are returned without opening a transaction or writing any row.
 func restoreSystem(c echo.Context) error {
 	file, err := c.FormFile("upload")
 	if err != nil {
@@ -464,9 +487,28 @@ func restoreSystem(c echo.Context) error {
 		return fail(c, http.StatusBadRequest, "INVALID_FILE", "Unable to read backup file", err.Error())
 	}
 
+	payload, manifest, err := openBackupPayload(bs, backupPassphrase(GetAppContext(c).Config()))
+	if err != nil {
+		switch {
+		case errors.Is(err, errBackupEncryptedNeedsPassphrase):
+			return fail(c, http.StatusBadRequest, "BACKUP_ENCRYPTED",
+				"This backup is encrypted; configure TOUGHRADIUS_BACKUP_PASSPHRASE on the server before restoring", nil)
+		case errors.Is(err, errBackupDecryption):
+			return fail(c, http.StatusBadRequest, "BACKUP_DECRYPT_FAILED",
+				"Unable to decrypt the backup: the passphrase does not match or the file is corrupted", nil)
+		default:
+			return fail(c, http.StatusBadRequest, "INVALID_BACKUP", "Invalid backup file format", err.Error())
+		}
+	}
+
 	var backup SystemBackup
-	if err := json.Unmarshal(bs, &backup); err != nil {
+	if err := json.Unmarshal(payload, &backup); err != nil {
 		return fail(c, http.StatusBadRequest, "INVALID_BACKUP", "Invalid backup file format", err.Error())
+	}
+	if manifest != nil {
+		if err := verifyBackupManifest(manifest, &backup); err != nil {
+			return fail(c, http.StatusBadRequest, "INVALID_BACKUP", "Backup manifest does not match its payload", err.Error())
+		}
 	}
 	if err := applyTenantIDs(&backup); err != nil {
 		return fail(c, http.StatusBadRequest, "INVALID_BACKUP", "Backup tenant ownership metadata is invalid", err.Error())
@@ -511,6 +553,21 @@ func restoreSystem(c echo.Context) error {
 		for i := range backup.Operators {
 			backup.Operators[i].PlatformAdmin = platformAdmins[backup.Operators[i].ID]
 		}
+	}
+
+	// A dry-run reports what a restore would change after the same parsing,
+	// integrity, authorization, and validation gates, but never opens the
+	// restore transaction.
+	if restoreDryRun(c) {
+		response := map[string]any{
+			"dry_run":       true,
+			"encrypted":     manifest != nil && manifest.Encrypted,
+			"would_restore": backupRestoreResult(&backup),
+		}
+		if manifest != nil {
+			response["manifest"] = manifest
+		}
+		return ok(c, response)
 	}
 
 	result := SystemRestoreResult{}
@@ -755,6 +812,22 @@ func restoreSystem(c echo.Context) error {
 	}
 
 	return ok(c, result)
+}
+
+// restoreDryRun reports whether the caller requested a non-mutating preflight.
+// It accepts the flag as a form field (multipart restore upload) or a query
+// parameter so operators can choose either convention.
+func restoreDryRun(c echo.Context) bool {
+	value := strings.TrimSpace(c.QueryParam("dry_run"))
+	if value == "" {
+		value = strings.TrimSpace(c.FormValue("dry_run"))
+	}
+	switch strings.ToLower(value) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 // validateBackup performs strong, write-free validation of a restore payload.

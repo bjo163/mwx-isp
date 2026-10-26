@@ -151,6 +151,21 @@ type RadiusdConfig struct {
 	Debug        bool   `yaml:"debug" json:"debug"`
 }
 
+// BackupConfig holds backup export settings.
+//
+// Passphrase enables authenticated encryption for application JSON backups.
+// When set, exports are wrapped in an AES-256-GCM envelope with a
+// PBKDF2-SHA256 derived key and restores require the same passphrase. The value
+// is never serialized by JSON APIs, logged, or included in backup artifacts;
+// keep it in the deployment secret store, not in the YAML file committed to
+// source control.
+//
+// Environment variable overrides:
+//   - TOUGHRADIUS_BACKUP_PASSPHRASE
+type BackupConfig struct {
+	Passphrase string `yaml:"passphrase" json:"-"`
+}
+
 // LogConfig holds logging settings using zap structured logger.
 //
 // Mode can be "development" or "production":
@@ -187,6 +202,7 @@ type AppConfig struct {
 	Database DBConfig      `yaml:"database" json:"database"`
 	Radiusd  RadiusdConfig `yaml:"radiusd" json:"radiusd"`
 	Logger   LogConfig     `yaml:"logger" json:"logger"`
+	Backup   BackupConfig  `yaml:"backup" json:"backup"`
 }
 
 // GetLogDir returns the full path to the logs directory.
@@ -609,6 +625,8 @@ func LoadConfig(cfile string) *AppConfig {
 
 	setEnvValue("TOUGHRADIUS_LOGGER_MODE", &cfg.Logger.Mode)
 	setEnvBoolValue("TOUGHRADIUS_LOGGER_FILE_ENABLE", &cfg.Logger.FileEnable)
+
+	setEnvValue("TOUGHRADIUS_BACKUP_PASSPHRASE", &cfg.Backup.Passphrase)
 
 	return cfg
 }
