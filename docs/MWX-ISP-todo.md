@@ -217,6 +217,7 @@ Urutan: containment A01–A04 → transaksi/nomor/backup/scope → pembuktian op
 - [x] Tampilkan riwayat, threshold, perubahan status, dedupe alert; ICMP failed ditampilkan sebagai probe failure, bukan bukti perangkat mati.
 - [ ] Buat fake SNMP agent end-to-end; pengujian saat ini memakai mock Probe dan belum mensimulasikan paket SNMP.
 - [x] Pastikan tidak ada operasi write/provisioning ke router; batasi 500 target, delapan poll bersamaan, 30–3600 detik interval, timeout maksimal 10 detik, dan 30 hari retensi sample.
+- [x] Sediakan ringkasan dampak read-only per target/ODP/NAS: pelanggan dan langganan terdampak, status sesi live, tiket terbuka, tingkat keyakinan pemetaan (confirmed/inferred/unknown), serta pemisahan freshness monitoring dari status outage; sesi live yang tidak ada tidak pernah diklaim sebagai pelanggan offline.
 - [ ] Uji terhadap router/SNMP agent yang diizinkan saat deployment.
 
 ### E. WhatsApp operator via whatsmeow (TR-F030, opsional/eksperimental)

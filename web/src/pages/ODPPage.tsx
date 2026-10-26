@@ -43,6 +43,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotify } from 'react-admin';
 import { apiRequest, extractData } from '../utils/apiClient';
+import { NocImpactPanel } from '../components/NocImpactPanel';
 import { KpiStrip, KpiTile, Mono, PageHeader, Panel, StatusChip } from '../components/Enterprise';
 
 interface CustomerInfo {
@@ -748,6 +749,13 @@ export const ODPPage: React.FC = () => {
                 </Box>
               </Stack>
             </Stack>
+
+            <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5 }}>
+              Subscriber Impact
+            </Typography>
+            <Box sx={{ mb: 3 }}>
+              <NocImpactPanel odpId={selectedODPId ?? undefined} />
+            </Box>
 
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5 }}>
               Connected Dropcore Subscribers ({odpDetail.customers.length})
