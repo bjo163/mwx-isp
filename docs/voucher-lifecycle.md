@@ -107,5 +107,15 @@ reconciliation) ships.
 
 - Unit: `go test ./internal/radiusd/ -run 'Voucher|Hotspot'`
 - Unit: `go test ./internal/adminapi/ -run 'Voucher|Revoke'`
+- Terminal-state concurrency: `go test ./internal/radiusd/ -run
+  'TestHotspotVoucherTerminalStatesNeverReactivate|TestHotspotVoucherRevokedAfterFirstLoginStaysTerminal'`
+  proves that expired/revoked rows never hand out a live window, and that
+  login → revoke → login keeps the revoked status, the original timestamps,
+  and the disabled credential.
+- Revoke concurrency and credential linkage: `go test ./internal/adminapi/ -run
+  'TestRevokeVoucherConcurrentRequestsConvergeOnOneTerminalState|TestRevokeVoucherPastValidityWindowStaysTerminal|TestRevokeVoucherFallbackDisablesOnlyMatchingCredential'`
+  proves one fresh revoke per voucher under concurrent calls, a revoked status
+  that survives the lazy expiry marker, and that the username+password fallback
+  never disables an unrelated account.
 - PostgreSQL + RADIUS integration: `test/integration/isp_voucher_test.go`
   (not-yet-activated, activation, expiry, concurrent first login, revocation).
