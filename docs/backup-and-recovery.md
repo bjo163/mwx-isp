@@ -87,7 +87,10 @@ reports success does not itself change the live system.
 
 The JSON contains sensitive material, including RADIUS and voucher passwords,
 operator password hashes, certificate private keys, and encrypted monitor
-credentials. Treat the download and stored copy as secrets. Use encrypted
+credentials. Monitor credentials are sealed with `web.secret`, so a snapshot
+restored after that secret changes needs the rotation steps in
+[secret-rotation-runbook.md](secret-rotation-runbook.md). Treat the download and
+stored copy as secrets. Use encrypted
 exports for anything that leaves the host. The endpoint also attempts to write a
 local copy under the configured backup directory; use the VPS backup set for
 operational recovery and verify the resulting artifacts.
