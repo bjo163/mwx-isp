@@ -34,7 +34,7 @@ import {
   Search,
 } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNotify } from 'react-admin';
+import { useNotify, useTranslate } from 'react-admin';
 import { apiRequest, extractData } from '../utils/apiClient';
 import { ConsoleBox, KpiStrip, KpiTile, Mono, PageHeader, Panel, QueryFeedback, StatusChip } from '../components/Enterprise';
 
@@ -90,6 +90,7 @@ interface PingResponse {
 
 export const IPAMPage: React.FC = () => {
   const notify = useNotify();
+  const translate = useTranslate();
   const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<number>(0);
@@ -129,11 +130,12 @@ export const IPAMPage: React.FC = () => {
         body: JSON.stringify(poolForm),
       }),
     onSuccess: () => {
-      notify('IPAM subnet pool created', { type: 'success' });
+      notify(translate('pages.ipam.notify.pool_created'), { type: 'success' });
       setCreateOpen(false);
       void queryClient.invalidateQueries({ queryKey: ['network', 'ipam', 'pools'] });
     },
-    onError: (err: any) => notify(err.message || 'Failed to create pool', { type: 'error' }),
+    onError: (err: any) =>
+      notify(err.message || translate('pages.ipam.notify.pool_create_failed'), { type: 'error' }),
   });
 
   const auditMutation = useMutation({
@@ -170,41 +172,41 @@ export const IPAMPage: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 1.5, md: 2.5 }, maxWidth: 1600, mx: 'auto' }}>
       <PageHeader
-        section="Network / Infrastructure"
-        title="IPAM & Subnets"
-        subtitle="Subnet pool capacity allocation, reverse IP session audit trail, and live network diagnostic tools."
+        section={translate('pages.ipam.section')}
+        title={translate('pages.ipam.title')}
+        subtitle={translate('pages.ipam.subtitle')}
         actions={
           tab === 0 ? (
             <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>
-              Add Subnet Pool
+              {translate('pages.ipam.add_pool')}
             </Button>
           ) : undefined
         }
       />
 
       <KpiStrip>
-        <KpiTile label="Subnet Pools" value={pools.length} icon={<AccountTree fontSize="small" />} />
-        <KpiTile label="Total IPs" value={totalIps.toLocaleString()} tone="info" hint="Managed scope" />
-        <KpiTile label="Allocated / Used" value={usedIps.toLocaleString()} tone="primary" hint="Active leases" />
+        <KpiTile label={translate('pages.ipam.kpi.pools')} value={pools.length} icon={<AccountTree fontSize="small" />} />
+        <KpiTile label={translate('pages.ipam.kpi.total_ips')} value={totalIps.toLocaleString()} tone="info" hint={translate('pages.ipam.kpi.total_ips_hint')} />
+        <KpiTile label={translate('pages.ipam.kpi.used')} value={usedIps.toLocaleString()} tone="primary" hint={translate('pages.ipam.kpi.used_hint')} />
         <KpiTile
-          label="Overall Utilization"
+          label={translate('pages.ipam.kpi.utilization')}
           value={`${overallUtil}%`}
           tone={overallUtil > 85 ? 'error' : overallUtil > 65 ? 'warning' : 'success'}
-          hint="Aggregate capacity"
+          hint={translate('pages.ipam.kpi.utilization_hint')}
         />
         <KpiTile
-          label="Near Exhaustion"
+          label={translate('pages.ipam.kpi.near_exhaustion')}
           value={criticalPools}
           tone={criticalPools > 0 ? 'error' : 'success'}
-          hint="Pools ≥ 85% full"
+          hint={translate('pages.ipam.kpi.near_exhaustion_hint')}
         />
-        <KpiTile label="IPv4 / IPv6" value={`${pools.filter((p) => p.ip_version === 4).length} / ${pools.filter((p) => p.ip_version === 6).length}`} tone="secondary" hint="Address families" />
+        <KpiTile label={translate('pages.ipam.kpi.families')} value={`${pools.filter((p) => p.ip_version === 4).length} / ${pools.filter((p) => p.ip_version === 6).length}`} tone="secondary" hint={translate('pages.ipam.kpi.families_hint')} />
       </KpiStrip>
 
       <Tabs value={tab} onChange={(_, val) => setTab(val)} sx={{ mb: 2 }}>
-        <Tab icon={<AccountTree />} iconPosition="start" label="Subnet Pools" />
-        <Tab icon={<History />} iconPosition="start" label="Reverse IP Audit Trail" />
-        <Tab icon={<NetworkCheck />} iconPosition="start" label="Live Diagnostic (Ping)" />
+        <Tab icon={<AccountTree />} iconPosition="start" label={translate('pages.ipam.tabs.pools')} />
+        <Tab icon={<History />} iconPosition="start" label={translate('pages.ipam.tabs.audit')} />
+        <Tab icon={<NetworkCheck />} iconPosition="start" label={translate('pages.ipam.tabs.ping')} />
       </Tabs>
 
       {/* Tab 0: Subnet Pools */}
@@ -215,8 +217,8 @@ export const IPAMPage: React.FC = () => {
           isEmpty={pools.length === 0}
           onRetry={() => void poolsQuery.refetch()}
           emptyIcon={<AccountTree sx={{ fontSize: 48, opacity: 0.4 }} />}
-          emptyTitle="No IPAM Pools Configured"
-          emptyHint="Add CGNAT, Public IP, or IPv6 prefix pools to track subnet utilization."
+          emptyTitle={translate('pages.ipam.empty.title')}
+          emptyHint={translate('pages.ipam.empty.hint')}
         >
           <Box
             sx={{
@@ -246,12 +248,21 @@ export const IPAMPage: React.FC = () => {
                     <Box sx={{ mb: 1.5 }}>
                       <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
                         <Typography variant="caption" color="text.secondary">
-                          Utilization
+                          {translate('pages.ipam.pool.utilization')}
                         </Typography>
                         <Typography variant="caption" fontWeight={700}>
                           {percent !== undefined
-                            ? `${used} / ${p.total_ips} IPs (${percent}%)`
-                            : `${used} used · ${p.capacity_label || 'capacity too large to count'}`}
+                            ? translate('pages.ipam.pool.usage_exact', {
+                                used,
+                                total: p.total_ips,
+                                percent,
+                              })
+                            : translate('pages.ipam.pool.usage_approx', {
+                                used,
+                                capacity:
+                                  p.capacity_label ||
+                                  translate('pages.ipam.pool.capacity_unknown'),
+                              })}
                         </Typography>
                       </Stack>
                       {percent !== undefined && (
@@ -267,9 +278,9 @@ export const IPAMPage: React.FC = () => {
                     <Divider sx={{ my: 1 }} />
 
                     <Stack spacing={0.5} sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                      <div>Gateway: <strong>{p.gateway || '—'}</strong></div>
-                      <div>DNS: <strong>{p.dns_primary || '1.1.1.1'}</strong> {p.dns_secondary && `, ${p.dns_secondary}`}</div>
-                      {p.description && <div>Note: {p.description}</div>}
+                      <div>{translate('pages.ipam.pool.gateway')} <strong>{p.gateway || '—'}</strong></div>
+                      <div>{translate('pages.ipam.pool.dns')} <strong>{p.dns_primary || '1.1.1.1'}</strong> {p.dns_secondary && `, ${p.dns_secondary}`}</div>
+                      {p.description && <div>{translate('pages.ipam.pool.note')} {p.description}</div>}
                     </Stack>
                   </CardContent>
                 </Card>
@@ -285,17 +296,17 @@ export const IPAMPage: React.FC = () => {
           <Card variant="outlined">
             <CardContent sx={{ p: 2 }}>
               <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 0.5 }}>
-                Kominfo / Cyber Crime IP Audit Trace
+                {translate('pages.ipam.audit.title')}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                Determine which subscriber or MAC address owned a specific IP at a historic timestamp.
+                {translate('pages.ipam.audit.subtitle')}
               </Typography>
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
                 <TextField
                   size="small"
-                  label="Target IP Address"
-                  placeholder="e.g. 100.64.0.15"
+                  label={translate('pages.ipam.audit.ip_label')}
+                  placeholder={translate('pages.ipam.audit.ip_placeholder')}
                   value={auditIP}
                   onChange={(e) => setAuditIP(e.target.value)}
                   sx={{ minWidth: 220 }}
@@ -303,7 +314,7 @@ export const IPAMPage: React.FC = () => {
                 <TextField
                   size="small"
                   type="datetime-local"
-                  label="Target Timestamp"
+                  label={translate('pages.ipam.audit.time_label')}
                   value={auditTime}
                   onChange={(e) => setAuditTime(e.target.value)}
                   InputLabelProps={{ shrink: true }}
@@ -315,7 +326,9 @@ export const IPAMPage: React.FC = () => {
                   disabled={!auditIP || auditMutation.isPending}
                   onClick={() => auditMutation.mutate()}
                 >
-                  {auditMutation.isPending ? 'Searching...' : 'Trace Subscriber'}
+                  {auditMutation.isPending
+                    ? translate('pages.ipam.audit.searching')
+                    : translate('pages.ipam.audit.submit')}
                 </Button>
               </Stack>
             </CardContent>
@@ -323,24 +336,26 @@ export const IPAMPage: React.FC = () => {
 
           {auditMutation.isSuccess && (
             <Panel
-              title={`Audit Match Results — IP ${auditIP}`}
-              subtitle={`Found ${auditResults.length} matching session record(s)`}
+              title={translate('pages.ipam.audit.results_title', { ip: auditIP })}
+              subtitle={translate('pages.ipam.audit.results_subtitle', {
+                count: auditResults.length,
+              })}
               dense
             >
               {auditResults.length === 0 ? (
                 <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-                  <Typography>No active or historical session matched this IP at the selected time.</Typography>
+                  <Typography>{translate('pages.ipam.audit.no_match')}</Typography>
                 </Box>
               ) : (
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Subscriber Username</TableCell>
-                      <TableCell>MAC Address</TableCell>
-                      <TableCell>NAS Router IP</TableCell>
-                      <TableCell>Session Start</TableCell>
-                      <TableCell>Session Stop</TableCell>
-                      <TableCell>Status</TableCell>
+                      <TableCell>{translate('pages.ipam.audit.col.username')}</TableCell>
+                      <TableCell>{translate('pages.ipam.audit.col.mac')}</TableCell>
+                      <TableCell>{translate('pages.ipam.audit.col.nas')}</TableCell>
+                      <TableCell>{translate('pages.ipam.audit.col.start')}</TableCell>
+                      <TableCell>{translate('pages.ipam.audit.col.stop')}</TableCell>
+                      <TableCell>{translate('pages.ipam.audit.col.status')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -352,7 +367,7 @@ export const IPAMPage: React.FC = () => {
                         <TableCell><Mono>{r.mac_addr || '—'}</Mono></TableCell>
                         <TableCell><Mono>{r.nas_addr}</Mono></TableCell>
                         <TableCell sx={{ fontSize: '0.78rem' }}>{new Date(r.start_time).toLocaleString()}</TableCell>
-                        <TableCell sx={{ fontSize: '0.78rem' }}>{r.stop_time ? new Date(r.stop_time).toLocaleString() : 'Currently Active'}</TableCell>
+                        <TableCell sx={{ fontSize: '0.78rem' }}>{r.stop_time ? new Date(r.stop_time).toLocaleString() : translate('pages.ipam.audit.currently_active')}</TableCell>
                         <TableCell>
                           <StatusChip value={r.status} />
                         </TableCell>
@@ -372,17 +387,17 @@ export const IPAMPage: React.FC = () => {
           <Card variant="outlined">
             <CardContent sx={{ p: 2 }}>
               <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 0.5 }}>
-                Real-Time Reachability Probe (TCP SYN Handshake)
+                {translate('pages.ipam.ping.title')}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                Perform instant TCP port reachability checks directly from the MWX-ISP server to any subscriber, router, or gateway. Supports IPv4, IPv6, and custom ports (e.g. 192.168.1.1:8080 or [::1]).
+                {translate('pages.ipam.ping.subtitle')}
               </Typography>
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
                 <TextField
                   size="small"
-                  label="Target Host, IPv4, or IPv6"
-                  placeholder="e.g. 192.168.88.1, [::1], or 8.8.8.8:53"
+                  label={translate('pages.ipam.ping.host_label')}
+                  placeholder={translate('pages.ipam.ping.host_placeholder')}
                   value={pingHost}
                   onChange={(e) => setPingHost(e.target.value)}
                   sx={{ minWidth: 280 }}
@@ -390,7 +405,7 @@ export const IPAMPage: React.FC = () => {
                 <TextField
                   size="small"
                   type="number"
-                  label="Count"
+                  label={translate('pages.ipam.ping.count_label')}
                   value={pingCount}
                   onChange={(e) => setPingCount(Number(e.target.value))}
                   inputProps={{ min: 1, max: 10 }}
@@ -402,7 +417,9 @@ export const IPAMPage: React.FC = () => {
                   disabled={!pingHost || pingMutation.isPending}
                   onClick={() => pingMutation.mutate()}
                 >
-                  {pingMutation.isPending ? 'Probing...' : 'Start Probe'}
+                  {pingMutation.isPending
+                    ? translate('pages.ipam.ping.probing')
+                    : translate('pages.ipam.ping.submit')}
                 </Button>
               </Stack>
             </CardContent>
@@ -410,13 +427,18 @@ export const IPAMPage: React.FC = () => {
 
           {pingResult && (
             <Panel
-              title={`Probe Results — ${pingResult.host}`}
-              subtitle={`${pingResult.received}/${pingResult.sent} packets reached destination (via ${pingResult.probe_method || 'tcp_syn'} port ${pingResult.port || '80'})`}
+              title={translate('pages.ipam.ping.results_title', { host: pingResult.host })}
+              subtitle={translate('pages.ipam.ping.results_subtitle', {
+                received: pingResult.received,
+                sent: pingResult.sent,
+                method: pingResult.probe_method || 'tcp_syn',
+                port: pingResult.port || '80',
+              })}
               actions={
                 <Stack direction="row" spacing={2} alignItems="center">
-                  <Typography variant="caption" color="text.secondary">LOSS: <strong style={{ color: pingResult.loss_percent > 0 ? '#ef4444' : '#22c55e' }}>{pingResult.loss_percent.toFixed(0)}%</strong></Typography>
-                  <Typography variant="caption" color="text.secondary">AVG: <strong>{pingResult.avg_rtt_ms} ms</strong></Typography>
-                  <Typography variant="caption" color="text.secondary">MIN/MAX: <strong>{pingResult.min_rtt_ms}/{pingResult.max_rtt_ms} ms</strong></Typography>
+                  <Typography variant="caption" color="text.secondary">{translate('pages.ipam.ping.loss')} <strong style={{ color: pingResult.loss_percent > 0 ? '#ef4444' : '#22c55e' }}>{pingResult.loss_percent.toFixed(0)}%</strong></Typography>
+                  <Typography variant="caption" color="text.secondary">{translate('pages.ipam.ping.avg')} <strong>{pingResult.avg_rtt_ms} ms</strong></Typography>
+                  <Typography variant="caption" color="text.secondary">{translate('pages.ipam.ping.minmax')} <strong>{pingResult.min_rtt_ms}/{pingResult.max_rtt_ms} ms</strong></Typography>
                 </Stack>
               }
             >
@@ -424,8 +446,15 @@ export const IPAMPage: React.FC = () => {
                 {pingResult.details.map((d) => (
                   <div key={d.seq}>
                     {d.success
-                      ? `TCP reply from ${pingResult.target_addr || pingResult.host}: probe_seq=${d.seq} time=${d.rtt_ms} ms`
-                      : `Request failed for probe_seq=${d.seq}: ${d.error || 'unreachable / connection timeout'}`}
+                      ? translate('pages.ipam.ping.reply', {
+                          target: pingResult.target_addr || pingResult.host,
+                          seq: d.seq,
+                          rtt: d.rtt_ms,
+                        })
+                      : translate('pages.ipam.ping.request_failed', {
+                          seq: d.seq,
+                          error: d.error || translate('pages.ipam.ping.unreachable'),
+                        })}
                   </div>
                 ))}
               </ConsoleBox>
@@ -436,40 +465,40 @@ export const IPAMPage: React.FC = () => {
 
       {/* Add Pool Dialog */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Add IPAM Subnet Pool</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{translate('pages.ipam.dialog.title')}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               size="small"
-              label="Pool Name"
+              label={translate('pages.ipam.dialog.name')}
               value={poolForm.name}
               onChange={(e) => setPoolForm({ ...poolForm, name: e.target.value })}
               fullWidth
             />
             <TextField
               size="small"
-              label="CIDR Subnet"
-              placeholder="e.g. 100.64.0.0/22"
+              label={translate('pages.ipam.dialog.cidr')}
+              placeholder={translate('pages.ipam.dialog.cidr_placeholder')}
               value={poolForm.cidr}
               onChange={(e) => setPoolForm({ ...poolForm, cidr: e.target.value })}
               fullWidth
             />
             <FormControl size="small" fullWidth>
-              <InputLabel>Pool Type</InputLabel>
+              <InputLabel>{translate('pages.ipam.dialog.pool_type')}</InputLabel>
               <Select
-                label="Pool Type"
+                label={translate('pages.ipam.dialog.pool_type')}
                 value={poolForm.pool_type}
                 onChange={(e) => setPoolForm({ ...poolForm, pool_type: e.target.value })}
               >
-                <MenuItem value="cgnat">CGNAT (RFC 6598)</MenuItem>
-                <MenuItem value="public">Public IP</MenuItem>
-                <MenuItem value="static">Static Leases</MenuItem>
-                <MenuItem value="delegated">IPv6 Delegated Prefix</MenuItem>
+                <MenuItem value="cgnat">{translate('pages.ipam.pool_type.cgnat')}</MenuItem>
+                <MenuItem value="public">{translate('pages.ipam.pool_type.public')}</MenuItem>
+                <MenuItem value="static">{translate('pages.ipam.pool_type.static')}</MenuItem>
+                <MenuItem value="delegated">{translate('pages.ipam.pool_type.delegated')}</MenuItem>
               </Select>
             </FormControl>
             <TextField
               size="small"
-              label="Default Gateway"
+              label={translate('pages.ipam.dialog.gateway')}
               value={poolForm.gateway}
               onChange={(e) => setPoolForm({ ...poolForm, gateway: e.target.value })}
               fullWidth
@@ -477,14 +506,14 @@ export const IPAMPage: React.FC = () => {
             <Stack direction="row" spacing={1.5}>
               <TextField
                 size="small"
-                label="Primary DNS"
+                label={translate('pages.ipam.dialog.dns_primary')}
                 value={poolForm.dns_primary}
                 onChange={(e) => setPoolForm({ ...poolForm, dns_primary: e.target.value })}
                 sx={{ flex: 1 }}
               />
               <TextField
                 size="small"
-                label="Secondary DNS"
+                label={translate('pages.ipam.dialog.dns_secondary')}
                 value={poolForm.dns_secondary}
                 onChange={(e) => setPoolForm({ ...poolForm, dns_secondary: e.target.value })}
                 sx={{ flex: 1 }}
@@ -492,7 +521,7 @@ export const IPAMPage: React.FC = () => {
             </Stack>
             <TextField
               size="small"
-              label="Description"
+              label={translate('pages.ipam.dialog.description')}
               multiline
               rows={2}
               value={poolForm.description}
@@ -502,13 +531,15 @@ export const IPAMPage: React.FC = () => {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={() => setCreateOpen(false)}>{translate('pages.ipam.dialog.cancel')}</Button>
           <Button
             variant="contained"
             disabled={createPoolMutation.isPending || !poolForm.cidr}
             onClick={() => createPoolMutation.mutate()}
           >
-            {createPoolMutation.isPending ? 'Saving...' : 'Create Subnet Pool'}
+            {createPoolMutation.isPending
+              ? translate('pages.ipam.dialog.saving')
+              : translate('pages.ipam.dialog.submit')}
           </Button>
         </DialogActions>
       </Dialog>

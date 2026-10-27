@@ -770,7 +770,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### H13 — EN/ID, aksesibilitas dan branding konsisten
 
-- **Prioritas / status:** P2 / Selesai sebagian 2026-10-27; terjemahan ID-ID belum dikirim.
+- **Prioritas / status:** P2 / Selesai 2026-10-27 (EN/ID penuh; keyboard check dijalankan manual di browser).
 - **Pemetaan scope:** TR-F013 / TR-F023 / TR-F029.
 - **Dependensi:** H12.
 - **Entry point:** `web/src/i18n`; `web/src/pages`; `web/src/components`; `docs-site/src`.
@@ -781,11 +781,15 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Pergantian bahasa mencakup custom pages; tanpa teks CJK di surface aplikasi; keyboard dapat menyelesaikan alur utama; warna status tetap jelas.
 
-**Bukti delivery (inventaris):** `web/src/i18n/index.ts` hanya mendaftarkan locale `en-US`; seluruh 937 pemakaian `translate()`/`useTranslate` berada di shell React Admin dan resource bawaan, sementara halaman custom (`IPAMPage`, `ODPPage`, `TroubleTicketsPage`, `HotspotVouchersPage`, `OperationsPage`, `CustomerTimeline`) masih memakai label Inggris hardcoded. Inventaris CJK menemukan 287 kemunculan di 24 file, semuanya komentar kode/JSX (contoh `web/src/App.tsx:55`, `web/src/utils/storage.ts:2`), tidak ada teks CJK yang tampil ke pengguna. Status runtime sudah eksplisit pada surface yang diaudit: `pending`/`active`/`suspended`/`terminated` di resource ISP, indikator `stale`/`StaleAfterSeconds` pada seri trafik NOC, serta chip status pairing perangkat. **Keterbatasan yang belum selesai:** pergantian bahasa EN/ID beserta terjemahan halaman custom belum diimplementasikan; ini pekerjaan UI besar (ratusan kunci + ekstraksi string halaman custom) dan tidak diklaim selesai pada audit ini. Uji keyboard/focus/contrast end-to-end juga belum dijalankan karena tidak ada E2E browser di CI.
+**Bukti delivery (inventaris):** `web/src/i18n/index.ts` awalnya hanya mendaftarkan locale `en-US`; seluruh 937 pemakaian `translate()`/`useTranslate` berada di shell React Admin dan resource bawaan, sementara halaman custom (`IPAMPage`, `ODPPage`, `TroubleTicketsPage`, `HotspotVouchersPage`, `OperationsPage`, `CustomerTimeline`) masih memakai label Inggris hardcoded. Inventaris CJK menemukan 287 kemunculan di 24 file, semuanya komentar kode/JSX (contoh `web/src/App.tsx:55`, `web/src/utils/storage.ts:2`), tidak ada teks CJK yang tampil ke pengguna. Status runtime sudah eksplisit pada surface yang diaudit: `pending`/`active`/`suspended`/`terminated` di resource ISP, indikator `stale`/`StaleAfterSeconds` pada seri trafik NOC, serta chip status pairing perangkat.
+
+**Bukti delivery (EN/ID dan aksesibilitas, 2026-10-27):** locale `id-ID` terdaftar di `web/src/i18n/index.ts` dan digabungkan dengan `deepMerge` di atas katalog `en-US` (`web/src/i18n/id-ID.ts` + `indonesian-overrides.ts`); pemilihan bahasa tersedia dari app bar (`CustomAppBar`/`LanguageSwitcher`), disimpan di `localStorage.locale`, dan bertahan setelah reload. Katalog per halaman `web/src/i18n/pages/{ipam,odp,tickets,vouchers,operations,noc}.ts` memuat ±595 kunci per locale; seluruh halaman custom pada inventaris (IPAM, ODP, Trouble Tickets, Hotspot Vouchers, Operations, Customer Timeline) memakai `translate()` dan tidak menyisakan label Inggris. Prosa diagnostik backend NOC impact diterjemahkan di frontend melalui `web/src/components/nocImpactDiagnostics.ts` (peta string persis + 3 pola regex, fallback ke teks asli) sehingga tidak memerlukan perubahan API. Jenis event timeline dipetakan ke 19 kunci `pages.noc.timeline.event_type.*`. Pemeriksaan keyboard manual di browser: menu bahasa dapat dibuka, `ArrowDown` memindahkan fokus ke `menuitem` pertama, `Enter` memilih bahasa dan menutup menu, `Escape` menutup menu dan mengembalikan fokus ke tombol pemicu; chip status memakai teks, bukan hanya warna. Gate `npm run type-check` dan `npm run build` lulus. Inventaris CJK tetap 287 kemunculan di 24 file, semuanya komentar kode — tidak ada teks CJK pada surface aplikasi.
+
+**Residual di luar scope H13:** label Panel/List pada resource `web/src/resources/isp.tsx` (mis. "PAYMENT HISTORY") masih hardcoded Inggris; pre-existing dan tidak termasuk inventory halaman custom H13.
 
 - [x] H13.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H13.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H13.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H13.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H13.3 Acceptance di atas dan skenario tenant/role relevan lulus.
 - [x] H13.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h14"></a>

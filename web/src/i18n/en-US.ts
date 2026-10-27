@@ -1,5 +1,6 @@
 import { TranslationMessages } from 'react-admin';
 import englishMessages from 'ra-language-english';
+import { pageMessagesEn } from './pages';
 
 const customEnglishMessages: TranslationMessages = {
   ...englishMessages,
@@ -57,6 +58,10 @@ const customEnglishMessages: TranslationMessages = {
     account_settings: 'Account Settings',
     expand_menu: 'Expand Menu',
     collapse_menu: 'Collapse Menu',
+    language: 'Interface Language',
+    website: 'View Public Website (Landing Page)',
+    user_guide: 'User Guide',
+    all_rights_reserved: 'ALL RIGHTS RESERVED',
   },
   dashboard: {
     title: 'ISP Operations',
@@ -659,6 +664,7 @@ const customEnglishMessages: TranslationMessages = {
     regex: 'Must match a specific format (regexp): %{pattern}',
   },
   pages: {
+    ...pageMessagesEn,
     account_settings: {
       title: 'Account Settings',
       subtitle: 'Manage your personal account information and security settings',

@@ -5,11 +5,14 @@ import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import ApartmentOutlinedIcon from '@mui/icons-material/ApartmentOutlined';
 import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined';
-import { Box, Chip, IconButton, Stack, Tooltip, Typography, useTheme } from '@mui/material';
-import { AppBar, AppBarProps, TitlePortal, ToggleThemeButton, useRedirect, useGetIdentity, usePermissions, useTranslate, useSidebarState } from 'react-admin';
+import LanguageOutlinedIcon from '@mui/icons-material/LanguageOutlined';
+import { Box, Chip, IconButton, Menu, Stack, Tooltip, Typography, useTheme } from '@mui/material';
+import { AppBar, AppBarProps, TitlePortal, ToggleThemeButton, useRedirect, useGetIdentity, usePermissions, useTranslate, useSidebarState, useLocale } from 'react-admin';
 import { useEffect, useState } from 'react';
 import { useBranding } from '../branding/BrandingContext';
 import { BrandMark } from './BrandMark';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import { locales } from '../i18n';
 
 export const CustomAppBar = (props: AppBarProps) => {
   const redirect = useRedirect();
@@ -18,6 +21,8 @@ export const CustomAppBar = (props: AppBarProps) => {
   const { permissions = [] } = usePermissions();
   const translate = useTranslate();
   const [sidebarOpen, setSidebarOpen] = useSidebarState();
+  const locale = useLocale();
+  const [languageMenuAnchor, setLanguageMenuAnchor] = useState<HTMLElement | null>(null);
   const { branding } = useBranding();
   const [activeTenant, setActiveTenant] = useState<{ name?: string; slug?: string; kind?: string } | null>(() => {
     try {
@@ -125,18 +130,34 @@ export const CustomAppBar = (props: AppBarProps) => {
               sx={{ maxWidth: { xs: 120, sm: 220 }, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
             />
           </Tooltip>}
-          <Typography aria-label="Interface language" variant="caption" sx={{ color: theme.palette.primary.main, fontWeight: 800, letterSpacing: '0.12em', px: 1 }}>
-            EN
-          </Typography>
+          <Tooltip title={`${translate('appbar.language')}: ${locales.find((item) => item.locale === locale)?.name ?? locale}`}>
+            <IconButton
+              size="large"
+              aria-label={translate('appbar.language')}
+              aria-haspopup="menu"
+              aria-expanded={Boolean(languageMenuAnchor)}
+              onClick={(event) => setLanguageMenuAnchor(event.currentTarget)}
+              sx={{ color: theme.palette.primary.main }}
+            >
+              <LanguageOutlinedIcon />
+            </IconButton>
+          </Tooltip>
+          <Menu
+            anchorEl={languageMenuAnchor}
+            open={Boolean(languageMenuAnchor)}
+            onClose={() => setLanguageMenuAnchor(null)}
+          >
+            <LanguageSwitcher onSelect={() => setLanguageMenuAnchor(null)} />
+          </Menu>
 
-          <Tooltip title="View Public Website (Landing Page)">
-            <IconButton size="large" aria-label="Open landing page" onClick={() => window.open('/admin#/home', '_blank')} sx={{ color: theme.palette.primary.main }}>
+          <Tooltip title={translate('appbar.website')}>
+            <IconButton size="large" aria-label={translate('appbar.website')} onClick={() => window.open('/admin#/home', '_blank')} sx={{ color: theme.palette.primary.main }}>
               <PublicOutlinedIcon />
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="User guide">
-            <IconButton size="large" aria-label="Open user guide" onClick={() => redirect('/guide')} sx={{ color: theme.palette.text.secondary }}>
+          <Tooltip title={translate('appbar.user_guide')}>
+            <IconButton size="large" aria-label={translate('appbar.user_guide')} onClick={() => redirect('/guide')} sx={{ color: theme.palette.text.secondary }}>
               <HelpOutlineIcon />
             </IconButton>
           </Tooltip>

@@ -41,7 +41,7 @@ import {
   WarningAmber,
 } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNotify } from 'react-admin';
+import { useNotify, useTranslate } from 'react-admin';
 import { apiRequest, extractData } from '../utils/apiClient';
 import { NocImpactPanel } from '../components/NocImpactPanel';
 import { KpiStrip, KpiTile, Mono, PageHeader, Panel, QueryFeedback, StatusChip } from '../components/Enterprise';
@@ -84,6 +84,7 @@ interface ODPDetailResponse {
 
 export const ODPPage: React.FC = () => {
   const notify = useNotify();
+  const translate = useTranslate();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
@@ -155,13 +156,18 @@ export const ODPPage: React.FC = () => {
       });
     },
     onSuccess: () => {
-      notify(editingODP ? 'ODP updated successfully' : 'ODP created successfully', { type: 'success' });
+      notify(
+        editingODP
+          ? translate('pages.odp.notify.updated')
+          : translate('pages.odp.notify.created'),
+        { type: 'success' }
+      );
       setDialogOpen(false);
       setEditingODP(null);
       queryClient.invalidateQueries({ queryKey: ['network-odps'] });
     },
     onError: (err: any) => {
-      notify(err?.message || 'Failed to save ODP enclosure', { type: 'error' });
+      notify(err?.message || translate('pages.odp.notify.save_failed'), { type: 'error' });
     },
   });
 
@@ -171,11 +177,11 @@ export const ODPPage: React.FC = () => {
       return apiRequest(`/network/odp/${id}`, { method: 'DELETE' });
     },
     onSuccess: () => {
-      notify('ODP enclosure deleted', { type: 'success' });
+      notify(translate('pages.odp.notify.deleted'), { type: 'success' });
       queryClient.invalidateQueries({ queryKey: ['network-odps'] });
     },
     onError: (err: any) => {
-      notify(err?.message || 'Failed to delete ODP. Ensure no subscribers are connected.', { type: 'error' });
+      notify(err?.message || translate('pages.odp.notify.delete_failed'), { type: 'error' });
     },
   });
 
@@ -224,7 +230,7 @@ export const ODPPage: React.FC = () => {
 
   const handleSave = () => {
     if (!formData.code) {
-      notify('ODP Code is required', { type: 'warning' });
+      notify(translate('pages.odp.notify.code_required'), { type: 'warning' });
       return;
     }
     saveMutation.mutate({
@@ -242,10 +248,10 @@ export const ODPPage: React.FC = () => {
             latitude: Number(pos.coords.latitude.toFixed(6)),
             longitude: Number(pos.coords.longitude.toFixed(6)),
           }));
-          notify('Coordinates updated from browser GPS', { type: 'info' });
+          notify(translate('pages.odp.notify.gps_updated'), { type: 'info' });
         },
         () => {
-          notify('Unable to retrieve current location', { type: 'warning' });
+          notify(translate('pages.odp.notify.gps_failed'), { type: 'warning' });
         }
       );
     }
@@ -261,8 +267,8 @@ export const ODPPage: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
       <PageHeader
-        title="FTTH & ODP Infrastructure"
-        subtitle="Optical Distribution Point Splitter Enclosures, Port Capacity & Passive Optical Network Health"
+        title={translate('pages.odp.title')}
+        subtitle={translate('pages.odp.subtitle')}
         actions={
           <Stack direction="row" spacing={1.5}>
             <Button
@@ -271,7 +277,7 @@ export const ODPPage: React.FC = () => {
               onClick={() => refetch()}
               sx={{ fontWeight: 700 }}
             >
-              Refresh
+              {translate('pages.odp.refresh')}
             </Button>
             <Button
               variant="contained"
@@ -279,7 +285,7 @@ export const ODPPage: React.FC = () => {
               onClick={handleOpenCreate}
               sx={{ fontWeight: 700 }}
             >
-              Add ODP Enclosure
+              {translate('pages.odp.add_enclosure')}
             </Button>
           </Stack>
         }
@@ -288,36 +294,36 @@ export const ODPPage: React.FC = () => {
       {/* KPI METRIC STRIP */}
       <KpiStrip>
         <KpiTile
-          label="Total ODPs"
+          label={translate('pages.odp.kpi.total_odps')}
           value={totalODPs}
-          hint="Active optical distribution enclosures"
+          hint={translate('pages.odp.kpi.total_odps_hint')}
         />
         <KpiTile
-          label="Total Port Capacity"
+          label={translate('pages.odp.kpi.total_capacity')}
           value={totalCapacity}
-          hint="Passive splitter drop terminals"
+          hint={translate('pages.odp.kpi.capacity_hint')}
         />
         <KpiTile
-          label="Connected Subscribers"
+          label={translate('pages.odp.kpi.connected_subscribers')}
           value={totalConnected}
-          hint={`${availablePorts} free drop ports available`}
+          hint={translate('pages.odp.kpi.free_ports_hint', { count: availablePorts })}
         />
         <KpiTile
-          label="High Optical Loss"
+          label={translate('pages.odp.kpi.high_loss')}
           value={highLossCount}
-          hint="Redaman > -24 dBm (requires inspection)"
+          hint={translate('pages.odp.kpi.high_loss_hint')}
           tone={highLossCount > 0 ? "error" : "success"}
         />
       </KpiStrip>
 
       {/* SEARCH AND FILTERS */}
       <Panel
-        title="Optical Distribution Point Registry"
+        title={translate('pages.odp.registry_title')}
         actions={
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
             <TextField
               size="small"
-              placeholder="Search code, name, OLT, address..."
+              placeholder={translate('pages.odp.search_placeholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               InputProps={{
@@ -326,13 +332,13 @@ export const ODPPage: React.FC = () => {
               sx={{ minWidth: 260 }}
             />
             <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Zone</InputLabel>
+              <InputLabel>{translate('pages.odp.filters.zone')}</InputLabel>
               <Select
                 value={zoneFilter}
-                label="Zone"
+                label={translate('pages.odp.filters.zone')}
                 onChange={(e) => setZoneFilter(e.target.value)}
               >
-                <MenuItem value="">All Zones</MenuItem>
+                <MenuItem value="">{translate('pages.odp.filters.all_zones')}</MenuItem>
                 <MenuItem value="Kuningan">Kuningan</MenuItem>
                 <MenuItem value="Sudirman">Sudirman</MenuItem>
                 <MenuItem value="BSD">BSD</MenuItem>
@@ -342,16 +348,16 @@ export const ODPPage: React.FC = () => {
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Status</InputLabel>
+              <InputLabel>{translate('pages.odp.filters.status')}</InputLabel>
               <Select
                 value={statusFilter}
-                label="Status"
+                label={translate('pages.odp.filters.status')}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <MenuItem value="">All Statuses</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="full">Full (No Ports)</MenuItem>
-                <MenuItem value="maintenance">Maintenance</MenuItem>
+                <MenuItem value="">{translate('pages.odp.filters.all_statuses')}</MenuItem>
+                <MenuItem value="active">{translate('pages.odp.status.active')}</MenuItem>
+                <MenuItem value="full">{translate('pages.odp.filters.full_no_ports')}</MenuItem>
+                <MenuItem value="maintenance">{translate('pages.odp.status.maintenance')}</MenuItem>
               </Select>
             </FormControl>
           </Stack>
@@ -363,25 +369,25 @@ export const ODPPage: React.FC = () => {
           isEmpty={odps.length === 0}
           onRetry={() => void refetch()}
           emptyIcon={<Hub sx={{ fontSize: 48 }} />}
-          emptyTitle="No ODP Enclosures Found"
-          emptyHint="Start by registering your optical distribution points or splitters along fiber routes."
+          emptyTitle={translate('pages.odp.empty_title')}
+          emptyHint={translate('pages.odp.empty_hint')}
           emptyAction={
             <Button variant="contained" startIcon={<Add />} onClick={handleOpenCreate}>
-              Create First ODP
+              {translate('pages.odp.create_first')}
             </Button>
           }
         >
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800 }}>ODP CODE</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>NAME / ZONE</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>UPLINK (OLT / PON)</TableCell>
-                <TableCell sx={{ fontWeight: 800, minWidth: 170 }}>PORT OCCUPANCY</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>OPTICAL LOSS</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>STATUS</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>COORDINATES</TableCell>
-                <TableCell sx={{ fontWeight: 800, textAlign: 'right' }}>ACTIONS</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{translate('pages.odp.columns.code')}</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{translate('pages.odp.columns.name_zone')}</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{translate('pages.odp.columns.uplink')}</TableCell>
+                <TableCell sx={{ fontWeight: 800, minWidth: 170 }}>{translate('pages.odp.columns.port_occupancy')}</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{translate('pages.odp.columns.optical_loss')}</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{translate('pages.odp.columns.status')}</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>{translate('pages.odp.columns.coordinates')}</TableCell>
+                <TableCell sx={{ fontWeight: 800, textAlign: 'right' }}>{translate('pages.odp.columns.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -405,7 +411,7 @@ export const ODPPage: React.FC = () => {
                         {row.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Zone: {row.zone || '-'} {row.address ? `• ${row.address}` : ''}
+                        {translate('pages.odp.zone_value', { zone: row.zone || '-' })} {row.address ? `• ${row.address}` : ''}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -413,14 +419,14 @@ export const ODPPage: React.FC = () => {
                         {row.olt_name || 'OLT-CORE'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Port: {row.pon_port || 'gpon-olt_1/1/1'}
+                        {translate('pages.odp.port_value', { port: row.pon_port || 'gpon-olt_1/1/1' })}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ width: '100%' }}>
                         <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
                           <Typography variant="caption" fontWeight={700}>
-                            {used} / {total} Ports
+                            {translate('pages.odp.ports_usage', { used, total })}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {percent}%
@@ -438,10 +444,10 @@ export const ODPPage: React.FC = () => {
                       <Tooltip
                         title={
                           isOptimal
-                            ? 'Optimal signal strength (-15 to -21 dBm)'
+                            ? translate('pages.odp.loss.optimal')
                             : isHighLoss
-                            ? 'Warning: High optical loss (> -24 dBm). Check dropcore connector!'
-                            : 'Acceptable attenuation (-21 to -24 dBm)'
+                            ? translate('pages.odp.loss.high')
+                            : translate('pages.odp.loss.acceptable')
                         }
                       >
                         <Chip
@@ -469,7 +475,7 @@ export const ODPPage: React.FC = () => {
                             ? 'warning'
                             : 'error'
                         }
-                        label={row.status.toUpperCase()}
+                        label={translate('pages.odp.status.' + row.status, { _: row.status }).toUpperCase()}
                       />
                     </TableCell>
                     <TableCell>
@@ -487,13 +493,13 @@ export const ODPPage: React.FC = () => {
                         </Button>
                       ) : (
                         <Typography variant="caption" color="text.disabled">
-                          No GPS
+                          {translate('pages.odp.no_gps')}
                         </Typography>
                       )}
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                        <Tooltip title="View Connected Subscribers">
+                        <Tooltip title={translate('pages.odp.actions.view_subscribers')}>
                           <IconButton
                             size="small"
                             color="primary"
@@ -502,7 +508,7 @@ export const ODPPage: React.FC = () => {
                             <PeopleAltOutlined fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Edit ODP Configuration">
+                        <Tooltip title={translate('pages.odp.actions.edit')}>
                           <IconButton
                             size="small"
                             onClick={() => handleOpenEdit(row)}
@@ -510,13 +516,13 @@ export const ODPPage: React.FC = () => {
                             <EditOutlined fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete ODP">
+                        <Tooltip title={translate('pages.odp.actions.delete')}>
                           <IconButton
                             size="small"
                             color="error"
                             disabled={used > 0}
                             onClick={() => {
-                              if (window.confirm(`Delete ODP ${row.code}?`)) {
+                              if (window.confirm(translate('pages.odp.actions.delete_confirm', { code: row.code }))) {
                                 deleteMutation.mutate(row.id);
                               }
                             }}
@@ -537,23 +543,25 @@ export const ODPPage: React.FC = () => {
       {/* CREATE / EDIT DIALOG */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 800 }}>
-          {editingODP ? `Edit ODP Enclosure: ${editingODP.code}` : 'Register New ODP Enclosure'}
+          {editingODP
+            ? translate('pages.odp.form.edit_title', { code: editingODP.code })
+            : translate('pages.odp.form.create_title')}
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ pt: 1 }}>
             <Stack direction="row" spacing={2}>
               <TextField
                 fullWidth
-                label="ODP Code"
+                label={translate('pages.odp.form.code')}
                 placeholder="ODP-KNG-001"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                 required
-                helperText="Unique identifier e.g. ODP-[ZONE]-[NUM]"
+                helperText={translate('pages.odp.form.code_helper')}
               />
               <TextField
                 fullWidth
-                label="Zone / Area"
+                label={translate('pages.odp.form.zone_area')}
                 placeholder="Kuningan"
                 value={formData.zone}
                 onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
@@ -562,7 +570,7 @@ export const ODPPage: React.FC = () => {
 
             <TextField
               fullWidth
-              label="ODP Name / Pole Label"
+              label={translate('pages.odp.form.name')}
               placeholder="ODP Kuningan Barat Tiang 14"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -571,14 +579,14 @@ export const ODPPage: React.FC = () => {
             <Stack direction="row" spacing={2}>
               <TextField
                 fullWidth
-                label="Uplink OLT Name"
+                label={translate('pages.odp.form.olt_name')}
                 placeholder="OLT-ZTE-CORE-01"
                 value={formData.olt_name}
                 onChange={(e) => setFormData({ ...formData, olt_name: e.target.value })}
               />
               <TextField
                 fullWidth
-                label="PON Port"
+                label={translate('pages.odp.form.pon_port')}
                 placeholder="gpon-olt_1/1/3"
                 value={formData.pon_port}
                 onChange={(e) => setFormData({ ...formData, pon_port: e.target.value })}
@@ -587,33 +595,33 @@ export const ODPPage: React.FC = () => {
 
             <Stack direction="row" spacing={2}>
               <FormControl fullWidth>
-                <InputLabel>Splitter Ratio (Total Ports)</InputLabel>
+                <InputLabel>{translate('pages.odp.form.splitter_ratio')}</InputLabel>
                 <Select
                   value={formData.total_ports}
-                  label="Splitter Ratio (Total Ports)"
+                  label={translate('pages.odp.form.splitter_ratio')}
                   onChange={(e) => setFormData({ ...formData, total_ports: Number(e.target.value) })}
                 >
-                  <MenuItem value={8}>1:8 (8 Drop Ports)</MenuItem>
-                  <MenuItem value={16}>1:16 (16 Drop Ports)</MenuItem>
-                  <MenuItem value={24}>1:24 (24 Drop Ports)</MenuItem>
-                  <MenuItem value={32}>1:32 (32 Drop Ports)</MenuItem>
+                  <MenuItem value={8}>{translate('pages.odp.form.splitter_8')}</MenuItem>
+                  <MenuItem value={16}>{translate('pages.odp.form.splitter_16')}</MenuItem>
+                  <MenuItem value={24}>{translate('pages.odp.form.splitter_24')}</MenuItem>
+                  <MenuItem value={32}>{translate('pages.odp.form.splitter_32')}</MenuItem>
                 </Select>
               </FormControl>
               <TextField
                 fullWidth
-                label="Optical Attenuation (dBm)"
+                label={translate('pages.odp.form.attenuation')}
                 type="number"
                 inputProps={{ step: '0.1' }}
                 value={formData.optical_loss}
                 onChange={(e) => setFormData({ ...formData, optical_loss: Number(e.target.value) })}
-                helperText="Standard range: -15.0 to -22.0 dBm"
+                helperText={translate('pages.odp.form.attenuation_hint')}
               />
             </Stack>
 
             <Stack direction="row" spacing={2} alignItems="center">
               <TextField
                 fullWidth
-                label="Latitude"
+                label={translate('pages.odp.form.latitude')}
                 type="number"
                 inputProps={{ step: '0.000001' }}
                 value={formData.latitude}
@@ -621,7 +629,7 @@ export const ODPPage: React.FC = () => {
               />
               <TextField
                 fullWidth
-                label="Longitude"
+                label={translate('pages.odp.form.longitude')}
                 type="number"
                 inputProps={{ step: '0.000001' }}
                 value={formData.longitude}
@@ -633,13 +641,13 @@ export const ODPPage: React.FC = () => {
                 onClick={getCurrentLocation}
                 sx={{ minWidth: 130, height: 40 }}
               >
-                Get GPS
+                {translate('pages.odp.form.get_gps')}
               </Button>
             </Stack>
 
             <TextField
               fullWidth
-              label="Physical Address / Landmark"
+              label={translate('pages.odp.form.address')}
               multiline
               rows={2}
               placeholder="Depan Ruko Niaga Blok B No. 12, Tiang PLN No. 44"
@@ -649,37 +657,37 @@ export const ODPPage: React.FC = () => {
 
             <TextField
               fullWidth
-              label="Notes"
+              label={translate('pages.odp.form.notes')}
               multiline
               rows={2}
-              placeholder="Additional operational or field notes"
+              placeholder={translate('pages.odp.form.notes_helper')}
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             />
 
             <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
+              <InputLabel>{translate('pages.odp.form.status')}</InputLabel>
               <Select
                 value={formData.status}
-                label="Status"
+                label={translate('pages.odp.form.status')}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
-                <MenuItem value="active">Active (Available for drop cable install)</MenuItem>
-                <MenuItem value="full">Full (Capacity reached)</MenuItem>
-                <MenuItem value="maintenance">Under Maintenance / Splicing</MenuItem>
+                <MenuItem value="active">{translate('pages.odp.form.status_active')}</MenuItem>
+                <MenuItem value="full">{translate('pages.odp.form.status_full')}</MenuItem>
+                <MenuItem value="maintenance">{translate('pages.odp.form.status_maintenance')}</MenuItem>
               </Select>
             </FormControl>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDialogOpen(false)}>{translate('pages.odp.cancel')}</Button>
           <Button
             variant="contained"
             onClick={handleSave}
             loading={saveMutation.isPending}
             sx={{ fontWeight: 700 }}
           >
-            {editingODP ? 'Save Changes' : 'Register ODP'}
+            {editingODP ? translate('pages.odp.save_changes') : translate('pages.odp.register')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -695,7 +703,7 @@ export const ODPPage: React.FC = () => {
           <Box sx={{ py: 6, textAlign: 'center' }}>
             <LinearProgress sx={{ mb: 2 }} />
             <Typography variant="body2" color="text.secondary">
-              Loading connected subscribers...
+              {translate('pages.odp.drawer.loading')}
             </Typography>
           </Box>
         ) : (
@@ -703,7 +711,7 @@ export const ODPPage: React.FC = () => {
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
               <Box>
                 <Typography variant="overline" color="text.secondary" fontWeight={700}>
-                  ODP ENCLOSURE TELEMETRY
+                  {translate('pages.odp.drawer.telemetry')}
                 </Typography>
                 <Typography variant="h5" fontWeight={800}>
                   {odpDetail.odp.code}
@@ -713,7 +721,10 @@ export const ODPPage: React.FC = () => {
                 </Typography>
               </Box>
               <Chip
-                label={`${odpDetail.connected_count} / ${odpDetail.odp.total_ports} PORTS`}
+                label={translate('pages.odp.drawer.ports_chip', {
+                  connected: odpDetail.connected_count,
+                  total: odpDetail.odp.total_ports,
+                })}
                 color="primary"
                 sx={{ fontWeight: 800, fontFamily: 'monospace' }}
               />
@@ -723,19 +734,19 @@ export const ODPPage: React.FC = () => {
 
             <Stack spacing={1.5} sx={{ mb: 3 }}>
               <Typography variant="subtitle2" fontWeight={800}>
-                Splitter Specifications:
+                {translate('pages.odp.drawer.specs')}
               </Typography>
               <Stack direction="row" spacing={3}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">OLT Uplink:</Typography>
+                  <Typography variant="caption" color="text.secondary">{translate('pages.odp.drawer.olt_uplink')}</Typography>
                   <Typography variant="body2" fontWeight={700}>{odpDetail.odp.olt_name}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">PON Port:</Typography>
+                  <Typography variant="caption" color="text.secondary">{translate('pages.odp.drawer.pon_port')}</Typography>
                   <Typography variant="body2" fontWeight={700}>{odpDetail.odp.pon_port}</Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Optical Attenuation:</Typography>
+                  <Typography variant="caption" color="text.secondary">{translate('pages.odp.drawer.attenuation')}</Typography>
                   <Typography variant="body2" fontWeight={700} color={odpDetail.odp.optical_loss < -24 ? 'error.main' : 'success.main'}>
                     {odpDetail.odp.optical_loss} dBm
                   </Typography>
@@ -744,20 +755,20 @@ export const ODPPage: React.FC = () => {
             </Stack>
 
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5 }}>
-              Subscriber Impact
+              {translate('pages.odp.drawer.subscriber_impact')}
             </Typography>
             <Box sx={{ mb: 3 }}>
               <NocImpactPanel odpId={selectedODPId ?? undefined} />
             </Box>
 
             <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1.5 }}>
-              Connected Dropcore Subscribers ({odpDetail.customers.length})
+              {translate('pages.odp.drawer.connected_subscribers', { count: odpDetail.customers.length })}
             </Typography>
 
             {odpDetail.customers.length === 0 ? (
               <Box sx={{ py: 4, textAlign: 'center', bgcolor: 'action.hover', borderRadius: 2 }}>
                 <Typography variant="body2" color="text.secondary">
-                  No subscribers attached to this ODP yet.
+                  {translate('pages.odp.drawer.no_subscribers')}
                 </Typography>
               </Box>
             ) : (
@@ -769,7 +780,7 @@ export const ODPPage: React.FC = () => {
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Chip
                             size="small"
-                            label={`PORT ${cust.odp_port || 1}`}
+                            label={translate('pages.odp.drawer.port_chip', { port: cust.odp_port || 1 })}
                             color="info"
                             variant="outlined"
                             sx={{ fontWeight: 800, fontFamily: 'monospace', height: 20 }}
@@ -779,15 +790,15 @@ export const ODPPage: React.FC = () => {
                           </Typography>
                         </Stack>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                          ID: {cust.customer_no} • Phone: {cust.phone || '-'}
+                          {translate('pages.odp.drawer.customer_meta', { id: cust.customer_no, phone: cust.phone || '-' })}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                          Address: {cust.address || '-'}
+                          {translate('pages.odp.drawer.address', { address: cust.address || '-' })}
                         </Typography>
                       </Box>
                       <StatusChip
                         status={cust.status === 'active' ? 'active' : 'warning'}
-                        label={cust.status.toUpperCase()}
+                        label={translate('pages.odp.status.' + cust.status, { _: cust.status }).toUpperCase()}
                       />
                     </Stack>
                   </Paper>
@@ -801,7 +812,7 @@ export const ODPPage: React.FC = () => {
               onClick={() => setDrawerOpen(false)}
               sx={{ mt: 3, fontWeight: 700 }}
             >
-              Close Panel
+              {translate('pages.odp.drawer.close')}
             </Button>
           </Box>
         )}
