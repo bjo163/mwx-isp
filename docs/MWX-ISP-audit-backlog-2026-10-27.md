@@ -31,7 +31,18 @@ the current tree.
 
 ## Progress
 
-Done: 18 / 100.
+Done: 19 / 100.
+
+- `ENG-011` (2026-10-27, `dev` @ `6fcd5ad`): fuzz regression for defective and oversized
+  RADIUS packets. A deterministic corpus of 22 named frames covers the RFC 2865 §3 length
+  window (19/0/3/4097/65535 rejected, exactly 4096 accepted), truncated headers and bodies,
+  attribute TLVs with length 0/1/overrun, trailing padding, malformed and valid Huawei VSAs,
+  and short/duplicate/zeroed Message-Authenticator values. Three native fuzz targets
+  (`FuzzParseTcpPacket`, `FuzzParseAttributesAndVendorDecoding`, `FuzzMessageAuthenticator`)
+  assert no panic, framing errors only outside 20..4096, exact frame consumption, and a
+  deterministic replay. A 25s/20s/20s run executed 38,362 + 78,072 + 65,807 inputs with zero
+  panics and zero contract violations; the commands, invariants and limits are in
+  `docs/radius-fuzz-harness.md`, and the TR-F001 boundary now links the harness.
 
 - `ENG-024` (2026-10-27, `dev` @ `db08c5f`): rotating `web.secret` and the sealed SNMP
   credentials. The monitor stores the SNMPv2c community and SNMPv3 auth/privacy passwords as
@@ -269,7 +280,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-019` TR-F033 P1 — Ratcheting audit query SQL raw dan joins tenancy · LOKAL · PROPOSED_VERIFICATION · commit `fc7390d`
 - [x] `ENG-028` TR-F022 P1 — Penyamaran PII di logs, traces dan support evidence · LOKAL · PROPOSED_VERIFICATION · commit `59a429d`
 - [ ] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · dep ENG-049 · PROPOSED_VERIFICATION
-- [ ] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · dep ENG-010 · PROPOSED_VERIFICATION
+- [x] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · PROPOSED_VERIFICATION · commit `6fcd5ad`
 - [x] `ENG-031` TR-F028 P1 — Invoice numbering tahan retry setelah crash PostgreSQL · LOKAL · PROPOSED_VERIFICATION · commit `74fa4c1`
 - [x] `ENG-033` TR-F028 P1 — Idempotency pembayaran manual dengan request ulang · LOKAL · PROPOSED_VERIFICATION · commit `c89624d`
 - [ ] `ENG-052` TR-F016 P1 — E2E matriks tombol per role operator/admin/super · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
@@ -374,7 +385,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-025` — WhatsApp credential protection.
-2. `ENG-027` — SSRF hardening for the network diagnostics endpoints.
-3. `ENG-011` — malformed/oversized RADIUS packet fuzz harness (follows `ENG-010`).
-4. `ENG-052` — role matrix for the operator/admin/super buttons (follows `ENG-017`).
+1. `ENG-052` — role matrix for the operator/admin/super buttons (follows `ENG-017`).
+2. `ENG-035` — subscription/RadiusUser status consistency on transitions (follows `ENG-032`).
+3. `ENG-038` — voucher terminal-state concurrency regressions.
+4. `ENG-056` — honest copy for disabled portal/payment actions (follows `ENG-021`).
