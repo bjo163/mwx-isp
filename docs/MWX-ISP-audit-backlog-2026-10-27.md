@@ -31,7 +31,21 @@ the current tree.
 
 ## Progress
 
-Done: 13 / 100.
+Done: 14 / 100.
+
+- `ENG-022` (2026-10-27, `dev` @ `e093bd0`): admin browser-session threat model. The review
+  mapped login/token, browser storage, logout, CORS and CSRF against the real code. The admin
+  API is a 12h HS256 bearer token kept in `localStorage` and sent as an `Authorization` header;
+  there are no cookies, no refresh endpoint and no server-side logout. That makes classic CSRF
+  inapplicable rather than "exploitable", which the acceptance criterion asked for explicitly.
+  `internal/adminapi/auth_session_test.go` drives the real router with forged, expired,
+  `alg:none`, tampered, cookie-only and wrong-scheme credentials (all `401`), proves the tenant
+  comes from the signed claim despite `X-Tenant-ID`/query overrides, pins the missing
+  refresh/logout routes, proves login never sets a cookie, and ratchets the frontend so
+  `document.cookie`/`withCredentials` cannot appear. Limits are documented in
+  `docs/admin-session-threat-model.md`: a stolen token stays valid up to 12h unless the
+  operator/membership/tenant is revoked, `localStorage` is XSS-readable, and no CSP header is
+  sent. No production code changed.
 
 - `ENG-012` (2026-10-27, `dev` @ `9be97f3`): accounting Start/Interim/Stop out-of-order. The
   handlers already converged for duplicates and a delayed interim, but `UpdateStop` matched
@@ -233,7 +247,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-009` TR-F003 P1 — Regression RadSec mTLS sertifikat tidak tepercaya · LOKAL · dep ENG-004 · PROPOSED_VERIFICATION
 - [x] `ENG-010` TR-F001 P1 — Audit duplikasi RADIUS retransmission dan replay · LOKAL · PROPOSED_VERIFICATION · commit `54aee93`
 - [x] `ENG-012` TR-F002 P1 — Test accounting Start/Interim/Stop out-of-order · LOKAL · PROPOSED_VERIFICATION · commit `9be97f3`
-- [ ] `ENG-022` TR-F016 P1 — Threat-model autentikasi browser dan sesi admin · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-022` TR-F016 P1 — Threat-model autentikasi browser dan sesi admin · LOKAL · PROPOSED_VERIFICATION · commit `e093bd0`
 - [ ] `ENG-023` TR-F018 P1 — Validasi rate limiting saat reverse proxy multi-hop · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-024` TR-F031 P1 — Runbook rotasi secret SNMP dan encrypted community · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-025` TR-F030 P1 — Audit perlindungan kredensial koneksi WhatsApp · LOKAL · PROPOSED_VERIFICATION
@@ -331,8 +345,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-022` / `ENG-023` — admin browser-session threat model and rate limiting behind a
-   multi-hop reverse proxy.
+1. `ENG-023` — rate limiting behind a multi-hop reverse proxy (follows `ENG-022`).
 2. `ENG-024` / `ENG-025` — SNMP secret-rotation runbook and WhatsApp credential protection.
 3. `ENG-027` — SSRF hardening for the network diagnostics endpoints.
 4. `ENG-011` — malformed/oversized RADIUS packet fuzz harness (follows `ENG-010`).
