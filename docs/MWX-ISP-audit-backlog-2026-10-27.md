@@ -31,7 +31,20 @@ the current tree.
 
 ## Progress
 
-Done: 20 / 100.
+Done: 21 / 100.
+
+- `ENG-035` (2026-10-27, `dev` @ `c070535`): subscription lifecycle state machine and
+  rollback evidence. `internal/adminapi/isp_subscription_state_machine_test.go` drives all 16
+  pending/active/suspended/terminated × activate/suspend/reactivate/terminate pairs through the
+  real handler: accepted transitions must leave subscription and linked account consistent
+  (`active` ⇔ `enabled`) and append exactly one typed billing event; rejected pairs return
+  `409 INVALID_SUBSCRIPTION_STATE` with no subscription, account, or event change, and an
+  unknown action returns `404 UNKNOWN_ACTION`. SQLite triggers inject a failure at the account
+  update and at the billing-event insert, proving the transaction rolls back both earlier
+  writes on a 500. Relink coverage rejects an already-linked, unknown, or non-numeric RADIUS
+  account without creating rows, and a trigger on the subscription insert proves the account
+  created earlier in the same transaction is rolled back. The TR-F027 boundary links the
+  tests; the full adminapi suite passes in 43.8s.
 
 - `ENG-052` (2026-10-27, `dev` @ `447c0ad`): browser role matrix for the operator/admin/super
   button set. `web/e2e/role-matrix.spec.ts` seeds operator, admin, super and `platform_admin`
@@ -306,7 +319,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-024` TR-F031 P1 — Runbook rotasi secret SNMP dan encrypted community · LOKAL · PROPOSED_VERIFICATION · commit `db08c5f`
 - [x] `ENG-025` TR-F030 P1 — Audit perlindungan kredensial koneksi WhatsApp · LOKAL · PROPOSED_VERIFICATION · commit `aef2150`
 - [ ] `ENG-027` TR-F031 P1 — Hardening diagnostik jaringan terhadap SSRF · LOKAL · PROPOSED_VERIFICATION
-- [ ] `ENG-035` TR-F027 P1 — Konsistensi status Subscription dan RadiusUser saat transisi · LOKAL · dep ENG-032 · PROPOSED_VERIFICATION
+- [x] `ENG-035` TR-F027 P1 — Konsistensi status Subscription dan RadiusUser saat transisi · LOKAL · PROPOSED_VERIFICATION · commit `c070535`
 - [x] `ENG-037` TR-F028 P1 — Validasi integer IDR dan batas invoice items · LOKAL · PROPOSED_VERIFICATION · commit `e8da24f`
 - [ ] `ENG-038` TR-F007 P1 — Voucher terminal-state concurrency regressions · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-056` TR-F029 P1 — Informasi jujur untuk action portal/payment yang disabled · LOKAL · dep ENG-021 · PROPOSED_VERIFICATION
@@ -399,7 +412,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-035` — subscription/RadiusUser status consistency on transitions (follows `ENG-032`).
-2. `ENG-038` — voucher terminal-state concurrency regressions.
-3. `ENG-056` — honest copy for disabled portal/payment actions (follows `ENG-021`).
-4. `ENG-053` — keyboard navigation on data grids and critical dialogs.
+1. `ENG-038` — voucher terminal-state concurrency regressions.
+2. `ENG-056` — honest copy for disabled portal/payment actions (follows `ENG-021`).
+3. `ENG-053` — keyboard navigation on data grids and critical dialogs.
+4. `ENG-061` — CI E2E stability on `main` and `dev`.
