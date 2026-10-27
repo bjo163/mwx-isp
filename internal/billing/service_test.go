@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/require"
-	"github.com/bjo163/mwx-isp/internal/domain"
 	"gorm.io/gorm"
 )
 
@@ -130,6 +130,48 @@ func TestRecordPaymentDoesNotReactivateManualSuspension(t *testing.T) {
 	require.Equal(t, "manual", sub.SuspensionReason)
 	require.NoError(t, db.First(&user, user.ID).Error)
 	require.Equal(t, "disabled", user.Status)
+}
+
+// TestManualSuspensionSurvivesSchedulerAndPayment covers the ENG-032 invariant:
+// the billing scheduler and a later payment may finish a billing suspension,
+// but they must not rewrite or clear an operator's manual suspension.
+func TestManualSuspensionSurvivesSchedulerAndPayment(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.October, 15, 10, 0, 0, 0, time.UTC)
+	customer := domain.Customer{Name: "Manual Stays", Status: domain.CustomerActive}
+	require.NoError(t, db.Create(&customer).Error)
+	user := domain.RadiusUser{Username: "manual-stays", Password: "secret", Status: "disabled"}
+	require.NoError(t, db.Create(&user).Error)
+	sub := domain.Subscription{SubscriptionNo: "SUB-MANUAL-2", CustomerID: customer.ID, RadiusUserID: user.ID,
+		Status: domain.SubscriptionSuspended, SuspensionReason: "manual",
+		StartDate: now.AddDate(0, -1, 0), BillingDay: 1, GraceDays: 3}
+	require.NoError(t, db.Create(&sub).Error)
+	invoice := domain.Invoice{InvoiceNo: "INV-MANUAL-2", CustomerID: customer.ID, SubscriptionID: sub.ID,
+		InvoiceDate: now.AddDate(0, 0, -20), DueDate: now.AddDate(0, 0, -10),
+		PeriodStart: now.AddDate(0, 0, -20), PeriodEnd: now.AddDate(0, 0, 10),
+		Total: 50000, Balance: 50000, Status: domain.InvoiceOverdue}
+	require.NoError(t, db.Create(&invoice).Error)
+
+	require.NoError(t, SuspendOverdueSubscriptions(db, now))
+	require.NoError(t, db.First(&sub, sub.ID).Error)
+	require.Equal(t, domain.SubscriptionSuspended, sub.Status)
+	require.Equal(t, "manual", sub.SuspensionReason)
+	var suspensions int64
+	require.NoError(t, db.Model(&domain.BillingEvent{}).
+		Where("subscription_id = ? AND type = ?", sub.ID, "subscription_suspended").Count(&suspensions).Error)
+	require.Zero(t, suspensions, "the scheduler must not add a billing suspension event to a manual suspension")
+
+	payment := domain.Payment{InvoiceID: invoice.ID, Amount: 50000, Method: "manual"}
+	require.NoError(t, RecordPayment(db, &payment, now, true))
+	require.NoError(t, db.First(&sub, sub.ID).Error)
+	require.Equal(t, domain.SubscriptionSuspended, sub.Status)
+	require.Equal(t, "manual", sub.SuspensionReason)
+	require.NoError(t, db.First(&user, user.ID).Error)
+	require.Equal(t, "disabled", user.Status)
+	var reactivated int64
+	require.NoError(t, db.Model(&domain.BillingEvent{}).
+		Where("subscription_id = ? AND type = ?", sub.ID, "subscription_reactivated").Count(&reactivated).Error)
+	require.Zero(t, reactivated, "a payment must not reactivate a manually suspended subscription")
 }
 
 // TestRecordPaymentKeepsSuspensionUntilEveryOverdueInvoiceIsPaid covers the

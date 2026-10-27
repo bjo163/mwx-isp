@@ -66,6 +66,19 @@ actionable instead of silently dropping the requirement. A NAS failure no longer
 turns an already-committed manual suspension into an API error: the operator
 gets a successful response and the pending action appears in the session queue.
 
+### Suspension ownership invariant
+
+`suspension_reason` records who owns a suspension, and the automatic paths
+respect it:
+
+- `billing.SuspendOverdueSubscriptions` only selects subscriptions whose status
+  is still `active`, so an operator's `manual` suspension is never rewritten into
+  `billing_overdue` and no duplicate `subscription_suspended` event is emitted.
+- `billing.RecordPayment` reactivates only `billing_overdue` subscriptions, and
+  only when no other overdue invoice remains. A manual suspension stays suspended
+  and the linked RADIUS user stays disabled even after every invoice is paid.
+- Only an explicit operator `reactivate` clears a manual suspension.
+
 ## Scheduler, backoff and recovery
 
 `SchedSessionActionRetryTask` runs every 5 minutes (`@every 5m`) and also once
@@ -120,10 +133,12 @@ depend on the restored queue contents.
 
 - Unit: `go test ./internal/sessionqueue/`
 - Unit: `go test ./internal/app/ -run 'Billing|SessionAction'`
-- Unit: `go test ./internal/adminapi/ -run 'SessionAction|SuspendQueuesDurableDisconnect'`
-  (manual suspend with fake-NAS ACK and timeout, duplicate-free queueing)
-- Unit: `go test ./internal/billing/ -run 'RecordPayment|SuspendOverdue'`
-  (manual suspension preserved, multiple overdue invoices block reactivation)
+- Unit: `go test ./internal/adminapi/ -run 'SessionAction|SuspendQueuesDurableDisconnect|ManualSuspendSurvives'`
+  (manual suspend with fake-NAS ACK and timeout, duplicate-free queueing,
+  suspend-then-full-payment keeps the manual suspension)
+- Unit: `go test ./internal/billing/ -run 'RecordPayment|SuspendOverdue|ManualSuspension'`
+  (manual suspension preserved through scheduler and payment, multiple overdue
+  invoices block reactivation)
 - PostgreSQL + fake NAS: `go test -tags=integration ./test/integration/ -run TestPostgresSessionActionQueue`
   (ACK + audit, NAK, timeout then NAS recovery, concurrent retry claim,
   cancellation after reactivation, cross-tenant isolation)
