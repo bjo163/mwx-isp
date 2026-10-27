@@ -31,7 +31,22 @@ the current tree.
 
 ## Progress
 
-Done: 14 / 100.
+Done: 15 / 100.
+
+- `ENG-023` (2026-10-27, `dev` @ `818c331`): rate limiting behind a multi-hop reverse proxy.
+  Echo's `X-Forwarded-For` extractor trusts loopback, link-local and private peers implicitly,
+  so once `TOUGHRADIUS_TRUSTED_PROXIES` was set, a caller reaching the process from a LAN address
+  could rotate the header and get a fresh bucket per attempt; the per-IP login limiter was
+  bypassable. `trustedProxyIPExtractor` now disables link-local and private implicit trust and
+  keeps only loopback, so a same-host proxy still works without configuration. New unit tests in
+  `internal/webserver/server_test.go` pin the trust defaults, the walk through listed private
+  proxies, an unlisted hop resolving to that hop (fail-closed, shared budget), and a malformed
+  header resolving to the peer; `internal/adminapi/proxy_ratelimit_test.go` drives the real
+  router and shows the spoof attempt reaching the handler and being throttled on the sixth
+  attempt, while a listed proxy keeps per-client budgets. Both the unit and end-to-end tests fail
+  against the previous extractor. Tenant/IP isolation was already pinned by
+  `TestPublicRateLimitBucketsByTenantAndIP`. `docs/public-endpoint-hardening.md` now states that
+  every hop, private ones included, must be listed.
 
 - `ENG-022` (2026-10-27, `dev` @ `e093bd0`): admin browser-session threat model. The review
   mapped login/token, browser storage, logout, CORS and CSRF against the real code. The admin
@@ -248,7 +263,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-010` TR-F001 P1 — Audit duplikasi RADIUS retransmission dan replay · LOKAL · PROPOSED_VERIFICATION · commit `54aee93`
 - [x] `ENG-012` TR-F002 P1 — Test accounting Start/Interim/Stop out-of-order · LOKAL · PROPOSED_VERIFICATION · commit `9be97f3`
 - [x] `ENG-022` TR-F016 P1 — Threat-model autentikasi browser dan sesi admin · LOKAL · PROPOSED_VERIFICATION · commit `e093bd0`
-- [ ] `ENG-023` TR-F018 P1 — Validasi rate limiting saat reverse proxy multi-hop · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-023` TR-F018 P1 — Validasi rate limiting saat reverse proxy multi-hop · LOKAL · PROPOSED_VERIFICATION · commit `818c331`
 - [ ] `ENG-024` TR-F031 P1 — Runbook rotasi secret SNMP dan encrypted community · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-025` TR-F030 P1 — Audit perlindungan kredensial koneksi WhatsApp · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-027` TR-F031 P1 — Hardening diagnostik jaringan terhadap SSRF · LOKAL · PROPOSED_VERIFICATION
@@ -345,7 +360,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-023` — rate limiting behind a multi-hop reverse proxy (follows `ENG-022`).
-2. `ENG-024` / `ENG-025` — SNMP secret-rotation runbook and WhatsApp credential protection.
-3. `ENG-027` — SSRF hardening for the network diagnostics endpoints.
-4. `ENG-011` — malformed/oversized RADIUS packet fuzz harness (follows `ENG-010`).
+1. `ENG-024` / `ENG-025` — SNMP secret-rotation runbook and WhatsApp credential protection.
+2. `ENG-027` — SSRF hardening for the network diagnostics endpoints.
+3. `ENG-011` — malformed/oversized RADIUS packet fuzz harness (follows `ENG-010`).
+4. `ENG-052` — role matrix for the operator/admin/super buttons (follows `ENG-017`).
