@@ -31,7 +31,19 @@ the current tree.
 
 ## Progress
 
-Done: 8 / 100.
+Done: 9 / 100.
+
+- `ENG-031` (2026-10-27, `dev` @ `74fa4c1`): invoice numbering under crash and concurrency.
+  `NextDocumentSerial` already runs inside the document transaction, so the two required
+  properties needed evidence rather than code: an aborted transaction rolls its increment back
+  (retry reuses the number, no gap) and a committed invoice blocks a second number via the
+  subscription/period unique index. `TestNextDocumentSerialRollsBackWithTransaction` and
+  `TestGenerateMonthlyInvoicesRetryReusesRolledBackNumber` cover both on the unit path, and
+  `TestPostgresInvoiceNumberingConcurrentAndRollback` races eight allocations, aborts a ninth,
+  and asserts the retry receives it — this one runs in CI because SQLite has no real row locks
+  (compiled locally with `-tags=integration`; skipped without `TEST_DATABASE_*`). The policy
+  (per-tenant kind/period scope, no reuse after commit, what a visible gap means) is recorded in
+  the new `docs/document-numbering.md`. No production code changed.
 
 - `ENG-032` (2026-10-27, `dev` @ `5c1946a`): manual suspension ownership. The automatic
   paths already respected the invariant — `SuspendOverdueSubscriptions` only selects
@@ -158,7 +170,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-028` TR-F022 P1 — Penyamaran PII di logs, traces dan support evidence · LOKAL · PROPOSED_VERIFICATION · commit `59a429d`
 - [ ] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · dep ENG-010 · PROPOSED_VERIFICATION
-- [ ] `ENG-031` TR-F028 P1 — Invoice numbering tahan retry setelah crash PostgreSQL · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-031` TR-F028 P1 — Invoice numbering tahan retry setelah crash PostgreSQL · LOKAL · PROPOSED_VERIFICATION · commit `74fa4c1`
 - [x] `ENG-033` TR-F028 P1 — Idempotency pembayaran manual dengan request ulang · LOKAL · PROPOSED_VERIFICATION · commit `c89624d`
 - [ ] `ENG-052` TR-F016 P1 — E2E matriks tombol per role operator/admin/super · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
 - [ ] `ENG-009` TR-F003 P1 — Regression RadSec mTLS sertifikat tidak tepercaya · LOKAL · dep ENG-004 · PROPOSED_VERIFICATION
@@ -265,7 +277,7 @@ Ordered so each step stays executable without new hardware:
 1. `ENG-019` / `ENG-028` — raw-SQL tenancy ratchet and PII redaction in logs; both feed the
    later `ENG-060` support-bundle and `FUT-010` items.
 2. `ENG-051` — website editor functional coverage, currently a `VERIFIED_GAP` and fully local.
-3. `ENG-031` — invoice numbering survives a retry after a PostgreSQL crash; the last
-   remaining local item in the `TR-F028` billing cluster.
+3. `ENG-037` — integer IDR validation and invoice-item limits, the remaining local billing
+   item after `ENG-031`/`ENG-032`/`ENG-033`.
 4. `ENG-010` / `ENG-012` — RADIUS retransmission/replay audit and accounting out-of-order
    regressions; both feed the later `ENG-013` CoA pilot.
