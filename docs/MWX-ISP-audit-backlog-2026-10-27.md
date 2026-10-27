@@ -31,7 +31,20 @@ the current tree.
 
 ## Progress
 
-Done: 9 / 100.
+Done: 10 / 100.
+
+- `ENG-037` (2026-10-27, `dev` @ `e8da24f`): integer IDR boundaries. The invoice path
+  already avoided floating point, so the remaining question was whether the edges hold.
+  `TestInvoiceTotalsStayExactAtInt64Boundary` creates a `MaxInt64` package and asserts
+  `Subtotal`/`Total`/`Balance`/item totals match exactly, then pays `1`, rejects a payment of
+  `MaxInt64` (`ErrInvalidPayment`), and settles with `MaxInt64-1`, ending at
+  `PaidAmount = MaxInt64`, `Balance = 0`, status paid without overflow.
+  `TestRecordPaymentRejectsNonPositiveAmount` rejects `0`, `-1` and `MinInt64` without writing
+  a payment row, and `TestSavePackagePriceBoundaries` pins the API contract: negative and
+  `9223372036854775808` return `400`, `0` for a free package and `MaxInt64` both return `201`,
+  and the max price round-trips without truncation. There is no manual invoice-item endpoint,
+  so totals can only come from a stored package price. No production code changed; the
+  invariant is documented under `docs/payment-concurrency.md`.
 
 - `ENG-031` (2026-10-27, `dev` @ `74fa4c1`): invoice numbering under crash and concurrency.
   `NextDocumentSerial` already runs inside the document transaction, so the two required
@@ -182,7 +195,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-025` TR-F030 P1 — Audit perlindungan kredensial koneksi WhatsApp · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-027` TR-F031 P1 — Hardening diagnostik jaringan terhadap SSRF · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-035` TR-F027 P1 — Konsistensi status Subscription dan RadiusUser saat transisi · LOKAL · dep ENG-032 · PROPOSED_VERIFICATION
-- [ ] `ENG-037` TR-F028 P1 — Validasi integer IDR dan batas invoice items · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-037` TR-F028 P1 — Validasi integer IDR dan batas invoice items · LOKAL · PROPOSED_VERIFICATION · commit `e8da24f`
 - [ ] `ENG-038` TR-F007 P1 — Voucher terminal-state concurrency regressions · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-056` TR-F029 P1 — Informasi jujur untuk action portal/payment yang disabled · LOKAL · dep ENG-021 · PROPOSED_VERIFICATION
 - [ ] `ENG-061` TR-F022 P1 — Stabilitas test E2E CI branch main dan dev · LOKAL · PROPOSED_VERIFICATION
@@ -277,7 +290,5 @@ Ordered so each step stays executable without new hardware:
 1. `ENG-019` / `ENG-028` — raw-SQL tenancy ratchet and PII redaction in logs; both feed the
    later `ENG-060` support-bundle and `FUT-010` items.
 2. `ENG-051` — website editor functional coverage, currently a `VERIFIED_GAP` and fully local.
-3. `ENG-037` — integer IDR validation and invoice-item limits, the remaining local billing
-   item after `ENG-031`/`ENG-032`/`ENG-033`.
-4. `ENG-010` / `ENG-012` — RADIUS retransmission/replay audit and accounting out-of-order
+3. `ENG-010` / `ENG-012` — RADIUS retransmission/replay audit and accounting out-of-order
    regressions; both feed the later `ENG-013` CoA pilot.
