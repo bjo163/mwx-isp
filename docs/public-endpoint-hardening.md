@@ -85,9 +85,18 @@ remain behind the JWT middleware. The limits apply once such a caller is
 authenticated and protect the tenant from abuse by an authenticated account.
 
 Because those calls answer 401 for a visitor, `/home` and `/portal` must not
-present them as anonymous self-service or as a checkout step. Both pages now
-label the lookup as staff-operator gated, surface the 401 as "login staf
-diperlukan", and route an anonymous visitor to WhatsApp or the staff login. The
+present them as anonymous self-service or as a checkout step. Both pages label
+the lookup as staff-operator gated. A clicked action that answers 401 is
+rendered as an informational staff-login notice with "Login staf" and
+"Hubungi WhatsApp" actions, never as a red data error and never as the raw
+`Unauthorized` body (ENG-056). Verification:
+
+| Check | Command |
+| --- | --- |
+| Anonymous landing lookup, voucher check, registration and portal lookup show the staff-login info notice; the offline payment button targets the branded WhatsApp number | `cd web && npx playwright test e2e/anonymous-actions.spec.ts --project=chromium --workers=1` |
+
+The `/portal` offline payment fallback says online payment is not configured and
+opens the branded WhatsApp number instead of an empty chat picker. The
 fail-closed behaviour is asserted by `TestLandingSurfaceEndpointsFailClosedAnonymously`,
 so widening `JwtSkipPrefix` to make the copy true breaks the test instead of the
 non-goal.

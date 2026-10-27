@@ -15,6 +15,7 @@ import {
 } from '@mui/icons-material';
 import { useBranding } from '../branding/BrandingContext';
 import { apiRequest } from '../utils/apiClient';
+import { StaffLoginNotice, describeSurfaceFailure, type SurfaceFailure } from '../components/StaffLoginNotice';
 
 type InvoiceItem = {
   id: string | number;
@@ -44,10 +45,11 @@ export const CustomerPortalPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { branding } = useBranding();
+  const contactWhatsApp = (branding.contact_whatsapp || '6281234567890').replace(/[^0-9]/g, '');
 
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<SurfaceFailure | null>(null);
   const [data, setData] = useState<CustomerPortalData | null>(null);
   const [toast, setToast] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
 
@@ -61,7 +63,7 @@ export const CustomerPortalPage = () => {
       const result = await apiRequest<CustomerPortalData>(`/portal/lookup?q=${encodeURIComponent(q)}`);
       setData(result);
     } catch (err: any) {
-      setError(err?.message || 'Gagal memuat data pelanggan');
+      setError(describeSurfaceFailure(err, 'Gagal memuat data pelanggan'));
       setData(null);
     } finally {
       setLoading(false);
@@ -86,7 +88,7 @@ export const CustomerPortalPage = () => {
     if (!data) return;
     const amountStr = idrFormat(data.outstanding);
     const text = `Halo Admin ${branding.product_name},\nSaya atas nama ${data.name} (ID: ${data.customer_no}) ingin konfirmasi pembayaran tagihan internet sebesar ${amountStr}.\nMohon diverifikasi. Terima kasih!`;
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    const url = `https://wa.me/${contactWhatsApp}?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
 
@@ -206,11 +208,17 @@ export const CustomerPortalPage = () => {
         </Box>
 
         {/* Error Alert */}
-        {error && (
+        {error && (error.needsStaffLogin ? (
+          <StaffLoginNotice
+            whatsappNumber={contactWhatsApp}
+            whatsappMessage="Halo, saya ingin mengecek tagihan internet saya."
+            sx={{ mb: 3, borderRadius: 2 }}
+          />
+        ) : (
           <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-            {error}
+            {error.message}
           </Alert>
-        )}
+        ))}
 
         {/* Customer Information Cards */}
         {data && (
