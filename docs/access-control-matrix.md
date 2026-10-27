@@ -77,13 +77,13 @@ permission issued by the login response.
 
 | UI surface | Gated for operator | File |
 | --- | --- | --- |
-| Customer/package/subscription/payment list create buttons | hidden | `web/src/resources/isp.tsx` |
+| Customer/package/subscription/payment list create buttons and empty-state Create link | hidden | `web/src/resources/isp.tsx` |
 | Customer edit and add-subscription | hidden | `web/src/resources/isp.tsx` |
 | Package row click-to-edit | disabled | `web/src/resources/isp.tsx` |
 | Subscription lifecycle and FUP buttons | hidden (invoice link remains) | `web/src/resources/isp.tsx` |
 | Invoice record-payment and server WhatsApp send | hidden | `web/src/resources/isp.tsx` |
 | Payment server WhatsApp send | hidden | `web/src/resources/isp.tsx` |
-| RADIUS user create/import, edit save/delete | hidden | `web/src/resources/radiusUsers.tsx` |
+| RADIUS user create/import, edit save/delete, empty-state create hint | hidden | `web/src/resources/radiusUsers.tsx` |
 | Ticket dispatch and flapping auto-ticket | hidden (ticket create/update remain) | `web/src/pages/TroubleTicketsPage.tsx` |
 | Voucher generate/revoke/delete batch | hidden (print/filter remain) | `web/src/pages/HotspotVouchersPage.tsx` |
 | Branding/website editor | hidden unless `platform_admin` | `web/src/components/CustomMenu.tsx`, `web/src/pages/BrandingPage.tsx` |
@@ -102,8 +102,17 @@ which is admin-only. The role-matrix test asserts both closures.
 | Route matrix (in-process router, real JWT claims) | `go test ./internal/adminapi/ -run TestMutationRouteRoleMatrix -count=1` |
 | Operator privilege boundaries | `go test ./internal/adminapi/ -run TestUpdateOperatorPrivilegeBoundaries -count=1` |
 | Full admin API unit suite | `go test ./internal/adminapi/ ./internal/webserver/ -count=1` |
+| Browser role matrix (menu, create/import/print/dispatch controls) | `cd web && npx playwright test e2e/role-matrix.spec.ts --project=chromium --reporter=line` |
 | Frontend type check | `cd web && npm run type-check` |
 
 The matrix test seeds one `super`, one `admin` and one `operator`, calls the real
 router with signed JWTs, and asserts 2xx/403 per row. It also proves that an
 operator cannot record a payment through the portal simulation or webhook routes.
+
+The Playwright spec is the UI half of the same matrix: it seeds operator, admin,
+super, and `platform_admin` sessions into `localStorage` and asserts which menu
+entries and action controls each role can see. It does not replace the server
+test -- hiding a button is never treated as enforcement. The read-only API
+fixtures in the spec return empty lists and canned rows; mutations are not part
+of the browser suite because the Go matrix already covers them against the real
+router.

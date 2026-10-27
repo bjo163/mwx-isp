@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
-  ArrayField, Create, Datagrid, DateField, Edit, FunctionField, List, NumberField,
+  ArrayField, Create, Datagrid, DateField, Edit, Empty, FunctionField, List, NumberField,
   NumberInput, ReferenceField, ReferenceInput, SearchInput, SelectInput, Show, SimpleForm,
   SimpleShowLayout, TextField, TextInput, TopToolbar, CreateButton, EditButton, useNotify,
   useRefresh, useRecordContext, useListContext,
@@ -28,6 +28,14 @@ import { Mono, StatusChip, PageHeader, KpiStrip, KpiTile, Panel } from '../compo
 const AdminListActions = () => {
   const isAdmin = useIsAdmin();
   return <TopToolbar>{isAdmin && <CreateButton />}</TopToolbar>;
+};
+
+// React Admin's default empty state renders a Create button whenever the
+// resource has a create route, regardless of role. It must be role-aware for
+// the same reason the toolbar is.
+const RoleAwareEmpty = () => {
+  const isAdmin = useIsAdmin();
+  return <Empty hasCreate={isAdmin} />;
 };
 const idrOptions: Intl.NumberFormatOptions = { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 };
 const formatIDR = (val?: number | null) =>
@@ -166,7 +174,7 @@ const CustomerListHeader = () => {
 
 const customerFilters = [<SearchInput source="q" alwaysOn key="q" />, <SelectInput source="status" choices={customerStatusChoices} key="status" />];
 export const CustomerList = () => (
-  <List actions={<AdminListActions />} filters={customerFilters} perPage={25} title="Customers">
+  <List actions={<AdminListActions />} empty={<RoleAwareEmpty />} filters={customerFilters} perPage={25} title="Customers">
     <CustomerListHeader />
     <Datagrid
       rowClick="show"
@@ -402,7 +410,7 @@ const packageFilters = [<SelectInput source="status" choices={[{ id: 'active', n
 export const PackageList = () => {
   const isAdmin = useIsAdmin();
   return (
-  <List actions={<AdminListActions />} filters={packageFilters} perPage={25} title="Internet packages">
+  <List actions={<AdminListActions />} empty={<RoleAwareEmpty />} filters={packageFilters} perPage={25} title="Internet packages">
     <PackageListHeader />
     <Datagrid
       rowClick={isAdmin ? 'edit' : false}
@@ -557,7 +565,7 @@ const subscriptionFilters = [
   <ReferenceInput source="customer_id" reference="isp/customers" key="customer_id"><SelectInput optionText="name" /></ReferenceInput>,
 ];
 export const SubscriptionList = () => (
-  <List actions={<AdminListActions />} filters={subscriptionFilters} perPage={25} title="Subscriptions">
+  <List actions={<AdminListActions />} empty={<RoleAwareEmpty />} filters={subscriptionFilters} perPage={25} title="Subscriptions">
     <SubscriptionListHeader />
     <Datagrid
       rowClick="show"
@@ -1247,7 +1255,7 @@ const paymentFilters = [
   <ReferenceInput source="invoice_id" reference="isp/invoices" key="invoice_id"><SelectInput optionText="invoice_no" /></ReferenceInput>,
 ];
 export const PaymentList = () => (
-  <List actions={<AdminListActions />} filters={paymentFilters} perPage={25} title="Payments">
+  <List actions={<AdminListActions />} empty={<RoleAwareEmpty />} filters={paymentFilters} perPage={25} title="Payments">
     <PaymentListHeader />
     <Datagrid
       rowClick="show"

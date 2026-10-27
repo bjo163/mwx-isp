@@ -117,6 +117,11 @@ const customEnglishMessages: TranslationMessages = {
   resources: {
     'radius/users': {
       name: 'RADIUS User |||| RADIUS Users',
+      empty: {
+        title: 'No RADIUS users yet',
+        description: 'Click "Create" to add the first RADIUS user',
+        restricted: 'No RADIUS users have been provisioned yet.',
+      },
       import: {
         button: 'Batch Import',
         failed: 'Import failed',
