@@ -63,6 +63,69 @@ func TestGenerateMonthlyInvoicesIsIdempotent(t *testing.T) {
 	require.Equal(t, "INV-202611-000001", november.InvoiceNo)
 }
 
+func TestNextDocumentSerialRollsBackWithTransaction(t *testing.T) {
+	db := billingTestDB(t)
+	crash := errors.New("simulated crash after serial allocation")
+
+	var allocated int64
+	err := db.Transaction(func(tx *gorm.DB) error {
+		serial, err := NextDocumentSerial(tx, "invoice", "202610")
+		if err != nil {
+			return err
+		}
+		allocated = serial
+		return crash
+	})
+	require.ErrorIs(t, err, crash)
+	require.EqualValues(t, 1, allocated)
+
+	serial, err := NextDocumentSerial(db, "invoice", "202610")
+	require.NoError(t, err)
+	require.EqualValues(t, 1, serial, "an aborted transaction must release its number")
+}
+
+// TestGenerateMonthlyInvoicesRetryReusesRolledBackNumber covers the crash
+// scenario: a run that allocated a number but never committed must leave the
+// sequence untouched, so the retry issues the same number once and only once.
+func TestGenerateMonthlyInvoicesRetryReusesRolledBackNumber(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+	customer := domain.Customer{Name: "Crash Retry", Status: domain.CustomerActive}
+	require.NoError(t, db.Create(&customer).Error)
+	pkg := domain.InternetPackage{Code: "HOME-CRASH", Name: "Home Crash", Price: 120000, RadiusProfileID: 1, BillingCycle: "monthly", Status: "active"}
+	require.NoError(t, db.Create(&pkg).Error)
+	sub := domain.Subscription{CustomerID: customer.ID, PackageID: pkg.ID, Status: domain.SubscriptionActive,
+		StartDate: now.AddDate(0, -1, 0), BillingDay: 1, GraceDays: 3}
+	require.NoError(t, db.Create(&sub).Error)
+
+	crash := errors.New("simulated crash")
+	require.ErrorIs(t, db.Transaction(func(tx *gorm.DB) error {
+		if _, err := NextDocumentSerial(tx, "invoice", "202610"); err != nil {
+			return err
+		}
+		return crash
+	}), crash)
+
+	created, err := GenerateMonthlyInvoices(db, now, 10)
+	require.NoError(t, err)
+	require.Equal(t, 1, created)
+	var invoice domain.Invoice
+	require.NoError(t, db.Where("subscription_id = ?", sub.ID).First(&invoice).Error)
+	require.Equal(t, "INV-202610-000001", invoice.InvoiceNo)
+
+	// A retry after the committed invoice (lost response or restart) creates
+	// nothing and does not consume another number.
+	created, err = GenerateMonthlyInvoices(db, now.Add(time.Hour), 10)
+	require.NoError(t, err)
+	require.Zero(t, created)
+	var invoices int64
+	require.NoError(t, db.Model(&domain.Invoice{}).Count(&invoices).Error)
+	require.EqualValues(t, 1, invoices)
+	var sequence domain.DocumentSequence
+	require.NoError(t, db.Where("kind = ? AND period = ?", "invoice", "202610").First(&sequence).Error)
+	require.EqualValues(t, 1, sequence.Value)
+}
+
 func TestRecordPaymentPartialAndAutoReactivation(t *testing.T) {
 	db := billingTestDB(t)
 	now := time.Date(2026, time.October, 15, 10, 0, 0, 0, time.UTC)
