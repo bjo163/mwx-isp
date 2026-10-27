@@ -1452,12 +1452,30 @@ func createPayment(c echo.Context) error {
 	if err := c.Validate(&in); err != nil {
 		return err
 	}
+	idempotencyKey := strings.TrimSpace(c.Request().Header.Get("Idempotency-Key"))
+	if idempotencyKey != "" && !validIdempotencyKey(idempotencyKey) {
+		return fail(c, 400, "INVALID_IDEMPOTENCY_KEY", "Idempotency-Key tidak valid", nil)
+	}
 	row := domain.Payment{InvoiceID: in.InvoiceID, Amount: in.Amount, Method: in.Method, Reference: in.Reference, Notes: in.Notes}
-	if err := billing.RecordPayment(GetDB(c), &row, time.Now(), GetAppContext(c).GetSettingsBoolValue("isp", "AutoReactivate")); errors.Is(err, billing.ErrInvalidPayment) {
+	if idempotencyKey != "" {
+		row.IdempotencyKey = &idempotencyKey
+	}
+	err := billing.RecordPayment(GetDB(c), &row, time.Now(), GetAppContext(c).GetSettingsBoolValue("isp", "AutoReactivate"))
+	switch {
+	case errors.Is(err, billing.ErrDuplicatePayment):
+		var existing domain.Payment
+		if err := GetDB(c).Where("idempotency_key = ?", idempotencyKey).First(&existing).Error; err != nil {
+			return fail(c, 500, "PAYMENT_FAILED", "Failed to load the original payment", err.Error())
+		}
+		c.Response().Header().Set("Idempotent-Replay", "true")
+		return ok(c, existing)
+	case errors.Is(err, billing.ErrIdempotencyConflict):
+		return fail(c, 409, "IDEMPOTENCY_CONFLICT", err.Error(), nil)
+	case errors.Is(err, billing.ErrInvalidPayment):
 		return fail(c, 400, "INVALID_PAYMENT", err.Error(), nil)
-	} else if errors.Is(err, billing.ErrInvoiceClosed) {
+	case errors.Is(err, billing.ErrInvoiceClosed):
 		return fail(c, 409, "INVOICE_CLOSED", err.Error(), nil)
-	} else if err != nil {
+	case err != nil:
 		return fail(c, 500, "PAYMENT_FAILED", "Failed to record payment", err.Error())
 	}
 	return c.JSON(http.StatusCreated, Response{Data: row})

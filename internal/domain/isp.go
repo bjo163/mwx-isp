@@ -159,19 +159,22 @@ func (InvoiceItem) TableName() string { return "isp_invoice_item" }
 
 // Payment records a manually received payment applied to exactly one invoice.
 type Payment struct {
-	ID         int64     `json:"id,string" gorm:"primaryKey"`
-	TenantID   int64     `json:"-" gorm:"not null;default:1;uniqueIndex:udx_isp_payment_tenant_no,priority:1;index"`
-	PaymentNo  string    `json:"payment_no" gorm:"uniqueIndex:udx_isp_payment_tenant_no,priority:2;size:40"`
-	CustomerID int64     `json:"customer_id,string" gorm:"index;not null"`
-	InvoiceID  int64     `json:"invoice_id,string" gorm:"index;not null"`
-	Amount     int64     `json:"amount" gorm:"not null"`
-	Method     string    `json:"method" gorm:"size:32;not null"`
-	Reference  string    `json:"reference" gorm:"size:150"`
-	PaidAt     time.Time `json:"paid_at" gorm:"not null"`
-	Status     string    `json:"status" gorm:"index;size:24;not null;default:received"`
-	Notes      string    `json:"notes" gorm:"size:1000"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID        int64  `json:"id,string" gorm:"primaryKey"`
+	TenantID  int64  `json:"-" gorm:"not null;default:1;uniqueIndex:udx_isp_payment_tenant_no,priority:1;uniqueIndex:udx_isp_payment_tenant_idem,priority:1;index"`
+	PaymentNo string `json:"payment_no" gorm:"uniqueIndex:udx_isp_payment_tenant_no,priority:2;size:40"`
+	// IdempotencyKey is the operator-supplied retry key for a manual payment.
+	// It is unique per tenant and nil when the caller did not opt in.
+	IdempotencyKey *string   `json:"-" gorm:"size:64;uniqueIndex:udx_isp_payment_tenant_idem,priority:2"`
+	CustomerID     int64     `json:"customer_id,string" gorm:"index;not null"`
+	InvoiceID      int64     `json:"invoice_id,string" gorm:"index;not null"`
+	Amount         int64     `json:"amount" gorm:"not null"`
+	Method         string    `json:"method" gorm:"size:32;not null"`
+	Reference      string    `json:"reference" gorm:"size:150"`
+	PaidAt         time.Time `json:"paid_at" gorm:"not null"`
+	Status         string    `json:"status" gorm:"index;size:24;not null;default:received"`
+	Notes          string    `json:"notes" gorm:"size:1000"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // TableName returns the database table name for Payment.
