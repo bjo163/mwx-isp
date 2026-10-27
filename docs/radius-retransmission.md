@@ -48,11 +48,11 @@ interim update writes one `radius_traffic_sample`; a replayed interim with
 unchanged counters inserts a sample with a zero rate. Samples are monitoring
 data, not invoice input, and a zero sample does not change billing totals.
 
-`StopHandler` finalizes the same accounting row by `acct_session_id` and deletes
-the online row (`stop_handler.go:51-93`). Replaying the stop updates the same
-row with the same counters and finds nothing left to delete; tenant B's session
-with the same `Acct-Session-Id` is a different row because the unique key and
-every query carry `tenant_id`.
+`StopHandler` finalizes the newest accounting row for `acct_session_id` and
+deletes the online row (`stop_handler.go:51-93`,
+`accounting_repository.go:42`). Replaying the stop updates the same row with the
+same counters and finds nothing left to delete; tenant B's session with the same
+`Acct-Session-Id` is a different row because every query carries `tenant_id`.
 
 ## Cross-tenant replay
 
@@ -67,6 +67,24 @@ every query carry `tenant_id`.
 - RadSec's in-flight key includes the connection's remote address, so it cannot
   suppress a request on another tenant's connection.
 
+## Out-of-order delivery (ENG-012)
+
+Accounting packets are answered first and processed asynchronously on a worker
+pool (`radius_acct.go:103-133`), so copies of one session's packets can reach a
+handler in a different order than the NAS sent them. Convergence is defined per
+event, not per arrival order:
+
+| Observed order for one session | Online row | Accounting history |
+| --- | --- | --- |
+| Start → duplicates → Interim → Stop | Created once by the first Start, refreshed by Interim, removed by Stop. | One row, final counters from the Stop. |
+| Interim or its retransmission after Stop | Already deleted; the interim updates zero rows and writes no traffic sample. | Unchanged; a stale interim cannot regress finalized counters. |
+| Stop retransmitted after Stop | Nothing left to delete. | Same row re-finalized with the same counters. |
+| Start → Stop → Start → Stop (NAS reuses `Acct-Session-Id`) | One row per live session; the first is removed before the second is created. | Two rows. Each Stop finalizes only the newest row (`accounting_repository.go:42`), so the earlier session's counters are never overwritten. |
+| Stop or Interim before Start | No row to update; the delete is a no-op. | Empty. Nothing is invented before a Start exists. |
+
+All queries above carry `tenant_id`, so two tenants that reuse the same
+`Acct-Session-Id` and username keep independent rows.
+
 ## Evidence
 
 `internal/radiusd/retransmission_test.go`:
@@ -80,6 +98,20 @@ every query carry `tenant_id`.
   window blocks the retransmission inside one tenant but not the same username
   in another tenant.
 
+`internal/radiusd/accounting_order_test.go` (ENG-012):
+
+- `TestAccountingOutOfOrderStartInterimStopConverge` permutes duplicate Starts,
+  Interims and Stops plus a delayed interim and asserts one accounting row with
+  the Stop counters and no online row.
+- `TestAccountingSessionIDReuseKeepsFinalizedHistory` reuses one
+  `Acct-Session-Id` for two sessions and asserts the second Stop leaves the
+  first session's finalized counters intact (fails against the previous
+  update-every-match implementation).
+- `TestAccountingSessionIDReuseIsTenantScoped` repeats that reuse on two tenants
+  and asserts each tenant keeps its own rows.
+- `TestAccountingEventsWithoutStartDoNotInventHistory` asserts Interim/Stop
+  before Start neither create an accounting row nor an online row.
+
 Existing coverage reused by this audit: `handlers_test.go`
 (duplicate start/retry), `session_repository_test.go` (conflict insert),
 `coordinator_concurrency_test.go` and `coordinator_test.go` (EAP retransmit and
@@ -89,6 +121,7 @@ tenant state), `radius_test.go` (ambiguous NAS, voucher expiry scoping).
 
 ```bash
 go test ./internal/radiusd/ -run 'TestRetransmitted' -count=1
+go test ./internal/radiusd/ -run 'TestAccounting' -count=1
 go test ./internal/radiusd/... -count=1
 ```
 
@@ -103,3 +136,11 @@ go test ./internal/radiusd/... -count=1
 - The duplicate window is in-process. Two application instances behind the same
   NAS IP would each keep their own window; the database idempotency keys remain
   the cross-instance guarantee for accounting state.
+- A Start that a handler processes after its own Stop (UDP crossing or worker
+  pool reordering) is indistinguishable from a NAS reusing the
+  `Acct-Session-Id`: there is no session-instance token, so it creates a new
+  online row and a new accounting row with no later Stop to close them. The
+  online row clears on the next Stop or on an Accounting-On/Off for that NAS
+  (`BatchDeleteByNas`). For the same reason, a retransmitted Stop of an earlier
+  session that arrives after a reused session started would finalize the newest
+  row; both cases need a per-session instance identifier to be solved exactly.
