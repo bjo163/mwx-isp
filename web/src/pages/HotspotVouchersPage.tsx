@@ -35,7 +35,7 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNotify } from 'react-admin';
+import { useNotify, useTranslate } from 'react-admin';
 import { useIsAdmin } from '../hooks/useIsAdmin';
 import { apiRequest, apiRequestPage, extractData } from '../utils/apiClient';
 import { useBranding } from '../branding/BrandingContext';
@@ -79,6 +79,7 @@ const VOUCHER_PRINT_LIMIT = 500;
 export const HotspotVouchersPage: React.FC = () => {
   const { branding } = useBranding();
   const notify = useNotify();
+  const translate = useTranslate();
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
 
@@ -117,10 +118,10 @@ export const HotspotVouchersPage: React.FC = () => {
       const first = await apiRequestPage<Voucher[]>(`/isp/vouchers?${params.toString()}`);
       const total = first.total;
       if (total === 0) {
-        throw new Error('No vouchers match the current filters.');
+        throw new Error(translate('pages.vouchers.print_errors.no_matches'));
       }
       if (total > VOUCHER_PRINT_LIMIT) {
-        throw new Error(`This filter matches ${total} vouchers; printing is capped at ${VOUCHER_PRINT_LIMIT}. Select a single batch first.`);
+        throw new Error(translate('pages.vouchers.print_errors.capped', { total, limit: VOUCHER_PRINT_LIMIT }));
       }
       const all = [...(first.data ?? [])];
       let nextPage = 2;
@@ -133,13 +134,13 @@ export const HotspotVouchersPage: React.FC = () => {
         nextPage += 1;
       }
       if (all.length !== total) {
-        throw new Error(`Only ${all.length} of ${total} vouchers could be loaded. Print cancelled; retry or narrow the filters.`);
+        throw new Error(translate('pages.vouchers.print_errors.partial', { loaded: all.length, total }));
       }
       setPrintVouchers(all);
       setPrintOpen(true);
     } catch (err: any) {
       setPrintVouchers([]);
-      notify(err?.message || 'Failed to load vouchers for printing', { type: 'error' });
+      notify(err?.message || translate('pages.vouchers.notify.print_load_failed'), { type: 'error' });
     } finally {
       setIsLoadingPrint(false);
     }
@@ -195,18 +196,18 @@ export const HotspotVouchersPage: React.FC = () => {
         }),
       }),
     onSuccess: () => {
-      notify('Vouchers generated successfully', { type: 'success' });
+      notify(translate('pages.vouchers.notify.generated'), { type: 'success' });
       setGenOpen(false);
       void queryClient.invalidateQueries({ queryKey: ['isp', 'vouchers'] });
     },
-    onError: (err: any) => notify(err.message || 'Generation failed', { type: 'error' }),
+    onError: (err: any) => notify(err.message || translate('pages.vouchers.notify.generation_failed'), { type: 'error' }),
   });
 
   const deleteBatchMutation = useMutation({
     mutationFn: (id: string) =>
       apiRequest(`/isp/vouchers/batches/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
-      notify('Voucher batch removed', { type: 'success' });
+      notify(translate('pages.vouchers.notify.batch_removed'), { type: 'success' });
       setSelectedBatch('');
       void queryClient.invalidateQueries({ queryKey: ['isp', 'vouchers'] });
     },
@@ -216,10 +217,10 @@ export const HotspotVouchersPage: React.FC = () => {
     mutationFn: (id: string) =>
       apiRequest(`/isp/vouchers/${id}/revoke`, { method: 'POST' }),
     onSuccess: () => {
-      notify('Voucher revoked; credential disabled and live session disconnected', { type: 'success' });
+      notify(translate('pages.vouchers.notify.revoked'), { type: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['isp', 'vouchers'] });
     },
-    onError: (err: any) => notify(err.message || 'Revoke failed', { type: 'error' }),
+    onError: (err: any) => notify(err.message || translate('pages.vouchers.notify.revoke_failed'), { type: 'error' }),
   });
 
   const batches = batchesQuery.data ?? [];
@@ -227,16 +228,16 @@ export const HotspotVouchersPage: React.FC = () => {
   const vouchersTotal = vouchersQuery.data?.total ?? 0;
 
   const formatValidity = (seconds: number) => {
-    if (seconds >= 86400) return `${Math.round(seconds / 86400)} Hari`;
-    if (seconds >= 3600) return `${Math.round(seconds / 3600)} Jam`;
-    return `${Math.round(seconds / 60)} Menit`;
+    if (seconds >= 86400) return translate('pages.vouchers.units.days', { smart_count: Math.round(seconds / 86400) });
+    if (seconds >= 3600) return translate('pages.vouchers.units.hours', { smart_count: Math.round(seconds / 3600) });
+    return translate('pages.vouchers.units.minutes', { smart_count: Math.round(seconds / 60) });
   };
 
   const formatQuota = (bytes: number) => {
-    if (!bytes || bytes <= 0) return 'Unlimited (no data cap)';
+    if (!bytes || bytes <= 0) return translate('pages.vouchers.quota.unlimited');
     const mb = bytes / (1024 * 1024);
     const configured = mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(0)} MB`;
-    return `Not enforced (${configured} stored)`;
+    return translate('pages.vouchers.quota.not_enforced', { configured });
   };
 
   const totalValue = vouchers.reduce((acc, v) => acc + (v.price || 0), 0);
@@ -245,9 +246,9 @@ export const HotspotVouchersPage: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 1.5, md: 2.5 }, maxWidth: 1600, mx: 'auto' }}>
       <PageHeader
-        section="ISP / Captive Portal"
-        title="Hotspot Vouchers"
-        subtitle="Batch prepaid voucher generator with Thermal POS (58/80mm) and A4 printable card layouts."
+        section={translate('pages.vouchers.section')}
+        title={translate('pages.vouchers.title')}
+        subtitle={translate('pages.vouchers.subtitle')}
         actions={<>
           <Button
             variant="outlined"
@@ -255,7 +256,7 @@ export const HotspotVouchersPage: React.FC = () => {
             disabled={vouchersTotal === 0 || isLoadingPrint}
             onClick={handleOpenPrint}
           >
-            {isLoadingPrint ? 'Loading Print...' : `Print Vouchers (${vouchersTotal})`}
+            {isLoadingPrint ? translate('pages.vouchers.actions.loading_print') : translate('pages.vouchers.actions.print', { count: vouchersTotal })}
           </Button>
           {isAdmin && (
             <Button
@@ -264,68 +265,68 @@ export const HotspotVouchersPage: React.FC = () => {
               startIcon={<Add />}
               onClick={() => setGenOpen(true)}
             >
-              Generate Batch
+              {translate('pages.vouchers.actions.generate_batch')}
             </Button>
           )}
         </>}
       />
 
       <KpiStrip>
-        <KpiTile label="Total Vouchers" value={vouchersTotal} icon={<ConfirmationNumber fontSize="small" />} hint="Server total for current filters" />
-        <KpiTile label="Active / Unused" value={countStatus('active')} tone="success" hint="On this page" />
-        <KpiTile label="Used / Online" value={countStatus('used')} tone="info" hint="On this page" />
-        <KpiTile label="Expired" value={countStatus('expired')} tone="error" hint="On this page" />
-        <KpiTile label="Revoked" value={countStatus('revoked')} tone="error" hint="On this page" />
-        <KpiTile label="Total Batches" value={batches.length} tone="warning" hint="Created batches" />
+        <KpiTile label={translate('pages.vouchers.kpi.total_vouchers')} value={vouchersTotal} icon={<ConfirmationNumber fontSize="small" />} hint={translate('pages.vouchers.kpi.total_vouchers_hint')} />
+        <KpiTile label={translate('pages.vouchers.kpi.active_unused')} value={countStatus('active')} tone="success" hint={translate('pages.vouchers.kpi.on_this_page')} />
+        <KpiTile label={translate('pages.vouchers.status.used')} value={countStatus('used')} tone="info" hint={translate('pages.vouchers.kpi.on_this_page')} />
+        <KpiTile label={translate('pages.vouchers.status.expired')} value={countStatus('expired')} tone="error" hint={translate('pages.vouchers.kpi.on_this_page')} />
+        <KpiTile label={translate('pages.vouchers.status.revoked')} value={countStatus('revoked')} tone="error" hint={translate('pages.vouchers.kpi.on_this_page')} />
+        <KpiTile label={translate('pages.vouchers.kpi.total_batches')} value={batches.length} tone="warning" hint={translate('pages.vouchers.kpi.total_batches_hint')} />
         <KpiTile
-          label="Total Face Value"
+          label={translate('pages.vouchers.kpi.total_face_value')}
           value={`Rp ${(totalValue / 1000).toFixed(0)}k`}
           tone="secondary"
-          hint="Aggregate batch price"
+          hint={translate('pages.vouchers.kpi.total_face_value_hint')}
         />
       </KpiStrip>
 
       <Panel
-        title="Voucher Inventory"
-        subtitle={`${vouchers.length} of ${vouchersTotal} vouchers loaded`}
+        title={translate('pages.vouchers.inventory.title')}
+        subtitle={translate('pages.vouchers.inventory.subtitle', { loaded: vouchers.length, total: vouchersTotal })}
         dense
         actions={
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems="center">
             <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel>Filter Batch</InputLabel>
+              <InputLabel>{translate('pages.vouchers.filters.filter_batch')}</InputLabel>
               <Select
-                label="Filter Batch"
+                label={translate('pages.vouchers.filters.filter_batch')}
                 value={selectedBatch}
                 onChange={(e) => setSelectedBatch(e.target.value)}
               >
-                <MenuItem value="">All Batches</MenuItem>
+                <MenuItem value="">{translate('pages.vouchers.filters.all_batches')}</MenuItem>
                 {batches.map((b) => (
                   <MenuItem key={b.id} value={b.id}>
-                    {b.batch_no} — {b.name} ({b.quantity} pcs)
+                    {translate('pages.vouchers.filters.batch_option', { batch_no: b.batch_no, name: b.name, quantity: b.quantity })}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Status</InputLabel>
+              <InputLabel>{translate('pages.vouchers.filters.status')}</InputLabel>
               <Select
-                label="Status"
+                label={translate('pages.vouchers.filters.status')}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <MenuItem value="">All Statuses</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="used">Used / Online</MenuItem>
-                <MenuItem value="expired">Expired</MenuItem>
-                <MenuItem value="revoked">Revoked</MenuItem>
+                <MenuItem value="">{translate('pages.vouchers.filters.all_statuses')}</MenuItem>
+                <MenuItem value="active">{translate('pages.vouchers.status.active')}</MenuItem>
+                <MenuItem value="used">{translate('pages.vouchers.status.used')}</MenuItem>
+                <MenuItem value="expired">{translate('pages.vouchers.status.expired')}</MenuItem>
+                <MenuItem value="revoked">{translate('pages.vouchers.status.revoked')}</MenuItem>
               </Select>
             </FormControl>
 
             <TextField
               size="small"
-              label="Search Code"
-              placeholder="e.g. WRK-..."
+              label={translate('pages.vouchers.filters.search_code')}
+              placeholder={translate('pages.vouchers.filters.search_placeholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               sx={{ width: 140 }}
@@ -338,12 +339,12 @@ export const HotspotVouchersPage: React.FC = () => {
                 variant="outlined"
                 startIcon={<DeleteOutline />}
                 onClick={() => {
-                  if (window.confirm('Delete this voucher batch and all its credentials?')) {
+                  if (window.confirm(translate('pages.vouchers.confirm.delete_batch'))) {
                     deleteBatchMutation.mutate(selectedBatch);
                   }
                 }}
               >
-                Delete Batch
+                {translate('pages.vouchers.actions.delete_batch')}
               </Button>
             )}
 
@@ -354,7 +355,7 @@ export const HotspotVouchersPage: React.FC = () => {
               onClick={() => void vouchersQuery.refetch()}
               disabled={vouchersQuery.isFetching}
             >
-              Refresh
+              {translate('pages.vouchers.actions.refresh')}
             </Button>
           </Stack>
         }
@@ -363,18 +364,18 @@ export const HotspotVouchersPage: React.FC = () => {
             <LinearProgress />
           ) : vouchersQuery.isError ? (
             <Box sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="h6" color="error.main">Could not load vouchers</Typography>
+              <Typography variant="h6" color="error.main">{translate('pages.vouchers.state.load_error')}</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                {(vouchersQuery.error as Error)?.message || 'The server did not return a valid response.'}
+                {(vouchersQuery.error as Error)?.message || translate('pages.vouchers.state.invalid_response')}
               </Typography>
-              <Button variant="outlined" onClick={() => void vouchersQuery.refetch()}>Retry</Button>
+              <Button variant="outlined" onClick={() => void vouchersQuery.refetch()}>{translate('pages.vouchers.actions.retry')}</Button>
             </Box>
           ) : vouchers.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
               <ConfirmationNumber sx={{ fontSize: 48, opacity: 0.4, mb: 1 }} />
-              <Typography variant="h6">No Vouchers Found</Typography>
+              <Typography variant="h6">{translate('pages.vouchers.state.empty_title')}</Typography>
               <Typography variant="caption">
-                Click "Generate Batch" to create prepaid hotspot voucher codes.
+                {translate('pages.vouchers.state.empty_hint')}
               </Typography>
             </Box>
           ) : (
@@ -382,14 +383,14 @@ export const HotspotVouchersPage: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Voucher Code / User</TableCell>
-                  <TableCell>Password</TableCell>
-                  <TableCell>Price</TableCell>
-                  <TableCell>Validity</TableCell>
-                  <TableCell>Quota</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Created Date</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>{translate('pages.vouchers.fields.code_user')}</TableCell>
+                  <TableCell>{translate('pages.vouchers.fields.password')}</TableCell>
+                  <TableCell>{translate('pages.vouchers.fields.price')}</TableCell>
+                  <TableCell>{translate('pages.vouchers.fields.validity')}</TableCell>
+                  <TableCell>{translate('pages.vouchers.fields.quota')}</TableCell>
+                  <TableCell>{translate('pages.vouchers.fields.status')}</TableCell>
+                  <TableCell>{translate('pages.vouchers.fields.created')}</TableCell>
+                  <TableCell align="right">{translate('pages.vouchers.fields.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -405,7 +406,7 @@ export const HotspotVouchersPage: React.FC = () => {
                     <TableCell>{formatValidity(v.validity_seconds)}</TableCell>
                     <TableCell>{formatQuota(v.quota_bytes)}</TableCell>
                     <TableCell>
-                      <StatusChip value={v.status} />
+                      <StatusChip value={v.status} label={translate('pages.vouchers.status.' + v.status, { _: v.status })} />
                     </TableCell>
                     <TableCell sx={{ color: 'text.secondary', fontSize: '0.78rem' }}>
                       {new Date(v.created_at).toLocaleDateString()} {new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -418,12 +419,12 @@ export const HotspotVouchersPage: React.FC = () => {
                           startIcon={<Block fontSize="small" />}
                           disabled={revokeVoucherMutation.isPending}
                           onClick={() => {
-                            if (window.confirm(`Revoke voucher ${v.code}? The credential will be disabled and any live session disconnected.`)) {
+                            if (window.confirm(translate('pages.vouchers.confirm.revoke', { code: v.code }))) {
                               revokeVoucherMutation.mutate(v.id);
                             }
                           }}
                         >
-                          Revoke
+                          {translate('pages.vouchers.actions.revoke')}
                         </Button>
                       )}
                     </TableCell>
@@ -438,7 +439,8 @@ export const HotspotVouchersPage: React.FC = () => {
               onPageChange={(_, next) => setPage(next + 1)}
               rowsPerPage={VOUCHER_PAGE_SIZE}
               rowsPerPageOptions={[VOUCHER_PAGE_SIZE]}
-              labelDisplayedRows={({ from, to, count }) => `${from}–${to} of ${count}`}
+              labelRowsPerPage={translate('pages.vouchers.pagination.rows_per_page')}
+              labelDisplayedRows={({ from, to, count }) => translate('pages.vouchers.pagination.displayed_rows', { from, to, count })}
             />
             </>
           )}
@@ -446,14 +448,14 @@ export const HotspotVouchersPage: React.FC = () => {
 
       {/* Generator Dialog Modal */}
       <Dialog open={genOpen} onClose={() => setGenOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Generate Hotspot Vouchers</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{translate('pages.vouchers.generate.title')}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl size="small" fullWidth required>
-              <InputLabel id="voucher-package-label">RADIUS Package</InputLabel>
+              <InputLabel id="voucher-package-label">{translate('pages.vouchers.generate.package')}</InputLabel>
               <Select
                 labelId="voucher-package-label"
-                label="RADIUS Package"
+                label={translate('pages.vouchers.generate.package')}
                 value={genForm.package_id}
                 onChange={(e) => setGenForm({ ...genForm, package_id: e.target.value })}
                 disabled={packagesQuery.isLoading}
@@ -463,13 +465,13 @@ export const HotspotVouchersPage: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-            {packagesQuery.isError && <Alert severity="error">Could not load active packages linked to a RADIUS profile.</Alert>}
+            {packagesQuery.isError && <Alert severity="error">{translate('pages.vouchers.generate.packages_error')}</Alert>}
             {!packagesQuery.isLoading && !packagesQuery.isError && packagesQuery.data?.length === 0 && (
-              <Alert severity="warning">Create an active ISP package linked to a RADIUS profile before generating vouchers.</Alert>
+              <Alert severity="warning">{translate('pages.vouchers.generate.packages_empty')}</Alert>
             )}
             <TextField
               size="small"
-              label="Batch / Package Name"
+              label={translate('pages.vouchers.generate.name')}
               value={genForm.name}
               onChange={(e) => setGenForm({ ...genForm, name: e.target.value })}
               fullWidth
@@ -478,15 +480,15 @@ export const HotspotVouchersPage: React.FC = () => {
               <TextField
                 size="small"
                 type="number"
-                label="Quantity"
+                label={translate('pages.vouchers.generate.quantity')}
                 value={genForm.quantity}
                 onChange={(e) => setGenForm({ ...genForm, quantity: Number(e.target.value) })}
                 sx={{ flex: 1 }}
               />
               <TextField
                 size="small"
-                label="Prefix"
-                placeholder="e.g. HOT, WFI"
+                label={translate('pages.vouchers.generate.prefix')}
+                placeholder={translate('pages.vouchers.generate.prefix_placeholder')}
                 value={genForm.prefix}
                 onChange={(e) => setGenForm({ ...genForm, prefix: e.target.value })}
                 sx={{ width: 110 }}
@@ -496,7 +498,7 @@ export const HotspotVouchersPage: React.FC = () => {
               <TextField
                 size="small"
                 type="number"
-                label="Price (IDR)"
+                label={translate('pages.vouchers.generate.price')}
                 value={genForm.price}
                 onChange={(e) => setGenForm({ ...genForm, price: Number(e.target.value) })}
                 sx={{ flex: 1 }}
@@ -504,20 +506,20 @@ export const HotspotVouchersPage: React.FC = () => {
               <TextField
                 size="small"
                 type="number"
-                label="Validity (Hours)"
+                label={translate('pages.vouchers.generate.validity_hours')}
                 value={genForm.validity_hours}
                 onChange={(e) => setGenForm({ ...genForm, validity_hours: Number(e.target.value) })}
                 sx={{ flex: 1 }}
               />
             </Stack>
             <Alert severity="info">
-              Validity starts at the first successful RADIUS login. Data quota enforcement is not available yet; generated vouchers use unlimited data.
+              {translate('pages.vouchers.generate.validity_hint')}
             </Alert>
             <Stack direction="row" spacing={1.5}>
               <TextField
                 size="small"
                 type="number"
-                label="Code Length"
+                label={translate('pages.vouchers.generate.code_length')}
                 value={genForm.code_length}
                 onChange={(e) => setGenForm({ ...genForm, code_length: Number(e.target.value) })}
                 sx={{ width: 110 }}
@@ -530,18 +532,18 @@ export const HotspotVouchersPage: React.FC = () => {
                   onChange={(e) => setGenForm({ ...genForm, same_user_pass: e.target.checked })}
                 />
               }
-              label="Username equals Password (1-step login)"
+              label={translate('pages.vouchers.generate.same_user_pass')}
             />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setGenOpen(false)}>Cancel</Button>
+          <Button onClick={() => setGenOpen(false)}>{translate('pages.vouchers.actions.cancel')}</Button>
           <Button
             variant="contained"
             disabled={generateMutation.isPending || !genForm.quantity || !genForm.package_id || packagesQuery.isLoading || (packagesQuery.data?.length ?? 0) === 0}
             onClick={() => generateMutation.mutate()}
           >
-            {generateMutation.isPending ? 'Generating...' : `Create ${genForm.quantity} Vouchers`}
+            {generateMutation.isPending ? translate('pages.vouchers.generate.generating') : translate('pages.vouchers.generate.create', { count: genForm.quantity })}
           </Button>
         </DialogActions>
       </Dialog>
@@ -549,21 +551,21 @@ export const HotspotVouchersPage: React.FC = () => {
       {/* Print Preview Dialog */}
       <Dialog open={printOpen} onClose={() => setPrintOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Print Hotspot Vouchers ({printVouchers.length} cards)</span>
+          <span>{translate('pages.vouchers.print.title', { count: printVouchers.length })}</span>
           <Stack direction="row" spacing={1}>
             <Button
               size="small"
               variant={printMode === 'thermal' ? 'contained' : 'outlined'}
               onClick={() => setPrintMode('thermal')}
             >
-              Thermal POS (58/80mm)
+              {translate('pages.vouchers.print.thermal')}
             </Button>
             <Button
               size="small"
               variant={printMode === 'a4' ? 'contained' : 'outlined'}
               onClick={() => setPrintMode('a4')}
             >
-              A4 Sheet Grid
+              {translate('pages.vouchers.print.a4')}
             </Button>
             <Button
               size="small"
@@ -572,15 +574,15 @@ export const HotspotVouchersPage: React.FC = () => {
               startIcon={<Print />}
               onClick={() => window.print()}
             >
-              Print Now
+              {translate('pages.vouchers.print.print_now')}
             </Button>
           </Stack>
         </DialogTitle>
         <DialogContent dividers>
           <Alert severity="info" sx={{ mb: 2 }} className="no-print">
-            Use system print dialog (Ctrl+P). Choose destination printer: Thermal Receipt for rolls, or standard printer for A4 paper.
+            {translate('pages.vouchers.print.instructions')}
             <Box component="span" sx={{ ml: 1, fontWeight: 700 }}>
-              Loaded all {printVouchers.length} vouchers matching the current filters.
+              {translate('pages.vouchers.print.loaded_all', { count: printVouchers.length })}
             </Box>
           </Alert>
 
@@ -602,7 +604,7 @@ export const HotspotVouchersPage: React.FC = () => {
                       {branding.product_name}
                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', mb: 1 }}>
-                      WiFi Hotspot Access
+                      {translate('pages.vouchers.print.wifi_access')}
                     </Typography>
                     <Box sx={{ bgcolor: '#000', color: '#fff', py: 0.5, px: 1, borderRadius: 0.5, mb: 1 }}>
                       <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 900, letterSpacing: 2 }}>
@@ -611,14 +613,14 @@ export const HotspotVouchersPage: React.FC = () => {
                     </Box>
                     {v.password !== v.code && (
                       <Typography variant="caption" sx={{ display: 'block' }}>
-                        PIN: <strong>{v.password}</strong>
+                        {translate('pages.vouchers.print.pin')} <strong>{v.password}</strong>
                       </Typography>
                     )}
                     <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, mt: 0.5 }}>
                       Rp {new Intl.NumberFormat('id-ID').format(v.price)} · {formatValidity(v.validity_seconds)}
                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.65rem' }}>
-                      Data allowance: {formatQuota(v.quota_bytes)}
+                      {translate('pages.vouchers.print.data_allowance')} {formatQuota(v.quota_bytes)}
                     </Typography>
                   </Box>
                 ))}
@@ -656,15 +658,15 @@ export const HotspotVouchersPage: React.FC = () => {
                     </Stack>
                     <Box sx={{ my: 1, textAlign: 'center', bgcolor: 'action.hover', p: 0.75, borderRadius: 0.5 }}>
                       <Typography variant="caption" color="text.secondary" display="block">
-                        VOUCHER CODE
+                        {translate('pages.vouchers.print.voucher_code')}
                       </Typography>
                       <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 900, letterSpacing: 1.5 }}>
                         {v.code}
                       </Typography>
                     </Box>
                     <Stack direction="row" justifyContent="space-between" sx={{ fontSize: '0.72rem' }}>
-                      <span>Durasi: <strong>{formatValidity(v.validity_seconds)}</strong></span>
-                      <span>Data allowance: <strong>{formatQuota(v.quota_bytes)}</strong></span>
+                      <span>{translate('pages.vouchers.print.duration')} <strong>{formatValidity(v.validity_seconds)}</strong></span>
+                      <span>{translate('pages.vouchers.print.data_allowance')} <strong>{formatQuota(v.quota_bytes)}</strong></span>
                     </Stack>
                   </Paper>
                 ))}
@@ -673,7 +675,7 @@ export const HotspotVouchersPage: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setPrintOpen(false)}>Close</Button>
+          <Button onClick={() => setPrintOpen(false)}>{translate('pages.vouchers.actions.close')}</Button>
         </DialogActions>
       </Dialog>
 

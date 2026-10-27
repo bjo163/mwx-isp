@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { useRecordContext } from 'react-admin';
+import { useRecordContext, useTranslate } from 'react-admin';
 import {
   Alert, Box, Button, Chip, Divider, LinearProgress, Stack, TextField, Typography,
 } from '@mui/material';
@@ -85,6 +85,7 @@ interface CustomerTimelineProps {
 }
 
 export const CustomerTimeline: React.FC<CustomerTimelineProps> = ({ customerId: providedCustomerId, pageSize = 15 }) => {
+  const translate = useTranslate();
   const record = useRecordContext();
   const customerId = providedCustomerId ?? record?.id;
   const [selectedSources, setSelectedSources] = useState<SourceKey[]>([...SOURCE_KEYS]);
@@ -115,14 +116,14 @@ export const CustomerTimeline: React.FC<CustomerTimelineProps> = ({ customerId: 
   });
 
   if (!customerId) return null;
-  if (query.isLoading) return <LinearProgress sx={{ my: 1.5 }} aria-label="Loading customer timeline" />;
+  if (query.isLoading) return <LinearProgress sx={{ my: 1.5 }} aria-label={translate('pages.noc.timeline.loading')} />;
   if (query.isError) {
     return (
       <Alert
         severity="error"
-        action={<Button size="small" onClick={() => void query.refetch()}>Retry</Button>}
+        action={<Button size="small" onClick={() => void query.refetch()}>{translate('pages.noc.timeline.retry')}</Button>}
       >
-        The customer timeline could not be loaded. Check the server connection and try again.
+        {translate('pages.noc.timeline.error')}
       </Alert>
     );
   }
@@ -134,13 +135,13 @@ export const CustomerTimeline: React.FC<CustomerTimelineProps> = ({ customerId: 
   return (
     <Stack spacing={1.5}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }} justifyContent="space-between">
-        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" role="group" aria-label="Filter timeline by source">
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" role="group" aria-label={translate('pages.noc.timeline.filter_aria')}>
           {SOURCE_KEYS.map((source) => (
             <Chip
               key={source}
               size="small"
               icon={sourceMeta[source].icon}
-              label={sourceMeta[source].label}
+              label={translate(`pages.noc.timeline.source.${source}`, { _: sourceMeta[source].label })}
               onClick={() => toggleSource(source)}
               color={selectedSources.includes(source) ? 'primary' : 'default'}
               variant={selectedSources.includes(source) ? 'filled' : 'outlined'}
@@ -153,35 +154,36 @@ export const CustomerTimeline: React.FC<CustomerTimelineProps> = ({ customerId: 
           <TextField
             size="small"
             type="date"
-            label="From"
+            label={translate('pages.noc.timeline.from')}
             value={fromDate}
             onChange={(event) => { setPage(1); setFromDate(event.target.value); }}
             InputLabelProps={{ shrink: true }}
-            inputProps={{ 'aria-label': 'Timeline start date' }}
+            inputProps={{ 'aria-label': translate('pages.noc.timeline.start_date_aria') }}
           />
           <TextField
             size="small"
             type="date"
-            label="To"
+            label={translate('pages.noc.timeline.to')}
             value={toDate}
             onChange={(event) => { setPage(1); setToDate(event.target.value); }}
             InputLabelProps={{ shrink: true }}
-            inputProps={{ 'aria-label': 'Timeline end date' }}
+            inputProps={{ 'aria-label': translate('pages.noc.timeline.end_date_aria') }}
           />
         </Stack>
       </Stack>
 
       <Typography variant="caption" color="text.secondary">
-        {data.pagination.total} events · showing the last 90 days unless a start date is set. Only persisted records are shown.
+        {`${translate('pages.noc.timeline.event_count', { count: data.pagination.total })} · ${translate('pages.noc.timeline.events_note')}`}
       </Typography>
 
       {data.events.length === 0 ? (
-        <Alert severity="info">No activity matches these filters for this customer.</Alert>
+        <Alert severity="info">{translate('pages.noc.timeline.empty')}</Alert>
       ) : (
-        <Box role="list" aria-label="Customer activity timeline">
+        <Box role="list" aria-label={translate('pages.noc.timeline.list_aria')}>
           {data.events.map((event, index) => {
             const source = sourceMeta[event.source as SourceKey] ?? { label: event.source, icon: <BillingIcon fontSize="small" /> };
             const severity = severityMeta[event.severity] ?? severityMeta.info;
+            const severityKey = severityMeta[event.severity] ? event.severity : 'info';
             return (
               <Box key={event.event_id} role="listitem">
                 {index > 0 && <Divider component="div" />}
@@ -191,9 +193,9 @@ export const CustomerTimeline: React.FC<CustomerTimelineProps> = ({ customerId: 
                     <Box>
                       <Typography variant="body2" fontWeight={700}>{event.summary}</Typography>
                       <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 0.5 }}>
-                        <Chip size="small" variant="outlined" label={source.label} sx={{ height: 20, fontSize: '0.68rem' }} />
-                        <Chip size="small" color={severity.color} variant="outlined" label={severity.label} sx={{ height: 20, fontSize: '0.68rem' }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>{event.type}</Typography>
+                        <Chip size="small" variant="outlined" label={translate(`pages.noc.timeline.source.${event.source}`, { _: source.label })} sx={{ height: 20, fontSize: '0.68rem' }} />
+                        <Chip size="small" color={severity.color} variant="outlined" label={translate(`pages.noc.timeline.severity.${severityKey}`, { _: severity.label })} sx={{ height: 20, fontSize: '0.68rem' }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>{translate(`pages.noc.timeline.event_type.${event.type}`, { _: event.type })}</Typography>
                       </Stack>
                     </Box>
                   </Stack>
@@ -203,7 +205,7 @@ export const CustomerTimeline: React.FC<CustomerTimelineProps> = ({ customerId: 
                       {formatRelative(event.occurred_at)} · {formatAbsolute(event.occurred_at)}
                     </Typography>
                     <Button component={RouterLink} to={event.source_path} size="small" variant="text" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-                      Open
+                      {translate('pages.noc.timeline.open')}
                     </Button>
                   </Stack>
                 </Stack>
@@ -215,18 +217,18 @@ export const CustomerTimeline: React.FC<CustomerTimelineProps> = ({ customerId: 
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
         <Typography variant="caption" color="text.secondary">
-          Billing events, invoices, payments, RADIUS sessions and support tickets; unsupported sources are omitted rather than guessed.
+          {translate('pages.noc.timeline.footer_note')}
         </Typography>
         {data.pagination.total > 0 && (
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" color="text.secondary">
-              Page {data.pagination.page} of {totalPages} · {data.pagination.total} events
+              {`${translate('pages.noc.timeline.page_of', { page: data.pagination.page, total: totalPages })} · ${translate('pages.noc.timeline.event_count', { count: data.pagination.total })}`}
             </Typography>
             <Button size="small" disabled={page <= 1 || query.isFetching} onClick={() => setPage((current) => Math.max(1, current - 1))}>
-              Previous
+              {translate('pages.noc.timeline.previous')}
             </Button>
             <Button size="small" disabled={page >= totalPages || query.isFetching} onClick={() => setPage((current) => current + 1)}>
-              Next
+              {translate('pages.noc.timeline.next')}
             </Button>
           </Stack>
         )}

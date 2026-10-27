@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useTranslate } from 'react-admin';
 import {
   Alert, Box, Button, Chip, LinearProgress, Stack, Table, TableBody, TableCell,
   TableHead, TableRow, Typography,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '../utils/apiClient';
+import { translateNocImpactDiagnostic } from './nocImpactDiagnostics';
 
 export interface NocImpactIncident {
   id: string;
@@ -79,6 +81,7 @@ interface NocImpactPanelProps {
 }
 
 export const NocImpactPanel: React.FC<NocImpactPanelProps> = ({ targetId, odpId, nasId, pageSize = 10 }) => {
+  const translate = useTranslate();
   const [page, setPage] = useState(1);
   const selector = targetId !== undefined
     ? `target_id=${encodeURIComponent(String(targetId))}`
@@ -95,69 +98,80 @@ export const NocImpactPanel: React.FC<NocImpactPanelProps> = ({ targetId, odpId,
   });
 
   if (!selector) return null;
-  if (query.isLoading) return <LinearProgress sx={{ my: 1.5 }} aria-label="Loading impact summary" />;
+  if (query.isLoading) return <LinearProgress sx={{ my: 1.5 }} aria-label={translate('pages.noc.impact.loading')} />;
   if (query.isError) {
-    return <Alert severity="error">Impact data could not be loaded. Check the server connection and try again.</Alert>;
+    return <Alert severity="error">{translate('pages.noc.impact.error')}</Alert>;
   }
 
   const data = query.data;
   if (!data) return null;
 
-  const state = stateMeta[data.state] ?? stateMeta.unknown;
-  const confidence = confidenceMeta[data.confidence] ?? confidenceMeta.unknown;
+  const stateEntry = stateMeta[data.state];
+  const state = stateEntry ?? stateMeta.unknown;
+  const stateKey = stateEntry ? data.state : 'unknown';
+  const confidenceEntry = confidenceMeta[data.confidence];
+  const confidence = confidenceEntry ?? confidenceMeta.unknown;
+  const confidenceKey = confidenceEntry ? data.confidence : 'unknown';
   const totalPages = Math.max(1, Math.ceil(data.pagination.total / data.pagination.page_size));
 
   return (
     <Stack spacing={1.5} sx={{ mt: 1 }}>
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
-        <Chip size="small" color={state.color} label={state.label} sx={{ fontWeight: 700 }} />
-        <Chip size="small" color={confidence.color} variant="outlined" label={confidence.label} sx={{ fontWeight: 700 }} />
-        <Chip size="small" variant="outlined" label={`${data.counts.customers} customers`} />
-        <Chip size="small" variant="outlined" label={`${data.counts.subscriptions} subscriptions`} />
-        <Chip size="small" variant="outlined" label={`${data.counts.online_sessions} live sessions`} />
-        <Chip size="small" variant="outlined" color={data.counts.open_tickets > 0 ? 'warning' : 'default'} label={`${data.counts.open_tickets} open tickets`} />
+        <Chip size="small" color={state.color} label={translate(`pages.noc.impact.state.${stateKey}`, { _: state.label })} sx={{ fontWeight: 700 }} />
+        <Chip size="small" color={confidence.color} variant="outlined" label={translate(`pages.noc.impact.confidence.${confidenceKey}`, { _: confidence.label })} sx={{ fontWeight: 700 }} />
+        <Chip size="small" variant="outlined" label={translate('pages.noc.impact.customers_count', { count: data.counts.customers })} />
+        <Chip size="small" variant="outlined" label={translate('pages.noc.impact.subscriptions_count', { count: data.counts.subscriptions })} />
+        <Chip size="small" variant="outlined" label={translate('pages.noc.impact.sessions_count', { count: data.counts.online_sessions })} />
+        <Chip size="small" variant="outlined" color={data.counts.open_tickets > 0 ? 'warning' : 'default'} label={translate('pages.noc.impact.tickets_count', { count: data.counts.open_tickets })} />
       </Stack>
 
-      <Typography variant="caption" color="text.secondary">{data.confidence_reason}</Typography>
+      <Typography variant="caption" color="text.secondary">{translateNocImpactDiagnostic(translate, data.confidence_reason)}</Typography>
 
       <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
         <Typography variant="caption" color="text.secondary">
-          Scope: {data.scope.type.toUpperCase()} {data.scope.code || data.scope.name}
-          {data.scope.nas_id ? ` · NAS ${data.scope.nas_name || data.scope.nas_id}` : ''}
+          {translate('pages.noc.impact.scope', { type: data.scope.type.toUpperCase(), name: data.scope.code || data.scope.name })}
+          {data.scope.nas_id ? ` · ${translate('pages.noc.impact.scope_nas', { name: data.scope.nas_name || data.scope.nas_id })}` : ''}
         </Typography>
         {data.monitoring.monitored || data.monitoring.target_id ? (
           <Typography variant="caption" color="text.secondary">
-            Probe: {data.monitoring.status.toUpperCase()} · last check {formatTimestamp(data.monitoring.last_checked_at)} · stale after {data.monitoring.stale_after_seconds}s
+            {translate('pages.noc.impact.probe', {
+              status: data.monitoring.status.toUpperCase(),
+              last_check: formatTimestamp(data.monitoring.last_checked_at),
+              seconds: data.monitoring.stale_after_seconds,
+            })}
           </Typography>
         ) : (
-          <Typography variant="caption" color="text.secondary">No direct probe is linked to this scope.</Typography>
+          <Typography variant="caption" color="text.secondary">{translate('pages.noc.impact.no_probe')}</Typography>
         )}
         {data.monitoring.open_incident && (
           <Typography variant="caption" color="error.main">
-            Open incident since {formatTimestamp(data.monitoring.open_incident.started_at)}: {data.monitoring.open_incident.summary}
+            {translate('pages.noc.impact.open_incident', {
+              since: formatTimestamp(data.monitoring.open_incident.started_at),
+              summary: data.monitoring.open_incident.summary,
+            })}
           </Typography>
         )}
       </Stack>
 
       {data.warnings.map((warning) => (
-        <Alert key={warning} severity="warning" sx={{ py: 0.25 }}>{warning}</Alert>
+        <Alert key={warning} severity="warning" sx={{ py: 0.25 }}>{translateNocImpactDiagnostic(translate, warning)}</Alert>
       ))}
 
       {data.impacted.length === 0 ? (
         <Alert severity={data.confidence === 'unknown' ? 'warning' : 'info'}>
-          No subscribers are mapped to this scope. An empty list is not proof that no customer is affected.
+          {translate('pages.noc.impact.empty')}
         </Alert>
       ) : (
         <Box sx={{ overflowX: 'auto' }}>
-          <Table size="small" aria-label="Impacted subscribers">
+          <Table size="small" aria-label={translate('pages.noc.impact.table_aria')}>
             <TableHead>
               <TableRow>
-                <TableCell>Customer</TableCell>
-                <TableCell>ODP</TableCell>
-                <TableCell>Subscription</TableCell>
-                <TableCell>Username</TableCell>
-                <TableCell>Session</TableCell>
-                <TableCell>Last seen</TableCell>
+                <TableCell>{translate('pages.noc.impact.column.customer')}</TableCell>
+                <TableCell>{translate('pages.noc.impact.column.odp')}</TableCell>
+                <TableCell>{translate('pages.noc.impact.column.subscription')}</TableCell>
+                <TableCell>{translate('pages.noc.impact.column.username')}</TableCell>
+                <TableCell>{translate('pages.noc.impact.column.session')}</TableCell>
+                <TableCell>{translate('pages.noc.impact.column.last_seen')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -168,11 +182,11 @@ export const NocImpactPanel: React.FC<NocImpactPanelProps> = ({ targetId, odpId,
                     <Typography variant="caption" color="text.secondary">{row.customer_no}</Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption">{row.odp_code || '—'}{row.odp_port ? ` · port ${row.odp_port}` : ''}</Typography>
+                    <Typography variant="caption">{row.odp_code || '—'}{row.odp_port ? ` · ${translate('pages.noc.impact.port', { port: row.odp_port })}` : ''}</Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption">{row.subscription_no}</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{row.subscription_status}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{translate(`pages.noc.impact.status.${row.subscription_status}`, { _: row.subscription_status })}</Typography>
                   </TableCell>
                   <TableCell><Typography variant="caption">{row.username || '—'}</Typography></TableCell>
                   <TableCell>
@@ -180,7 +194,7 @@ export const NocImpactPanel: React.FC<NocImpactPanelProps> = ({ targetId, odpId,
                       size="small"
                       color={row.online ? 'success' : 'default'}
                       variant={row.online ? 'filled' : 'outlined'}
-                      label={row.online ? 'Online' : 'No live session'}
+                      label={row.online ? translate('pages.noc.impact.online') : translate('pages.noc.impact.no_live_session')}
                       sx={{ fontSize: '0.68rem', height: 20 }}
                     />
                   </TableCell>
@@ -194,18 +208,18 @@ export const NocImpactPanel: React.FC<NocImpactPanelProps> = ({ targetId, odpId,
 
       <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
         <Typography variant="caption" color="text.secondary">
-          Online reflects active RADIUS sessions. Subscribers without a live session are not marked offline.
+          {translate('pages.noc.impact.footer_note')}
         </Typography>
         {data.pagination.total > 0 && (
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" color="text.secondary">
-              Page {data.pagination.page} of {totalPages} · {data.pagination.total} affected subscriptions
+              {`${translate('pages.noc.impact.page_of', { page: data.pagination.page, total: totalPages })} · ${translate('pages.noc.impact.affected_subscriptions', { count: data.pagination.total })}`}
             </Typography>
             <Button size="small" disabled={page <= 1 || query.isFetching} onClick={() => setPage((current) => Math.max(1, current - 1))}>
-              Previous
+              {translate('pages.noc.impact.previous')}
             </Button>
             <Button size="small" disabled={page >= totalPages || query.isFetching} onClick={() => setPage((current) => current + 1)}>
-              Next
+              {translate('pages.noc.impact.next')}
             </Button>
           </Stack>
         )}

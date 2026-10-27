@@ -115,7 +115,7 @@ export const CustomMenu = ({ dense, onMenuClick, logout }: MenuProps) => {
       >
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}><BrandMark size={26} /></Box>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>{branding.product_name}</div>
-        <div>© {currentYear} ALL RIGHTS RESERVED</div>
+        <div>© {currentYear} {translate('appbar.all_rights_reserved')}</div>
         {logout && <Box sx={{ mt: 2 }}>{logout}</Box>}
       </Box>
     </Box>

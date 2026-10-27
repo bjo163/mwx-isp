@@ -29,7 +29,7 @@ import {
   WhatsApp,
 } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNotify } from 'react-admin';
+import { useNotify, useTranslate } from 'react-admin';
 import { useIsAdmin } from '../hooks/useIsAdmin';
 import { apiRequest, extractData } from '../utils/apiClient';
 import { KpiStrip, KpiTile, PageHeader, Panel, StatusChip } from '../components/Enterprise';
@@ -67,6 +67,7 @@ interface Ticket {
 
 export const TroubleTicketsPage: React.FC = () => {
   const notify = useNotify();
+  const translate = useTranslate();
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
 
@@ -116,11 +117,11 @@ export const TroubleTicketsPage: React.FC = () => {
       });
     },
     onSuccess: () => {
-      notify('Work order trouble ticket generated automatically!', { type: 'success' });
+      notify(translate('pages.tickets.notify.auto_ticket_success'), { type: 'success' });
       void queryClient.invalidateQueries({ queryKey: ['isp', 'tickets'] });
       void queryClient.invalidateQueries({ queryKey: ['network-diagnostics-flapping'] });
     },
-    onError: (err: any) => notify(err?.message || 'Failed to create auto ticket', { type: 'error' }),
+    onError: (err: any) => notify(err?.message || translate('pages.tickets.notify.auto_ticket_failed'), { type: 'error' }),
   });
 
   const ticketsQuery = useQuery({
@@ -143,7 +144,7 @@ export const TroubleTicketsPage: React.FC = () => {
         body: JSON.stringify(form),
       }),
     onSuccess: () => {
-      notify('Trouble ticket created', { type: 'success' });
+      notify(translate('pages.tickets.notify.created'), { type: 'success' });
       setCreateOpen(false);
       setForm({
         subject: '',
@@ -155,7 +156,7 @@ export const TroubleTicketsPage: React.FC = () => {
       });
       void queryClient.invalidateQueries({ queryKey: ['isp', 'tickets'] });
     },
-    onError: (err: any) => notify(err.message || 'Creation failed', { type: 'error' }),
+    onError: (err: any) => notify(err.message || translate('pages.tickets.notify.create_failed'), { type: 'error' }),
   });
 
   const updateMutation = useMutation({
@@ -165,20 +166,20 @@ export const TroubleTicketsPage: React.FC = () => {
         body: JSON.stringify(editForm),
       }),
     onSuccess: () => {
-      notify('Ticket updated successfully', { type: 'success' });
+      notify(translate('pages.tickets.notify.updated'), { type: 'success' });
       setEditOpen(false);
       void queryClient.invalidateQueries({ queryKey: ['isp', 'tickets'] });
     },
-    onError: (err: any) => notify(err.message || 'Update failed', { type: 'error' }),
+    onError: (err: any) => notify(err.message || translate('pages.tickets.notify.update_failed'), { type: 'error' }),
   });
 
   const dispatchMutation = useMutation({
     mutationFn: (ticketId: string) =>
       apiRequest(`/isp/tickets/${ticketId}/dispatch`, { method: 'POST' }),
     onSuccess: () => {
-      notify('Dispatch notification queued to technician WhatsApp', { type: 'success' });
+      notify(translate('pages.tickets.notify.dispatched'), { type: 'success' });
     },
-    onError: (err: any) => notify(err.message || 'Dispatch failed', { type: 'error' }),
+    onError: (err: any) => notify(err.message || translate('pages.tickets.notify.dispatch_failed'), { type: 'error' }),
   });
 
   const tickets = ticketsQuery.data ?? [];
@@ -188,7 +189,7 @@ export const TroubleTicketsPage: React.FC = () => {
     if (p === 'urgent') color = 'error';
     else if (p === 'high') color = 'warning';
     else if (p === 'normal') color = 'info';
-    return <Chip size="small" color={color} label={p.toUpperCase()} sx={{ fontWeight: 700, fontSize: '0.68rem', height: 20 }} />;
+    return <Chip size="small" color={color} label={translate('pages.tickets.priority.' + p, { _: p }).toUpperCase()} sx={{ fontWeight: 700, fontSize: '0.68rem', height: 20 }} />;
   };
 
 
@@ -197,38 +198,38 @@ export const TroubleTicketsPage: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 1.5, md: 2.5 }, maxWidth: 1600, mx: 'auto' }}>
       <PageHeader
-        section="ISP / Field Operations"
-        title="Trouble Tickets"
-        subtitle="Customer incidents, technician dispatch and resolution tracking with 1-click WhatsApp work orders."
+        section={translate('pages.tickets.section')}
+        title={translate('pages.tickets.title')}
+        subtitle={translate('pages.tickets.subtitle')}
         actions={<>
-          <Button variant="outlined" startIcon={<Refresh />} onClick={() => void ticketsQuery.refetch()} disabled={ticketsQuery.isFetching}>Refresh</Button>
-          <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>New Ticket</Button>
+          <Button variant="outlined" startIcon={<Refresh />} onClick={() => void ticketsQuery.refetch()} disabled={ticketsQuery.isFetching}>{translate('pages.tickets.refresh')}</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>{translate('pages.tickets.new_ticket')}</Button>
         </>}
       />
       <KpiStrip>
-        <KpiTile label="Total (filtered)" value={tickets.length} icon={<Build fontSize="small" />} />
-        <KpiTile label="Open" value={count((t) => t.status === 'open')} tone="error" hint="awaiting action" />
-        <KpiTile label="In Progress" value={count((t) => t.status === 'in_progress' || t.status === 'scheduled')} tone="warning" hint="scheduled + on-site" />
-        <KpiTile label="Urgent / High" value={count((t) => t.priority === 'urgent' || t.priority === 'high')} tone="secondary" />
-        <KpiTile label="Unassigned" value={count((t) => !t.assigned_technician)} tone="info" hint="no technician" />
-        <KpiTile label="Resolved" value={count((t) => t.status === 'resolved' || t.status === 'closed')} tone="success" />
+        <KpiTile label={translate('pages.tickets.kpi.total')} value={tickets.length} icon={<Build fontSize="small" />} />
+        <KpiTile label={translate('pages.tickets.status.open')} value={count((t) => t.status === 'open')} tone="error" hint={translate('pages.tickets.kpi.open_hint')} />
+        <KpiTile label={translate('pages.tickets.status.in_progress')} value={count((t) => t.status === 'in_progress' || t.status === 'scheduled')} tone="warning" hint={translate('pages.tickets.kpi.in_progress_hint')} />
+        <KpiTile label={translate('pages.tickets.kpi.urgent_high')} value={count((t) => t.priority === 'urgent' || t.priority === 'high')} tone="secondary" />
+        <KpiTile label={translate('pages.tickets.unassigned')} value={count((t) => !t.assigned_technician)} tone="info" hint={translate('pages.tickets.kpi.unassigned_hint')} />
+        <KpiTile label={translate('pages.tickets.status.resolved')} value={count((t) => t.status === 'resolved' || t.status === 'closed')} tone="success" />
       </KpiStrip>
 
       {flappingQuery.data && flappingQuery.data.flapping_count > 0 && (
         <Box sx={{ mb: 3 }}>
           <Panel
-            title={`INTELLIGENT FIBER FLAPPING TELEMETRY (${flappingQuery.data.flapping_count} UNSTABLE SUBSCRIBERS)`}
-            subtitle="Automated dropcore/ODP attenuation fault detection based on repeated session drops (>= 3-5/hr)"
+            title={translate('pages.tickets.flapping.title', { count: flappingQuery.data.flapping_count })}
+            subtitle={translate('pages.tickets.flapping.subtitle')}
           >
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 800 }}>SUBSCRIBER</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>CUSTOMER / ODP</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>DISCONNECT FREQ</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>SEVERITY</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>ANALYSIS / ACTION</TableCell>
-                  <TableCell sx={{ fontWeight: 800, textAlign: 'right' }}>ACTION</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>{translate('pages.tickets.flapping.col_subscriber')}</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>{translate('pages.tickets.flapping.col_customer_odp')}</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>{translate('pages.tickets.flapping.col_disconnect_freq')}</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>{translate('pages.tickets.flapping.col_severity')}</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>{translate('pages.tickets.flapping.col_analysis')}</TableCell>
+                  <TableCell sx={{ fontWeight: 800, textAlign: 'right' }}>{translate('pages.tickets.flapping.col_action')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -239,17 +240,20 @@ export const TroubleTicketsPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight={700}>
-                        {flap.customer_name || 'Subscriber'} ({flap.customer_no || '-'})
+                        {flap.customer_name || translate('pages.tickets.flapping.subscriber_fallback')} ({flap.customer_no || '-'})
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        ODP: {flap.odp_code || 'Unassigned'} • {flap.address || '-'}
+                        {translate('pages.tickets.flapping.odp_line', {
+                          odp: flap.odp_code || translate('pages.tickets.unassigned'),
+                          address: flap.address || '-',
+                        })}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Chip
                         size="small"
                         color="error"
-                        label={`${flap.disconnect_count} drops / hour`}
+                        label={translate('pages.tickets.flapping.drops_per_hour', { count: flap.disconnect_count })}
                         sx={{ fontWeight: 800, fontFamily: 'monospace' }}
                       />
                     </TableCell>
@@ -257,7 +261,7 @@ export const TroubleTicketsPage: React.FC = () => {
                       <Chip
                         size="small"
                         color={flap.severity === 'urgent' ? 'error' : 'warning'}
-                        label={flap.severity.toUpperCase()}
+                        label={translate('pages.tickets.severity.' + flap.severity, { _: flap.severity }).toUpperCase()}
                         sx={{ fontWeight: 800 }}
                       />
                     </TableCell>
@@ -277,7 +281,7 @@ export const TroubleTicketsPage: React.FC = () => {
                           disabled={autoTicketMutation.isPending}
                           sx={{ textTransform: 'none', fontWeight: 700 }}
                         >
-                          Auto-Ticket & Dispatch
+                          {translate('pages.tickets.flapping.auto_ticket')}
                         </Button>
                       )}
                     </TableCell>
@@ -289,7 +293,7 @@ export const TroubleTicketsPage: React.FC = () => {
         </Box>
       )}
 
-      <Panel title="Incident Queue" subtitle={`${tickets.length} tickets`} dense actions={
+      <Panel title={translate('pages.tickets.queue.title')} subtitle={translate('pages.tickets.queue.subtitle', { count: tickets.length })} dense actions={
         <Box>
           <Stack
             direction={{ xs: 'column', md: 'row' }}
@@ -299,39 +303,39 @@ export const TroubleTicketsPage: React.FC = () => {
           >
             <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
               <FormControl size="small" sx={{ minWidth: 140 }}>
-                <InputLabel>Status</InputLabel>
+                <InputLabel>{translate('pages.tickets.fields.status')}</InputLabel>
                 <Select
-                  label="Status"
+                  label={translate('pages.tickets.fields.status')}
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
-                  <MenuItem value="">All Statuses</MenuItem>
-                  <MenuItem value="open">Open</MenuItem>
-                  <MenuItem value="scheduled">Scheduled</MenuItem>
-                  <MenuItem value="in_progress">In Progress</MenuItem>
-                  <MenuItem value="resolved">Resolved</MenuItem>
+                  <MenuItem value="">{translate('pages.tickets.filters.all_statuses')}</MenuItem>
+                  <MenuItem value="open">{translate('pages.tickets.status.open')}</MenuItem>
+                  <MenuItem value="scheduled">{translate('pages.tickets.status.scheduled')}</MenuItem>
+                  <MenuItem value="in_progress">{translate('pages.tickets.status.in_progress')}</MenuItem>
+                  <MenuItem value="resolved">{translate('pages.tickets.status.resolved')}</MenuItem>
                 </Select>
               </FormControl>
 
               <FormControl size="small" sx={{ minWidth: 130 }}>
-                <InputLabel>Priority</InputLabel>
+                <InputLabel>{translate('pages.tickets.fields.priority')}</InputLabel>
                 <Select
-                  label="Priority"
+                  label={translate('pages.tickets.fields.priority')}
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
                 >
-                  <MenuItem value="">All Priorities</MenuItem>
-                  <MenuItem value="urgent">Urgent</MenuItem>
-                  <MenuItem value="high">High</MenuItem>
-                  <MenuItem value="normal">Normal</MenuItem>
-                  <MenuItem value="low">Low</MenuItem>
+                  <MenuItem value="">{translate('pages.tickets.filters.all_priorities')}</MenuItem>
+                  <MenuItem value="urgent">{translate('pages.tickets.priority.urgent')}</MenuItem>
+                  <MenuItem value="high">{translate('pages.tickets.priority.high')}</MenuItem>
+                  <MenuItem value="normal">{translate('pages.tickets.priority.normal')}</MenuItem>
+                  <MenuItem value="low">{translate('pages.tickets.priority.low')}</MenuItem>
                 </Select>
               </FormControl>
 
               <TextField
                 size="small"
-                label="Search Ticket #"
-                placeholder="e.g. TCK-..."
+                label={translate('pages.tickets.filters.search')}
+                placeholder={translate('pages.tickets.filters.search_placeholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 sx={{ width: 160 }}
@@ -344,30 +348,30 @@ export const TroubleTicketsPage: React.FC = () => {
             <LinearProgress />
           ) : ticketsQuery.isError ? (
             <Box sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="h6" color="error.main">Could not load trouble tickets</Typography>
+              <Typography variant="h6" color="error.main">{translate('pages.tickets.load_error.title')}</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                {(ticketsQuery.error as Error)?.message || 'The server did not return a valid response.'}
+                {(ticketsQuery.error as Error)?.message || translate('pages.tickets.load_error.fallback')}
               </Typography>
-              <Button variant="outlined" onClick={() => void ticketsQuery.refetch()}>Retry</Button>
+              <Button variant="outlined" onClick={() => void ticketsQuery.refetch()}>{translate('pages.tickets.retry')}</Button>
             </Box>
           ) : tickets.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
               <Build sx={{ fontSize: 48, opacity: 0.4, mb: 1 }} />
-              <Typography variant="h6">No Incident Tickets</Typography>
-              <Typography variant="caption">All customer lines are operating normally.</Typography>
+              <Typography variant="h6">{translate('pages.tickets.empty.title')}</Typography>
+              <Typography variant="caption">{translate('pages.tickets.empty.subtitle')}</Typography>
             </Box>
           ) : (
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Ticket #</TableCell>
-                  <TableCell>Subject / Incident</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Priority</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Technician</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>{translate('pages.tickets.fields.ticket_no')}</TableCell>
+                  <TableCell>{translate('pages.tickets.fields.subject')}</TableCell>
+                  <TableCell>{translate('pages.tickets.fields.category')}</TableCell>
+                  <TableCell>{translate('pages.tickets.fields.priority')}</TableCell>
+                  <TableCell>{translate('pages.tickets.fields.status')}</TableCell>
+                  <TableCell>{translate('pages.tickets.fields.technician')}</TableCell>
+                  <TableCell>{translate('pages.tickets.fields.created')}</TableCell>
+                  <TableCell align="right">{translate('pages.tickets.fields.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -381,12 +385,12 @@ export const TroubleTicketsPage: React.FC = () => {
                       {t.category.replace(/_/g, ' ')}
                     </TableCell>
                     <TableCell>{getPriorityChip(t.priority)}</TableCell>
-                    <TableCell><StatusChip value={t.status} /></TableCell>
+                    <TableCell><StatusChip value={t.status} label={translate('pages.tickets.status.' + t.status, { _: t.status }).toUpperCase()} /></TableCell>
                     <TableCell>
                       {t.assigned_technician ? (
                         <span>{t.assigned_technician}</span>
                       ) : (
-                        <Typography variant="caption" color="text.secondary">Unassigned</Typography>
+                        <Typography variant="caption" color="text.secondary">{translate('pages.tickets.unassigned')}</Typography>
                       )}
                     </TableCell>
                     <TableCell sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
@@ -404,7 +408,7 @@ export const TroubleTicketsPage: React.FC = () => {
                             onClick={() => dispatchMutation.mutate(t.id)}
                             sx={{ fontSize: '0.72rem', px: 1 }}
                           >
-                            Dispatch WA
+                            {translate('pages.tickets.row_actions.dispatch_wa')}
                           </Button>
                         )}
                         <Button
@@ -423,7 +427,7 @@ export const TroubleTicketsPage: React.FC = () => {
                           }}
                           sx={{ fontSize: '0.72rem', px: 1 }}
                         >
-                          Update
+                          {translate('pages.tickets.row_actions.update')}
                         </Button>
                       </Stack>
                     </TableCell>
@@ -436,59 +440,59 @@ export const TroubleTicketsPage: React.FC = () => {
 
       {/* Create Ticket Modal */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Create Trouble Ticket</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{translate('pages.tickets.create.title')}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
               size="small"
-              label="Subject / Complaint"
-              placeholder="e.g. Kabel FO Putus / Redaman Tinggi"
+              label={translate('pages.tickets.create.subject')}
+              placeholder={translate('pages.tickets.create.subject_placeholder')}
               value={form.subject}
               onChange={(e) => setForm({ ...form, subject: e.target.value })}
               required
               fullWidth
             />
             <FormControl size="small" fullWidth>
-              <InputLabel>Category</InputLabel>
+              <InputLabel>{translate('pages.tickets.fields.category')}</InputLabel>
               <Select
-                label="Category"
+                label={translate('pages.tickets.fields.category')}
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
-                <MenuItem value="los_red">LOS Merah / Kabel Putus</MenuItem>
-                <MenuItem value="slow_speed">Koneksi Lemot / Lambat</MenuItem>
-                <MenuItem value="no_internet">Tidak Bisa Akses Internet</MenuItem>
-                <MenuItem value="router_damage">Modem / Adaptor Rusak</MenuItem>
-                <MenuItem value="relocation">Pindah Lokasi / Tarik Ulang</MenuItem>
-                <MenuItem value="billing">Kendala Tagihan / Isolir</MenuItem>
+                <MenuItem value="los_red">{translate('pages.tickets.category.los_red')}</MenuItem>
+                <MenuItem value="slow_speed">{translate('pages.tickets.category.slow_speed')}</MenuItem>
+                <MenuItem value="no_internet">{translate('pages.tickets.category.no_internet')}</MenuItem>
+                <MenuItem value="router_damage">{translate('pages.tickets.category.router_damage')}</MenuItem>
+                <MenuItem value="relocation">{translate('pages.tickets.category.relocation')}</MenuItem>
+                <MenuItem value="billing">{translate('pages.tickets.category.billing')}</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" fullWidth>
-              <InputLabel>Priority</InputLabel>
+              <InputLabel>{translate('pages.tickets.fields.priority')}</InputLabel>
               <Select
-                label="Priority"
+                label={translate('pages.tickets.fields.priority')}
                 value={form.priority}
                 onChange={(e) => setForm({ ...form, priority: e.target.value })}
               >
-                <MenuItem value="urgent">Urgent (Prioritas Utama)</MenuItem>
-                <MenuItem value="high">High (Tinggi)</MenuItem>
-                <MenuItem value="normal">Normal</MenuItem>
-                <MenuItem value="low">Low (Rendah)</MenuItem>
+                <MenuItem value="urgent">{translate('pages.tickets.create.priority_option.urgent')}</MenuItem>
+                <MenuItem value="high">{translate('pages.tickets.create.priority_option.high')}</MenuItem>
+                <MenuItem value="normal">{translate('pages.tickets.create.priority_option.normal')}</MenuItem>
+                <MenuItem value="low">{translate('pages.tickets.create.priority_option.low')}</MenuItem>
               </Select>
             </FormControl>
             <Stack direction="row" spacing={1.5}>
               <TextField
                 size="small"
-                label="Assigned Technician"
-                placeholder="e.g. Budi Teknisi"
+                label={translate('pages.tickets.create.assigned_technician')}
+                placeholder={translate('pages.tickets.create.assigned_technician_placeholder')}
                 value={form.assigned_technician}
                 onChange={(e) => setForm({ ...form, assigned_technician: e.target.value })}
                 sx={{ flex: 1 }}
               />
               <TextField
                 size="small"
-                label="Technician Phone"
-                placeholder="081..."
+                label={translate('pages.tickets.create.technician_phone')}
+                placeholder={translate('pages.tickets.create.phone_placeholder')}
                 value={form.technician_phone}
                 onChange={(e) => setForm({ ...form, technician_phone: e.target.value })}
                 sx={{ flex: 1 }}
@@ -496,10 +500,10 @@ export const TroubleTicketsPage: React.FC = () => {
             </Stack>
             <TextField
               size="small"
-              label="Incident Description"
+              label={translate('pages.tickets.create.description')}
               multiline
               rows={3}
-              placeholder="Detail alamat, titik redaman ODP, atau kronologi kendala..."
+              placeholder={translate('pages.tickets.create.description_placeholder')}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               fullWidth
@@ -507,47 +511,47 @@ export const TroubleTicketsPage: React.FC = () => {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={() => setCreateOpen(false)}>{translate('pages.tickets.cancel')}</Button>
           <Button
             variant="contained"
             disabled={!form.subject || createMutation.isPending}
             onClick={() => createMutation.mutate()}
           >
-            {createMutation.isPending ? 'Saving...' : 'Submit Ticket'}
+            {createMutation.isPending ? translate('pages.tickets.create.saving') : translate('pages.tickets.create.submit')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Edit / Resolve Ticket Modal */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 800 }}>Update Ticket #{selectedTicket?.ticket_no}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{translate('pages.tickets.edit.title', { ticketNo: selectedTicket?.ticket_no ?? '' })}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <FormControl size="small" fullWidth>
-              <InputLabel>Status</InputLabel>
+              <InputLabel>{translate('pages.tickets.fields.status')}</InputLabel>
               <Select
-                label="Status"
+                label={translate('pages.tickets.fields.status')}
                 value={editForm.status}
                 onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
               >
-                <MenuItem value="open">Open</MenuItem>
-                <MenuItem value="scheduled">Scheduled</MenuItem>
-                <MenuItem value="in_progress">In Progress</MenuItem>
-                <MenuItem value="resolved">Resolved</MenuItem>
-                <MenuItem value="closed">Closed</MenuItem>
+                <MenuItem value="open">{translate('pages.tickets.status.open')}</MenuItem>
+                <MenuItem value="scheduled">{translate('pages.tickets.status.scheduled')}</MenuItem>
+                <MenuItem value="in_progress">{translate('pages.tickets.status.in_progress')}</MenuItem>
+                <MenuItem value="resolved">{translate('pages.tickets.status.resolved')}</MenuItem>
+                <MenuItem value="closed">{translate('pages.tickets.status.closed')}</MenuItem>
               </Select>
             </FormControl>
             <Stack direction="row" spacing={1.5}>
               <TextField
                 size="small"
-                label="Technician"
+                label={translate('pages.tickets.edit.technician')}
                 value={editForm.assigned_technician}
                 onChange={(e) => setEditForm({ ...editForm, assigned_technician: e.target.value })}
                 sx={{ flex: 1 }}
               />
               <TextField
                 size="small"
-                label="Technician WA"
+                label={translate('pages.tickets.edit.technician_wa')}
                 value={editForm.technician_phone}
                 onChange={(e) => setEditForm({ ...editForm, technician_phone: e.target.value })}
                 sx={{ flex: 1 }}
@@ -555,10 +559,10 @@ export const TroubleTicketsPage: React.FC = () => {
             </Stack>
             <TextField
               size="small"
-              label="Field Resolution Notes"
+              label={translate('pages.tickets.edit.resolution_notes')}
               multiline
               rows={3}
-              placeholder="Catatan perbaikan (misal: Splicing core 2 ODP-04 selesai, redaman modem -19.5 dBm)"
+              placeholder={translate('pages.tickets.edit.resolution_notes_placeholder')}
               value={editForm.resolution_notes}
               onChange={(e) => setEditForm({ ...editForm, resolution_notes: e.target.value })}
               fullWidth
@@ -566,13 +570,13 @@ export const TroubleTicketsPage: React.FC = () => {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button onClick={() => setEditOpen(false)}>{translate('pages.tickets.cancel')}</Button>
           <Button
             variant="contained"
             disabled={updateMutation.isPending}
             onClick={() => updateMutation.mutate()}
           >
-            {updateMutation.isPending ? 'Updating...' : 'Save Resolution'}
+            {updateMutation.isPending ? translate('pages.tickets.edit.updating') : translate('pages.tickets.edit.save')}
           </Button>
         </DialogActions>
       </Dialog>
