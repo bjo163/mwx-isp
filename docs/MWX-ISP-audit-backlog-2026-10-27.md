@@ -31,7 +31,21 @@ the current tree.
 
 ## Progress
 
-Done: 5 / 100.
+Done: 6 / 100.
+
+- `ENG-028` (2026-10-27, `dev` @ `59a429d`): PII and secret redaction on log export.
+  `/admin/loki/query` returned each log line verbatim, so a password, bearer token, customer
+  name, phone, e-mail or subscriber IP written by any service reached the operator response
+  unchanged. The export path now classifies fields by data class (`system_logs.go`):
+  secret-like keys become `[REDACTED]`, customer identifiers become deterministic
+  `sha256:<16 hex>` pseudonyms, addresses keep only their IPv4 `/24` or IPv6 `/48` prefix, and
+  free text is swept for `password=`/`token:` assignments, e-mails and IPv4 literals. Filtering
+  still runs on the raw line, so operators keep their existing search behaviour, and the
+  deterministic pseudonyms keep two entries correlatable. Rules and limits (free-text phone and
+  IPv6 are not masked) are recorded in the new canonical `docs/log-redaction.md`. Evidence:
+  `TestRedactSystemLogEntryRemovesSensitiveDataClasses`,
+  `TestRedactSystemLogEntryPseudonymsAreStable`, `TestMaskSystemLogAddressKeepsOnlyTheNetworkPrefix`
+  and the endpoint-level `TestQuerySystemLogsExportsOnlyRedactedEntries`.
 
 - `ENG-019` (2026-10-27, `dev` @ `fc7390d`): raw-SQL tenancy ratchet. The existing inventory in
   `docs/tenant-isolation.md` already covered all nine production `Table`/`Raw`/`Exec`/`Joins`
@@ -111,7 +125,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 - [ ] `ENG-032` TR-F028 P1 — Invariant suspend manual tidak tertimpa bayar otomatis · LOKAL · PROPOSED_VERIFICATION
 - [x] `ENG-019` TR-F033 P1 — Ratcheting audit query SQL raw dan joins tenancy · LOKAL · PROPOSED_VERIFICATION · commit `fc7390d`
-- [ ] `ENG-028` TR-F022 P1 — Penyamaran PII di logs, traces dan support evidence · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-028` TR-F022 P1 — Penyamaran PII di logs, traces dan support evidence · LOKAL · PROPOSED_VERIFICATION · commit `59a429d`
 - [ ] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · dep ENG-010 · PROPOSED_VERIFICATION
 - [ ] `ENG-031` TR-F028 P1 — Invoice numbering tahan retry setelah crash PostgreSQL · LOKAL · PROPOSED_VERIFICATION
