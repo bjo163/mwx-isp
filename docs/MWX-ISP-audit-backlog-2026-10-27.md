@@ -31,7 +31,24 @@ the current tree.
 
 ## Progress
 
-Done: 3 / 100.
+Done: 4 / 100.
+
+- `ENG-001` (2026-10-27, `dev` @ `4026637`): anonymous outer NAI for EAP-TLS. The gap was real and
+  in two places: `validateIdentity` compared the certificate identity against the outer
+  `state.Username`, and `stageLoadUser` resolved the account by the outer User-Name *before* EAP
+  ran, so `anonymous@realm` failed either way. Now `eap.IsAnonymousNAI` recognises the RFC 7542
+  §2.4 forms (`@realm`, `anonymous@realm`, bare `anonymous`); the handler adopts the certified
+  identity and still rejects a mismatch for named clients (RFC 5216 §5.2), including before the
+  TLS 1.3 protected success indication; `stageLoadUser` defers the lookup for anonymous-NAI EAP
+  requests and `stageEAPDispatch` loads the account from the tenant-scoped EAP state via the new
+  `Coordinator.AuthenticatedUsername` (refuses unsuccessful, still-anonymous, cross-tenant and
+  missing state) before the plugins run. Open items: `NewTLSHandler` untrusted-CA and mismatch
+  behaviour are unchanged; PEAP/TTLS keep their own inner-identity handling and are out of scope.
+  Evidence: `TestIsAnonymousNAI`, `TestCoordinator_AuthenticatedUsername`,
+  `TestTLSHandler_FullHandshake_AnonymousOuterNAI`,
+  `TestTLSHandler_TLS13_AnonymousOuterNAI`, `TestStageLoadUser_DefersAnonymousOuterNAIForEAP`,
+  plus the CI-backed `anonymous outer NAI resolves the account from the certificate` subtest in
+  `test/integration/eap_tls_test.go` (runs in the integration lane). Roadmap M10.5 closed.
 
 - `ENG-021` (2026-10-27, `dev` @ `404a3fe`): `/home` and `/portal` no longer advertise anonymous
   self-service or a checkout step; a 401 is reported as "staff login required" and an
@@ -73,10 +90,10 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 ## Wave 0 — 5 item (LOKAL 4 · ASET 1)
 
 - [x] `ENG-017` TR-F033 P1 — Audit penurunan hak anggota tenant saat token lama aktif · LOKAL · PROPOSED_VERIFICATION · commit `a3803b1`
-- [ ] `ENG-001` TR-F004 P1 — Audit & rancang outer anonymous NAI pada EAP-TLS 1.3 · LOKAL · VERIFIED_GAP
+- [x] `ENG-001` TR-F004 P1 — Audit & rancang outer anonymous NAI pada EAP-TLS 1.3 · LOKAL · VERIFIED_GAP · commit `4026637`
 - [x] `ENG-018` TR-F033 P1 — Konsistensi tenant untuk NAS ambigu dan username sama · LOKAL · dep ENG-017 · commit `38df193`
 - [x] `ENG-021` TR-F018 P1 — Rekonsiliasi landing/portal publik yang faktanya JWT-only · LOKAL · VERIFIED_GAP
-- [ ] `ENG-041` TR-F020 P1 — Uji instalasi fresh pada VPS Ubuntu/Debian bersih · ASET · VERIFIED_GAP
+- [ ] `ENG-041` TR-F020 P1 — Uji instalasi fresh pada VPS Ubuntu/Debian bersih · ASET · VERIFIED_GAP · **blocked: no clean VPS host claimed**
 
 ## Wave 1 — 37 item (LOKAL 30 · ASET 7)
 
@@ -189,10 +206,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-017` then `ENG-018` — tenant privilege downgrade with a live token, then the
-   ambiguous-NAS/username consistency follow-on. Both are `TR-F033` audit-plus-test work.
-2. `ENG-001` — design and evidence note for the anonymous outer NAI (roadmap M10.5), no EAP
-   implementation change in the same round.
-3. `ENG-019` / `ENG-028` — raw-SQL tenancy ratchet and PII redaction in logs; both feed the
+1. `ENG-019` / `ENG-028` — raw-SQL tenancy ratchet and PII redaction in logs; both feed the
    later `ENG-060` support-bundle and `FUT-010` items.
-4. `ENG-051` — website editor functional coverage, currently a `VERIFIED_GAP` and fully local.
+2. `ENG-051` — website editor functional coverage, currently a `VERIFIED_GAP` and fully local.
+3. `ENG-032` / `ENG-031` / `ENG-033` — the `TR-F028` billing invariant cluster, fully local.
+4. `ENG-010` / `ENG-012` — RADIUS retransmission/replay audit and accounting out-of-order
+   regressions; both feed the later `ENG-013` CoA pilot.
