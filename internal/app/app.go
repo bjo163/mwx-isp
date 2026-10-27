@@ -472,6 +472,7 @@ func (a *Application) ensureDefaultTenant() error {
 	// next generated tenant ID above the default row and any pre-existing rows.
 	if a.gormDB.Name() == "postgres" {
 		var sequenceValue int64
+		// tenancy:unscoped: tenant registry sequence bootstrap, no tenant-owned table
 		if err := a.gormDB.Raw(`SELECT setval(pg_get_serial_sequence('tenant', 'id'), GREATEST(COALESCE((SELECT MAX(id) FROM tenant), 1), 1), true)`).Scan(&sequenceValue).Error; err != nil {
 			return fmt.Errorf("advance tenant ID sequence: %w", err)
 		}
@@ -573,6 +574,7 @@ func (a *Application) ensureCustomerODPPortIndex() {
 	const stmt = `CREATE UNIQUE INDEX IF NOT EXISTS udx_isp_customer_odp_port
 		ON isp_customer (tenant_id, odp_id, odp_port)
 		WHERE odp_port > 0 AND status <> 'terminated'`
+	// tenancy:unscoped: platform schema DDL, operates on the whole table by design
 	if err := a.gormDB.Exec(stmt).Error; err != nil {
 		zap.L().Warn("create ODP port unique index failed; resolve duplicate isp_customer (tenant_id, odp_id, odp_port) rows and restart",
 			zap.String("namespace", "isp"), zap.Error(err))
@@ -599,6 +601,7 @@ func (a *Application) dedupOnlineSessions() {
 		groupBy = "tenant_id, acct_session_id"
 	}
 	sql := fmt.Sprintf("DELETE FROM %s WHERE id NOT IN (SELECT min_id FROM (SELECT MIN(id) AS min_id FROM %s GROUP BY %s) AS keep_ids)", table, table, groupBy)
+	// tenancy:unscoped: startup cleanup groups by tenant_id but spans all tenants by design
 	if err := a.gormDB.Exec(sql).Error; err != nil {
 		zap.L().Warn("dedup radius_online before unique index failed",
 			zap.String("namespace", "radius"), zap.Error(err))
