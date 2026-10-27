@@ -31,7 +31,18 @@ the current tree.
 
 ## Progress
 
-Done: 22 / 100.
+Done: 23 / 100.
+
+- `ENG-056` (2026-10-27, `dev` @ `a171299`): honest affordances for staff-gated
+  portal actions. `/home` bill lookup, voucher check and registration submit, plus the
+  `/portal` lookup, now answer a 401 with one informational `StaffLoginNotice` carrying
+  "Login staf" and "Hubungi WhatsApp" actions; the red alert is reserved for real lookup
+  failures, and the raw `Unauthorized` body is never shown. The `/portal` offline payment
+  fallback opens the branded WhatsApp number instead of an empty chat picker.
+  `web/e2e/anonymous-actions.spec.ts` covers the four anonymous actions, the login
+  navigation and the branded WhatsApp target (5/5 chromium, 18.4s). No API was widened:
+  `TestLandingSurfaceEndpointsFailClosedAnonymously` still passes, and
+  `docs/public-endpoint-hardening.md` records the presentation rule.
 
 - `ENG-038` (2026-10-27, `dev` @ `7c2e06e`): voucher terminal-state concurrency. The
   radiusd tests drive `activateHotspotVoucher` from eight goroutines against expired and
@@ -335,7 +346,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-035` TR-F027 P1 — Konsistensi status Subscription dan RadiusUser saat transisi · LOKAL · PROPOSED_VERIFICATION · commit `c070535`
 - [x] `ENG-037` TR-F028 P1 — Validasi integer IDR dan batas invoice items · LOKAL · PROPOSED_VERIFICATION · commit `e8da24f`
 - [x] `ENG-038` TR-F007 P1 — Voucher terminal-state concurrency regressions · LOKAL · PROPOSED_VERIFICATION · commit `7c2e06e`
-- [ ] `ENG-056` TR-F029 P1 — Informasi jujur untuk action portal/payment yang disabled · LOKAL · dep ENG-021 · PROPOSED_VERIFICATION
+- [x] `ENG-056` TR-F029 P1 — Informasi jujur untuk action portal/payment yang disabled · LOKAL · dep ENG-021 · PROPOSED_VERIFICATION · commit `a171299`
 - [ ] `ENG-061` TR-F022 P1 — Stabilitas test E2E CI branch main dan dev · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-064` TR-F010 P1 — Pemeriksaan session-action queue dead-letter dan alert · LOKAL · dep ENG-013 · PROPOSED_VERIFICATION
 - [ ] `ENG-053` TR-F013 P2 — Navigasi keyboard pada data-grid dan dialog kritis · LOKAL · PROPOSED_VERIFICATION
@@ -425,7 +436,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-056` — honest copy for disabled portal/payment actions (follows `ENG-021`).
-2. `ENG-053` — keyboard navigation on data grids and critical dialogs.
-3. `ENG-061` — CI E2E stability on `main` and `dev`.
-4. `ENG-009` — RadSec mTLS untrusted-certificate regression (follows `ENG-004`).
+1. `ENG-053` — keyboard navigation on data grids and critical dialogs.
+2. `ENG-061` — CI E2E stability on `main` and `dev`.
+3. `ENG-009` — RadSec mTLS untrusted-certificate regression (follows `ENG-004`).
+4. `ENG-004` — RadSec/EAP certificate rotation readiness.
