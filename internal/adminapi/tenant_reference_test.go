@@ -82,7 +82,7 @@ func seedTenantIsolationFixture(t *testing.T, db *gorm.DB, tenantID int64, suffi
 	require.NoError(t, db.Create(&subscription).Error)
 	node := domain.NetNode{TenantID: tenantID, Name: "Shared Node " + suffix}
 	require.NoError(t, db.Create(&node).Error)
-	nas := domain.NetNas{
+	nas := domain.NetNas{ //nolint:gosec // G101: deterministic test fixture, not a real credential
 		TenantID: tenantID, NodeId: node.ID, Name: "Shared NAS " + suffix,
 		Identifier: "NAS-SAME", Ipaddr: fmt.Sprintf("198.51.100.%d", tenantID),
 		Secret: "shared-nas-secret", Status: "enabled",
