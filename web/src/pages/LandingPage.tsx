@@ -26,6 +26,12 @@ import {
 } from '@mui/icons-material';
 import { useBranding } from '../branding/BrandingContext';
 import { apiRequest } from '../utils/apiClient';
+import {
+  StaffLoginNotice,
+  describeSurfaceFailure,
+  isStaffLoginRequired,
+  type SurfaceFailure,
+} from '../components/StaffLoginNotice';
 
 type PublicPackage = {
   id: string;
@@ -88,18 +94,6 @@ const formatSeconds = (sec: number) => {
 // The lookup, voucher-check and registration APIs sit behind the operator JWT
 // middleware, so an anonymous visitor gets 401 rather than a data error. Say so
 // instead of blaming the customer number, the voucher code, or the network.
-const STAFF_LOGIN_REQUIRED_MESSAGE =
-  'Layanan ini memerlukan login staf operator. Silakan login, atau hubungi WhatsApp resmi kami untuk dibantu.';
-
-const isStaffLoginRequired = (err: unknown): boolean =>
-  (err as { status?: number } | null)?.status === 401;
-
-const describeLookupFailure = (err: unknown, fallback: string): string => {
-  if (isStaffLoginRequired(err)) {
-    return STAFF_LOGIN_REQUIRED_MESSAGE;
-  }
-  return (err as Error | null)?.message || fallback;
-};
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -132,13 +126,13 @@ export const LandingPage: React.FC = () => {
   // Bill search
   const [billQuery, setBillQuery] = useState('');
   const [billLoading, setBillLoading] = useState(false);
-  const [billError, setBillError] = useState<string | null>(null);
+  const [billError, setBillError] = useState<SurfaceFailure | null>(null);
   const [billResult, setBillResult] = useState<CustomerLookupResult | null>(null);
 
   // Voucher search
   const [voucherQuery, setVoucherQuery] = useState('');
   const [voucherLoading, setVoucherLoading] = useState(false);
-  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [voucherError, setVoucherError] = useState<SurfaceFailure | null>(null);
   const [voucherResult, setVoucherResult] = useState<VoucherLookupResult | null>(null);
 
   // Online Registration Modal State
@@ -153,7 +147,7 @@ export const LandingPage: React.FC = () => {
     notes: '',
   });
   const [regLoading, setRegLoading] = useState(false);
-  const [regError, setRegError] = useState<string | null>(null);
+  const [regError, setRegError] = useState<SurfaceFailure | null>(null);
   const [regSuccess, setRegSuccess] = useState<any | null>(null);
   const regIdempotencyKey = useRef<string>('');
 
@@ -173,7 +167,7 @@ export const LandingPage: React.FC = () => {
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regForm.name.trim() || !regForm.phone.trim() || !regForm.address.trim()) {
-      setRegError('Nama Lengkap, Nomor WhatsApp / HP, dan Alamat Pemasangan wajib diisi.');
+      setRegError({ message: 'Nama Lengkap, Nomor WhatsApp / HP, dan Alamat Pemasangan wajib diisi.', needsStaffLogin: false });
       return;
     }
     setRegLoading(true);
@@ -186,7 +180,7 @@ export const LandingPage: React.FC = () => {
       });
       setRegSuccess(result);
     } catch (err: any) {
-      setRegError(describeLookupFailure(
+      setRegError(describeSurfaceFailure(
         err,
         'Terjadi kesalahan jaringan saat mengirim pendaftaran.',
       ));
@@ -223,7 +217,7 @@ export const LandingPage: React.FC = () => {
       const result = await apiRequest<any>(`/portal/lookup?q=${encodeURIComponent(q)}`);
       setBillResult(result);
     } catch (err: any) {
-      setBillError(describeLookupFailure(err, 'Gagal memuat data pelanggan'));
+      setBillError(describeSurfaceFailure(err, 'Gagal memuat data pelanggan'));
     } finally {
       setBillLoading(false);
     }
@@ -240,7 +234,7 @@ export const LandingPage: React.FC = () => {
       const result = await apiRequest<VoucherLookupResult>(`/public/vouchers/check?code=${encodeURIComponent(code)}`);
       setVoucherResult(result);
     } catch (err: any) {
-      setVoucherError(describeLookupFailure(err, 'Kode voucher tidak valid'));
+      setVoucherError(describeSurfaceFailure(err, 'Kode voucher tidak valid'));
     } finally {
       setVoucherLoading(false);
     }
@@ -1386,11 +1380,17 @@ export const LandingPage: React.FC = () => {
                     </Stack>
                   </Box>
 
-                  {billError && (
+                  {billError && (billError.needsStaffLogin ? (
+                    <StaffLoginNotice
+                      whatsappNumber={contactWhatsApp}
+                      whatsappMessage="Halo, saya ingin mengecek tagihan internet saya."
+                      sx={{ borderRadius: 0, mb: 3 }}
+                    />
+                  ) : (
                     <Alert severity="error" sx={{ borderRadius: 0, mb: 3, border: '1px solid #EF4444' }}>
-                      {billError}
+                      {billError.message}
                     </Alert>
-                  )}
+                  ))}
 
                   {billResult && (
                     <Paper
@@ -1526,11 +1526,17 @@ export const LandingPage: React.FC = () => {
                     </Stack>
                   </Box>
 
-                  {voucherError && (
+                  {voucherError && (voucherError.needsStaffLogin ? (
+                    <StaffLoginNotice
+                      whatsappNumber={contactWhatsApp}
+                      whatsappMessage="Halo, saya ingin mengecek sisa kuota voucher hotspot saya."
+                      sx={{ borderRadius: 0, mb: 3 }}
+                    />
+                  ) : (
                     <Alert severity="error" sx={{ borderRadius: 0, mb: 3, border: '1px solid #EF4444' }}>
-                      {voucherError}
+                      {voucherError.message}
                     </Alert>
-                  )}
+                  ))}
 
                   {voucherResult && (
                     <Paper
@@ -2084,11 +2090,17 @@ export const LandingPage: React.FC = () => {
         ) : (
           <form onSubmit={handleRegisterSubmit}>
             <DialogContent sx={{ p: 3 }}>
-              {regError && (
+              {regError && (regError.needsStaffLogin ? (
+                <StaffLoginNotice
+                  whatsappNumber={contactWhatsApp}
+                  whatsappMessage="Halo, saya ingin mendaftar pasang baru internet."
+                  sx={{ mb: 2.5, borderRadius: 0 }}
+                />
+              ) : (
                 <Alert severity="error" sx={{ mb: 2.5, borderRadius: 0, border: '1px solid #EF4444' }}>
-                  {regError}
+                  {regError.message}
                 </Alert>
-              )}
+              ))}
 
               <Stack spacing={2.5}>
                 {/* PACKAGE SELECTOR */}
