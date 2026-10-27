@@ -31,7 +31,21 @@ the current tree.
 
 ## Progress
 
-Done: 19 / 100.
+Done: 20 / 100.
+
+- `ENG-052` (2026-10-27, `dev` @ `447c0ad`): browser role matrix for the operator/admin/super
+  button set. `web/e2e/role-matrix.spec.ts` seeds operator, admin, super and `platform_admin`
+  sessions into `localStorage` and, against read-only API fixtures, asserts menu visibility
+  (network/operations/operators vs. platform-only branding, config, certificates, tenants) plus
+  customer and RADIUS-user create/import controls, voucher print (all roles) vs. batch generation
+  (admin), and ticket creation (all roles) vs. WhatsApp dispatch (admin). All 16 cases pass on
+  Chromium. The run exposed a real gating leak: React Admin's default empty state renders a
+  Create button from the resource's create route, so operators saw an empty-state "Create" link
+  on customers/packages/subscriptions/payments and the RADIUS-user empty hint told them to
+  create. Lists now pass `empty={<RoleAwareEmpty />}`, and the RADIUS empty hint has a
+  restricted variant; both follow `useIsAdmin`. The server half is unchanged and still enforced
+  by `TestMutationRouteRoleMatrix`; `docs/access-control-matrix.md` records the UI/API split and
+  the Playwright command.
 
 - `ENG-011` (2026-10-27, `dev` @ `6fcd5ad`): fuzz regression for defective and oversized
   RADIUS packets. A deterministic corpus of 22 named frames covers the RFC 2865 §3 length
@@ -283,7 +297,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · PROPOSED_VERIFICATION · commit `6fcd5ad`
 - [x] `ENG-031` TR-F028 P1 — Invoice numbering tahan retry setelah crash PostgreSQL · LOKAL · PROPOSED_VERIFICATION · commit `74fa4c1`
 - [x] `ENG-033` TR-F028 P1 — Idempotency pembayaran manual dengan request ulang · LOKAL · PROPOSED_VERIFICATION · commit `c89624d`
-- [ ] `ENG-052` TR-F016 P1 — E2E matriks tombol per role operator/admin/super · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
+- [x] `ENG-052` TR-F016 P1 — E2E matriks tombol per role operator/admin/super · LOKAL · PROPOSED_VERIFICATION · commit `447c0ad`
 - [ ] `ENG-009` TR-F003 P1 — Regression RadSec mTLS sertifikat tidak tepercaya · LOKAL · dep ENG-004 · PROPOSED_VERIFICATION
 - [x] `ENG-010` TR-F001 P1 — Audit duplikasi RADIUS retransmission dan replay · LOKAL · PROPOSED_VERIFICATION · commit `54aee93`
 - [x] `ENG-012` TR-F002 P1 — Test accounting Start/Interim/Stop out-of-order · LOKAL · PROPOSED_VERIFICATION · commit `9be97f3`
@@ -385,7 +399,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-052` — role matrix for the operator/admin/super buttons (follows `ENG-017`).
-2. `ENG-035` — subscription/RadiusUser status consistency on transitions (follows `ENG-032`).
-3. `ENG-038` — voucher terminal-state concurrency regressions.
-4. `ENG-056` — honest copy for disabled portal/payment actions (follows `ENG-021`).
+1. `ENG-035` — subscription/RadiusUser status consistency on transitions (follows `ENG-032`).
+2. `ENG-038` — voucher terminal-state concurrency regressions.
+3. `ENG-056` — honest copy for disabled portal/payment actions (follows `ENG-021`).
+4. `ENG-053` — keyboard navigation on data grids and critical dialogs.
