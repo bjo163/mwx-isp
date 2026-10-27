@@ -51,7 +51,7 @@ cannot call platform routes unless the platform flag is set.
 | Operators | `PUT/DELETE /system/operators/:id` | yes | yes | 403 | Admin cannot grant `super` or modify a `super` account |
 | Own profile | `PUT /system/operators/me` | yes | yes | yes | Level and status are not editable here |
 | Platform | `POST/PUT /platform/tenants*`, system config, certificates, backup/restore, branding writes, WhatsApp pairing | platform only | 403 | 403 | Requires `PlatformAdmin` |
-| Public/portal reads | `/public/packages`, `/public/vouchers/check`, `/public/register`, `/portal/*` | — | — | — | Currently still behind JWT; customer-owned public self-service is not enabled (tracked in the todo) |
+| Public/portal reads | `/public/packages`, `/public/vouchers/check`, `/public/register`, `/portal/*` | — | — | — | Behind JWT: an anonymous call returns 401 (`TestLandingSurfaceEndpointsFailClosedAnonymously`). `/home` and `/portal` say a staff login is required instead of advertising customer self-service |
 
 ## UI gating
 

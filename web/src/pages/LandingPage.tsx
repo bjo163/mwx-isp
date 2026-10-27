@@ -85,6 +85,22 @@ const formatSeconds = (sec: number) => {
   return `${mins} Menit`;
 };
 
+// The lookup, voucher-check and registration APIs sit behind the operator JWT
+// middleware, so an anonymous visitor gets 401 rather than a data error. Say so
+// instead of blaming the customer number, the voucher code, or the network.
+const STAFF_LOGIN_REQUIRED_MESSAGE =
+  'Layanan ini memerlukan login staf operator. Silakan login, atau hubungi WhatsApp resmi kami untuk dibantu.';
+
+const isStaffLoginRequired = (err: unknown): boolean =>
+  (err as { status?: number } | null)?.status === 401;
+
+const describeLookupFailure = (err: unknown, fallback: string): string => {
+  if (isStaffLoginRequired(err)) {
+    return STAFF_LOGIN_REQUIRED_MESSAGE;
+  }
+  return (err as Error | null)?.message || fallback;
+};
+
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { branding } = useBranding();
@@ -107,6 +123,7 @@ export const LandingPage: React.FC = () => {
   // Package Data state
   const [packages, setPackages] = useState<PublicPackage[]>([]);
   const [loadingPackages, setLoadingPackages] = useState<boolean>(true);
+  const [packagesRequireLogin, setPackagesRequireLogin] = useState<boolean>(false);
   const [packageCategory, setPackageCategory] = useState<string>('all');
 
   // Interactive Tools state
@@ -169,7 +186,10 @@ export const LandingPage: React.FC = () => {
       });
       setRegSuccess(result);
     } catch (err: any) {
-      setRegError(err?.message || 'Terjadi kesalahan jaringan saat mengirim pendaftaran.');
+      setRegError(describeLookupFailure(
+        err,
+        'Terjadi kesalahan jaringan saat mengirim pendaftaran.',
+      ));
     } finally {
       setRegLoading(false);
     }
@@ -181,7 +201,9 @@ export const LandingPage: React.FC = () => {
       try {
         const result = await apiRequest<PublicPackage[]>('/public/packages');
         setPackages(result);
+        setPackagesRequireLogin(false);
       } catch (e) {
+        setPackagesRequireLogin(isStaffLoginRequired(e));
         console.warn('Failed to fetch organization packages', e);
       } finally {
         setLoadingPackages(false);
@@ -201,7 +223,7 @@ export const LandingPage: React.FC = () => {
       const result = await apiRequest<any>(`/portal/lookup?q=${encodeURIComponent(q)}`);
       setBillResult(result);
     } catch (err: any) {
-      setBillError(err?.message || 'Gagal memuat data pelanggan');
+      setBillError(describeLookupFailure(err, 'Gagal memuat data pelanggan'));
     } finally {
       setBillLoading(false);
     }
@@ -218,7 +240,7 @@ export const LandingPage: React.FC = () => {
       const result = await apiRequest<VoucherLookupResult>(`/public/vouchers/check?code=${encodeURIComponent(code)}`);
       setVoucherResult(result);
     } catch (err: any) {
-      setVoucherError(err?.message || 'Kode voucher tidak valid');
+      setVoucherError(describeLookupFailure(err, 'Kode voucher tidak valid'));
     } finally {
       setVoucherLoading(false);
     }
@@ -967,10 +989,12 @@ export const LandingPage: React.FC = () => {
               }}
             >
               <Typography variant="h6" fontWeight={800} sx={{ color: '#FFF', mb: 1 }}>
-                Belum Ada Paket Internet Aktif
+                {packagesRequireLogin ? 'Katalog Paket Terkunci untuk Pengunjung' : 'Belum Ada Paket Internet Aktif'}
               </Typography>
               <Typography variant="body2" sx={{ color: '#94A3B8', mb: 3 }}>
-                Katalog paket internet untuk kategori ini belum tersedia atau sedang dalam pembaruan oleh administrator ISP.
+                {packagesRequireLogin
+                  ? 'Daftar paket dikelola operator dan hanya tampil untuk sesi staf yang login. Hubungi WhatsApp resmi kami untuk tarif terbaru.'
+                  : 'Katalog paket internet untuk kategori ini belum tersedia atau sedang dalam pembaruan oleh administrator ISP.'}
               </Typography>
               <Button
                 variant="outlined"
@@ -1208,7 +1232,7 @@ export const LandingPage: React.FC = () => {
         <Container maxWidth="md">
           <Stack spacing={2} alignItems="center" textAlign="center" sx={{ mb: 5 }}>
             <Chip
-              label="[ PUSAT LAYANAN MANDIRI PELANGGAN ]"
+              label="[ LAYANAN CEK TAGIHAN & VOUCHER ]"
               size="small"
               sx={{
                 bgcolor: 'rgba(255,255,255,0.06)',
@@ -1230,8 +1254,42 @@ export const LandingPage: React.FC = () => {
               Cek Tagihan & Validitas Voucher
             </Typography>
             <Typography variant="body1" sx={{ color: '#94A3B8' }}>
-              Pelanggan dapat langsung mengecek status tagihan bulanan atau mengecek sisa kuota voucher hotspot tanpa harus login.
+              Cek tagihan dan sisa kuota voucher dijalankan oleh staf operator yang sudah login.
+              {isLoggedIn
+                ? ' Sesi Anda aktif, silakan gunakan formulir di bawah.'
+                : ' Sebagai pengunjung, gunakan WhatsApp resmi kami agar dibantu dicek.'}
             </Typography>
+            {!isLoggedIn && (
+              <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => navigate('/login')}
+                  startIcon={<AdminIcon sx={{ fontSize: '0.9rem !important' }} />}
+                  sx={{
+                    color: '#F8FAFC',
+                    bgcolor: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    textTransform: 'none',
+                    fontSize: '0.78rem',
+                    borderRadius: 0,
+                    fontFamily: '"JetBrains Mono", monospace',
+                    '&:hover': { bgcolor: accentColor, color: '#000', borderColor: accentColor },
+                  }}
+                >
+                  Login Staf Operator
+                </Button>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={handleCoverageWhatsApp}
+                  startIcon={<WhatsAppIcon sx={{ fontSize: '0.9rem !important' }} />}
+                  sx={{ color: accentColor, textTransform: 'none', fontSize: '0.78rem' }}
+                >
+                  Atau cek via WhatsApp
+                </Button>
+              </Stack>
+            )}
           </Stack>
 
           <Paper
@@ -1404,7 +1462,7 @@ export const LandingPage: React.FC = () => {
                             },
                           }}
                         >
-                          Buka Portal & Bayar Sekarang
+                          Buka Portal Tagihan
                         </Button>
                       </Stack>
                     </Paper>
@@ -2160,6 +2218,13 @@ export const LandingPage: React.FC = () => {
                 <Typography variant="caption" sx={{ color: '#64748B', display: 'block' }}>
                   * Teknisi akan menghubungi Anda melalui WhatsApp untuk mengonfirmasi jadwal survei fisik dan uji redaman ODP terdekat.
                 </Typography>
+
+                {!isLoggedIn && (
+                  <Alert severity="warning" sx={{ borderRadius: 0, border: '1px solid #F59E0B' }}>
+                    Formuli ini disimpan ke sistem operator sehingga memerlukan login staf. Sebagai pengunjung,
+                    kirim permintaan pemasangan lewat WhatsApp agar segera ditindaklanjuti.
+                  </Alert>
+                )}
               </Stack>
             </DialogContent>
 

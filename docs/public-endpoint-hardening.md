@@ -55,9 +55,18 @@ proxy address and share a single budget.
 | --- | --- |
 | Limiter burst, tenant/IP isolation, spoofed XFF, login 429 + `Retry-After` | `go test ./internal/adminapi/ -run 'Test.*RateLimit|TestRetryAfter' -count=1` |
 | Trusted-proxy IP extraction | `go test ./internal/webserver/ -count=1` |
+| Anonymous 401 on the four landing-surface APIs | `go test ./internal/adminapi/ -run TestLandingSurfaceEndpointsFailClosedAnonymously -count=1` |
 | Full unit suites | `go test ./internal/adminapi/ ./internal/webserver/ -count=1` |
 
 Current limitation: customer-owned public self-service is not enabled, so
 `/portal/*`, `/public/register`, `/public/vouchers/check` and `/public/packages`
 remain behind the JWT middleware. The limits apply once such a caller is
 authenticated and protect the tenant from abuse by an authenticated account.
+
+Because those calls answer 401 for a visitor, `/home` and `/portal` must not
+present them as anonymous self-service or as a checkout step. Both pages now
+label the lookup as staff-operator gated, surface the 401 as "login staf
+diperlukan", and route an anonymous visitor to WhatsApp or the staff login. The
+fail-closed behaviour is asserted by `TestLandingSurfaceEndpointsFailClosedAnonymously`,
+so widening `JwtSkipPrefix` to make the copy true breaks the test instead of the
+non-goal.

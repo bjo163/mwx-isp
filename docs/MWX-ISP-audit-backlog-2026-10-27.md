@@ -1,0 +1,175 @@
+# 100-item portfolio triage checklist (2026-10-27)
+
+Provenance: `MWX-ISP_100_ISSUES_MASTER_2026-10-27.md` (kept at the repository root as the
+source inventory), baseline `main`/`dev` at `1b791f8` (v0.14.0). The inventory lists
+100 draft IDs — 64 Engineering, 24 Frontier, 12 Economy — with Charity and Faith/ontology
+set to zero because they do not apply to a RADIUS/ISP monolith.
+
+**These are not GitHub issues and are not approved work.** #45–#54 (AUDIT-01..10) are closed
+prior art and must not be re-opened or duplicated by these drafts. 96 of the 100 items are
+`PROPOSED_VERIFICATION`: they order an inspection or a test first, so none of them is a
+confirmed defect. Only the `VERIFIED_GAP` rows record something already demonstrable against
+the current tree.
+
+## Triage tags
+
+| Tag | Meaning | Gate before code changes |
+| --- | --- | --- |
+| `LOKAL` | Executable inside this repository — read, assert, test, document. | Ordinary TR-F scope and the Go/web gates. |
+| `ASET` | Needs a real asset: physical NAS, clean VPS host, LDAP/WA number, or an operator willing to be measured. | Blocked until the asset and its authorization exist. |
+| `RISET` | Frontier/Economy experiment. Research notes and bounded prototypes only. | No product code until `docs/feature-checklist.md` gains an approved TR-F. |
+| `RISET+ASET` | Research that additionally needs real data or hardware. | Both gates above. |
+
+## Execution rules
+
+- One item per round. Check the box only when its own acceptance criterion is met with
+  citable evidence, and note the commit or PR next to it.
+- Never widen `JwtSkipPrefix`, revive a payment endpoint, or add a customer-facing workflow
+  to make a UI claim true — those are TR-N001/TR-N002 non-goals that need a scope decision.
+- `main`/`dev` branch policy, tags, releases and existing issues stay untouched without a
+  separate instruction.
+
+## Progress
+
+Done: 1 / 100.
+
+- `ENG-021` (2026-10-27, `dev`): `/home` and `/portal` no longer advertise anonymous
+  self-service or a checkout step; a 401 is reported as "staff login required" and an
+  anonymous visitor is offered WhatsApp or the staff login. The fail-closed behaviour of
+  `/public/packages`, `/public/register`, `/public/vouchers/check` and `/portal/lookup` is
+  now asserted by `TestLandingSurfaceEndpointsFailClosedAnonymously`. Scope stayed inside the
+  existing `Harden` rows of `docs/feature-checklist.md`.
+
+Critical path from the inventory: `ENG-001 → ENG-002`, `ENG-017 → ENG-018`,
+`ENG-041 → ENG-043 → ENG-045 → ECO-005`. Every `ASET` row that starts a chain
+(`ENG-041`, `ENG-013`, `ENG-049`, `ENG-002`) is blocked on hardware or a host that has not
+been claimed yet, so the unblocked queue is `LOKAL`-only.
+
+## Waves
+
+## Wave 0 — 5 item (LOKAL 4 · ASET 1)
+
+- [ ] `ENG-017` TR-F033 P1 — Audit penurunan hak anggota tenant saat token lama aktif · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-001` TR-F004 P1 — Audit & rancang outer anonymous NAI pada EAP-TLS 1.3 · LOKAL · VERIFIED_GAP
+- [ ] `ENG-018` TR-F033 P1 — Konsistensi tenant untuk NAS ambigu dan username sama · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
+- [x] `ENG-021` TR-F018 P1 — Rekonsiliasi landing/portal publik yang faktanya JWT-only · LOKAL · VERIFIED_GAP
+- [ ] `ENG-041` TR-F020 P1 — Uji instalasi fresh pada VPS Ubuntu/Debian bersih · ASET · VERIFIED_GAP
+
+## Wave 1 — 37 item (LOKAL 30 · ASET 7)
+
+- [ ] `ENG-032` TR-F028 P1 — Invariant suspend manual tidak tertimpa bayar otomatis · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-019` TR-F033 P1 — Ratcheting audit query SQL raw dan joins tenancy · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-028` TR-F022 P1 — Penyamaran PII di logs, traces dan support evidence · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · dep ENG-049 · PROPOSED_VERIFICATION
+- [ ] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · dep ENG-010 · PROPOSED_VERIFICATION
+- [ ] `ENG-031` TR-F028 P1 — Invoice numbering tahan retry setelah crash PostgreSQL · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-033` TR-F028 P1 — Idempotency pembayaran manual dengan request ulang · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-052` TR-F016 P1 — E2E matriks tombol per role operator/admin/super · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
+- [ ] `ENG-009` TR-F003 P1 — Regression RadSec mTLS sertifikat tidak tepercaya · LOKAL · dep ENG-004 · PROPOSED_VERIFICATION
+- [ ] `ENG-010` TR-F001 P1 — Audit duplikasi RADIUS retransmission dan replay · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-012` TR-F002 P1 — Test accounting Start/Interim/Stop out-of-order · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-022` TR-F016 P1 — Threat-model autentikasi browser dan sesi admin · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-023` TR-F018 P1 — Validasi rate limiting saat reverse proxy multi-hop · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-024` TR-F031 P1 — Runbook rotasi secret SNMP dan encrypted community · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-025` TR-F030 P1 — Audit perlindungan kredensial koneksi WhatsApp · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-027` TR-F031 P1 — Hardening diagnostik jaringan terhadap SSRF · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-035` TR-F027 P1 — Konsistensi status Subscription dan RadiusUser saat transisi · LOKAL · dep ENG-032 · PROPOSED_VERIFICATION
+- [ ] `ENG-037` TR-F028 P1 — Validasi integer IDR dan batas invoice items · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-038` TR-F007 P1 — Voucher terminal-state concurrency regressions · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-056` TR-F029 P1 — Informasi jujur untuk action portal/payment yang disabled · LOKAL · dep ENG-021 · PROPOSED_VERIFICATION
+- [ ] `ENG-061` TR-F022 P1 — Stabilitas test E2E CI branch main dan dev · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-064` TR-F010 P1 — Pemeriksaan session-action queue dead-letter dan alert · LOKAL · dep ENG-013 · PROPOSED_VERIFICATION
+- [ ] `ENG-053` TR-F013 P2 — Navigasi keyboard pada data-grid dan dialog kritis · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-004` TR-F003 P2 — Kesiapan rotasi sertifikat RadSec dan EAP · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-030` TR-F022 P2 — Inventory SBOM backend/frontend serta lisensi · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-008` TR-F004 P2 — Pastikan EAP-OTP tak dapat diaktifkan tanpa validator · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-029` TR-F029 P2 — PNG branding parser dan metadata validation · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-039` TR-F032 P2 — Perlindungan marker demo data saat clean-up · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-051` TR-F029 P2 — Test fungsional website editor yang masih kurang coverage · LOKAL · VERIFIED_GAP
+- [ ] `ENG-063` TR-F012 P2 — Contract testing respons API, paginasi dan error · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-013` TR-F010 P1 — Pilot RFC 5176 CoA/Disconnect pada NAS nyata · ASET · PROPOSED_VERIFICATION
+- [ ] `ENG-002` TR-F004 P1 — Matriks interoperabilitas EAP-TLS 1.2/1.3 dengan supplicant nyata · ASET · dep ENG-001 · PROPOSED_VERIFICATION
+- [ ] `ENG-043` TR-F020 P1 — Drill pemulihan seluruh volume VPS dari backup · ASET · dep ENG-041 · VERIFIED_GAP
+- [ ] `ENG-020` TR-F033 P1 — Latihan restore lintas tenant setelah perubahan skema · ASET · PROPOSED_VERIFICATION
+- [ ] `ENG-042` TR-F020 P1 — Simulasi kegagalan registry ketika upgrade aplikasi · ASET · dep ENG-041 · PROPOSED_VERIFICATION
+- [ ] `ENG-015` TR-F025 P2 — Profil biaya LDAP bind di bawah concurrent load · ASET · PROPOSED_VERIFICATION
+- [ ] `ENG-046` TR-F020 P2 — Uji akses localhost SSH tunnel pada instalasi tanpa DNS · ASET · dep ENG-041 · PROPOSED_VERIFICATION
+
+## Wave 2 — 25 item (LOKAL 13 · RISET 2 · ASET 7 · RISET+ASET 3)
+
+- [ ] `ENG-058` TR-F031 P2 — Label confidence dan mapping pada NOC impact UI · LOKAL · dep ENG-055 · PROPOSED_VERIFICATION
+- [ ] `ENG-016` TR-F021 P2 — Pemeriksaan berkala perbedaan fork layeh dan upstream · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-036` TR-F033 P2 — Jejak scheduler FUP terpisah per tenant sesudah perbaikan · LOKAL · dep ENG-019 · PROPOSED_VERIFICATION
+- [ ] `ENG-040` TR-F011 P2 — Studi archival accounting retention dan query plan · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-054` TR-F023 P2 — Rekonsiliasi ID/EN seluruh status tagihan dan insiden · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-057` TR-F015 P2 — Audit grafik dashboard konsistensi timezone dan nominal · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-059` TR-F007 P2 — Audit import RADIUS user dengan preview dry-run saja · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-062` TR-F022 P2 — Sistem upgrade dependency dengan ratchet keamanan · LOKAL · dep ENG-030 · PROPOSED_VERIFICATION
+- [ ] `ENG-003` TR-F004 P2 — Pemetaan kebijakan pencabutan sertifikat EAP-TLS · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-005` TR-F004 P2 — Evaluasi dukungan inner EAP-TTLS CHAP dan MS-CHAP · LOKAL · dep ENG-002 · PROPOSED_VERIFICATION
+- [ ] `ENG-026` TR-F020 P2 — Evaluasi parameter KDF dan envelope backup · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-034` TR-F028 P2 — Pembetulan transaksi payment operator yang salah input · LOKAL · dep ENG-033 · PROPOSED_VERIFICATION
+- [ ] `ENG-060` TR-F022 P2 — Studi support bundle tersensor untuk insiden operator · LOKAL · dep ENG-028 · PROPOSED_VERIFICATION
+- [ ] `ECO-003` TR-F020 P2 — Model total cost of ownership deployment ISP · RISET · dep ENG-045 · PROPOSED_VERIFICATION
+- [ ] `ECO-009` TR-F028 P2 — Audit peluang revenue leakage dari invoice yang sudah ada · RISET · dep ENG-031 · PROPOSED_VERIFICATION
+- [ ] `ENG-049` TR-F031 P2 — UAT SNMPv3 authPriv dengan perangkat sungguhan · ASET · VERIFIED_GAP
+- [ ] `ENG-045` TR-F020 P2 — Tetapkan RTO/RPO operator berdasarkan rehearsal · ASET · dep ENG-043 · PROPOSED_VERIFICATION
+- [ ] `ENG-050` TR-F010 P2 — Matrix NAS/firmware teruji untuk RADIUS dan CoA · ASET · dep ENG-013 · PROPOSED_VERIFICATION
+- [ ] `ENG-048` TR-F030 P2 — UAT WhatsApp pairing ke nomor uji opt-in · ASET · VERIFIED_GAP
+- [ ] `ENG-014` TR-F005 P2 — Prioritas vendor VSA berbasis model NAS riil · ASET · dep ENG-013 · PROPOSED_VERIFICATION
+- [ ] `ENG-044` TR-F017 P2 — Studi PostgreSQL WAL PITR untuk RPO terukur · ASET · dep ENG-043 · PROPOSED_VERIFICATION
+- [ ] `ENG-047` TR-F020 P2 — Audit health dan peringatan expiry sertifikat deployment · ASET · dep ENG-041 · PROPOSED_VERIFICATION
+- [ ] `ECO-001` TR-F027 P2 — Wawancara willingness-to-pay pada operator ISP kecil · RISET+ASET · PROPOSED_VERIFICATION
+- [ ] `ECO-002` TR-F029 P2 — Ukur waktu tugas operator sebelum/sesudah MWX-ISP · RISET+ASET · dep ECO-001 · PROPOSED_VERIFICATION
+- [ ] `ECO-007` TR-F030 P2 — Pengendalian biaya telemetri dan alert whatsmeow · RISET+ASET · dep ENG-048 · PROPOSED_VERIFICATION
+
+## Wave 3 — 23 item (LOKAL 2 · RISET 21)
+
+- [ ] `ENG-006` TR-F004 P3 — Riset kompatibilitas TEAP terbatas untuk milestone M11 · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ENG-007` TR-F004 P3 — Riset kebutuhan EAP-PWD milestone M12 · LOKAL · PROPOSED_VERIFICATION
+- [ ] `ECO-004` TR-F020 P2 — Evaluasi lisensi managed support vs self-hosted · RISET · dep ECO-001 · PROPOSED_VERIFICATION
+- [ ] `ECO-005` TR-F020 P2 — Desain paket dukungan & SLA yang realistis · RISET · dep ENG-045 · PROPOSED_VERIFICATION
+- [ ] `ECO-006` TR-F027 P2 — Validasi jasa onboarding dan migrasi pelanggan · RISET · dep ENG-059 · PROPOSED_VERIFICATION
+- [ ] `ECO-008` TR-F015 P2 — Cost allocation unit per NAS dan subscriber aktif · RISET · dep ECO-003 · PROPOSED_VERIFICATION
+- [ ] `ECO-011` TR-F023 P2 — Kajian strategi distribusi community/open-source · RISET · dep ECO-001 · PROPOSED_VERIFICATION
+- [ ] `FUT-013` TR-F031 P3 — Offline read-only NOC snapshot dengan TTL dan enkripsi · RISET · dep ENG-055 · PROPOSED_VERIFICATION
+- [ ] `FUT-017` TR-F029 P3 — Experimental neo-brutalist manga skin via existing tokens · RISET · dep ENG-053 · PROPOSED_VERIFICATION
+- [ ] `FUT-001` TR-F013 P3 — Proof-of-concept intent search untuk perintah operator read-only · RISET · dep ENG-052 · PROPOSED_VERIFICATION
+- [ ] `FUT-002` TR-F031 P3 — AI incident triage berbasis log tersensor · RISET · dep ENG-028 · PROPOSED_VERIFICATION
+- [ ] `FUT-003` TR-F031 P3 — Ringkasan insiden berbukti tanpa mengklaim pelanggan offline · RISET · dep ENG-058 · PROPOSED_VERIFICATION
+- [ ] `FUT-004` TR-F031 P3 — Deteksi pola anomali latency dari metrik historis bounded · RISET · dep ENG-049 · PROPOSED_VERIFICATION
+- [ ] `FUT-005` TR-F031 P3 — Graph hipotesis penyebab insiden dengan uncertainty · RISET · dep ENG-058 · PROPOSED_VERIFICATION
+- [ ] `FUT-006` TR-F031 P3 — Visual graph statis NAS-ODP dari relasi yang telah diisi operator · RISET · dep ENG-018 · PROPOSED_VERIFICATION
+- [ ] `FUT-008` TR-F010 P3 — Preview dampak CoA terhadap sesi yang aktif sebelum aksi · RISET · dep ENG-013 · PROPOSED_VERIFICATION
+- [ ] `FUT-009` TR-F028 P3 — Explanation trace billing-suspend dari rule engine existing · RISET · dep ENG-032 · PROPOSED_VERIFICATION
+- [ ] `FUT-010` TR-F033 P3 — Static tenant-scope policy checker dari query AST sederhana · RISET · dep ENG-019 · PROPOSED_VERIFICATION
+- [ ] `FUT-011` TR-F001 P3 — Pembangkitan regression tests untuk paket RADIUS via mutator · RISET · dep ENG-011 · PROPOSED_VERIFICATION
+- [ ] `FUT-012` TR-F004 P3 — Eksperimen adversarial EAP TLS fragment scheduler · RISET · dep ENG-002 · PROPOSED_VERIFICATION
+- [ ] `FUT-021` TR-F005 P3 — Knowledge base kompatibilitas firmware berbasis bukti uji · RISET · dep ENG-050 · PROPOSED_VERIFICATION
+- [ ] `FUT-022` TR-F028 P3 — Event replay simulator untuk reproduksi billing dan NAS · RISET · dep ENG-032 · PROPOSED_VERIFICATION
+- [ ] `FUT-023` TR-F021 P3 — Graph semantik relasi protokol RADIUS dan feature ID · RISET · dep ENG-016 · PROPOSED_VERIFICATION
+
+## Wave 4 — 10 item (RISET 8 · RISET+ASET 2)
+
+- [ ] `ECO-012` TR-F005 P2 — Partner interoperability kit berbasis fixture NAS · RISET · dep ENG-050 · PROPOSED_VERIFICATION
+- [ ] `ECO-010` TR-F031 P3 — Riset risiko churn berbasis sinyal operasional agregat · RISET · dep ECO-002 · PROPOSED_VERIFICATION
+- [ ] `FUT-007` TR-F008 P3 — Simulasi perubahan profil bandwidth tanpa menulis NAS · RISET · dep ENG-016 · PROPOSED_VERIFICATION
+- [ ] `FUT-014` TR-F031 P3 — Field diagnostics mini-mode untuk teknisi yang offline · RISET · dep FUT-013 · PROPOSED_VERIFICATION
+- [ ] `FUT-015` TR-F013 P3 — Adaptive contextual workspace dari tugas operator · RISET · dep ENG-053 · PROPOSED_VERIFICATION
+- [ ] `FUT-016` TR-F013 P3 — Voice-assisted navigation untuk aksesibilitas internal · RISET · dep ENG-053 · PROPOSED_VERIFICATION
+- [ ] `FUT-018` TR-F029 P3 — Riset visual incident card grunge yang bisa dicetak · RISET · dep FUT-017 · PROPOSED_VERIFICATION
+- [ ] `FUT-020` TR-F033 P3 — Per-tenant statistik operasional privat berbasis agregat · RISET · dep ENG-017 · PROPOSED_VERIFICATION
+- [ ] `FUT-019` TR-F031 P3 — Edge collector polling read-only pada jaringan terbatas · RISET+ASET · dep ENG-049 · PROPOSED_VERIFICATION
+- [ ] `FUT-024` TR-F031 P3 — Prediksi kapasitas network yang dibatasi data SNMP nyata · RISET+ASET · dep ENG-049 · PROPOSED_VERIFICATION
+
+## Suggested next batch
+
+Ordered so each step stays executable without new hardware:
+
+1. `ENG-017` then `ENG-018` — tenant privilege downgrade with a live token, then the
+   ambiguous-NAS/username consistency follow-on. Both are `TR-F033` audit-plus-test work.
+2. `ENG-001` — design and evidence note for the anonymous outer NAI (roadmap M10.5), no EAP
+   implementation change in the same round.
+3. `ENG-019` / `ENG-028` — raw-SQL tenancy ratchet and PII redaction in logs; both feed the
+   later `ENG-060` support-bundle and `FUT-010` items.
+4. `ENG-051` — website editor functional coverage, currently a `VERIFIED_GAP` and fully local.
