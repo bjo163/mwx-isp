@@ -31,7 +31,21 @@ the current tree.
 
 ## Progress
 
-Done: 15 / 100.
+Done: 16 / 100.
+
+- `ENG-024` (2026-10-27, `dev` @ `db08c5f`): rotating `web.secret` and the sealed SNMP
+  credentials. The monitor stores the SNMPv2c community and SNMPv3 auth/privacy passwords as
+  AES-GCM ciphertext keyed from `web.secret`, so a secret change made every target report "SNMP
+  credentials unavailable". `networkmonitor.RotateSNMPSecrets` now decrypts and re-seals all
+  three columns for every tenant inside one transaction; any value that cannot be authenticated
+  with the old secret aborts the rotation and leaves every row unchanged. The new
+  `cmd/rotate-secrets` reads both secrets from the environment, dry-runs by default by running
+  the updates and rolling them back, and prints counts only. Tests cover the dry-run rollback,
+  all three columns, the atomic abort (first row rewritten, second fails, nothing persists), the
+  empty/identical-secret guards, and CLI stdout/stderr containing neither plaintext nor either
+  secret. `docs/secret-rotation-runbook.md` documents backup, cutover, reverse rotation and the
+  snapshot trap: ciphertext in a pre-rotation backup stays bound to the old secret after restore.
+  The backup/blueprint/checklist docs now link the procedure.
 
 - `ENG-023` (2026-10-27, `dev` @ `818c331`): rate limiting behind a multi-hop reverse proxy.
   Echo's `X-Forwarded-For` extractor trusts loopback, link-local and private peers implicitly,
@@ -264,7 +278,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-012` TR-F002 P1 — Test accounting Start/Interim/Stop out-of-order · LOKAL · PROPOSED_VERIFICATION · commit `9be97f3`
 - [x] `ENG-022` TR-F016 P1 — Threat-model autentikasi browser dan sesi admin · LOKAL · PROPOSED_VERIFICATION · commit `e093bd0`
 - [x] `ENG-023` TR-F018 P1 — Validasi rate limiting saat reverse proxy multi-hop · LOKAL · PROPOSED_VERIFICATION · commit `818c331`
-- [ ] `ENG-024` TR-F031 P1 — Runbook rotasi secret SNMP dan encrypted community · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-024` TR-F031 P1 — Runbook rotasi secret SNMP dan encrypted community · LOKAL · PROPOSED_VERIFICATION · commit `db08c5f`
 - [ ] `ENG-025` TR-F030 P1 — Audit perlindungan kredensial koneksi WhatsApp · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-027` TR-F031 P1 — Hardening diagnostik jaringan terhadap SSRF · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-035` TR-F027 P1 — Konsistensi status Subscription dan RadiusUser saat transisi · LOKAL · dep ENG-032 · PROPOSED_VERIFICATION
@@ -360,7 +374,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-024` / `ENG-025` — SNMP secret-rotation runbook and WhatsApp credential protection.
+1. `ENG-025` — WhatsApp credential protection.
 2. `ENG-027` — SSRF hardening for the network diagnostics endpoints.
 3. `ENG-011` — malformed/oversized RADIUS packet fuzz harness (follows `ENG-010`).
 4. `ENG-052` — role matrix for the operator/admin/super buttons (follows `ENG-017`).
