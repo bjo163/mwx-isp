@@ -62,9 +62,9 @@ export const ipamPageMessages = {
       ping: {
         title: 'Real-Time Reachability Probe (TCP SYN Handshake)',
         subtitle:
-          'Perform instant TCP port reachability checks directly from the MWX-ISP server to any subscriber, router, or gateway. Supports IPv4, IPv6, and custom ports (e.g. 192.168.1.1:8080 or [::1]).',
-        host_label: 'Target Host, IPv4, or IPv6',
-        host_placeholder: 'e.g. 192.168.88.1, [::1], or 8.8.8.8:53',
+          'Perform instant TCP port reachability checks directly from the MWX-ISP server to a subscriber, router, or gateway. Targets must be explicit IP addresses: private addresses have to belong to an IPAM pool, a NAS record, or a registered monitor target, and hostnames, loopback, and link-local addresses are refused.',
+        host_label: 'Target IPv4 or IPv6 Address',
+        host_placeholder: 'e.g. 192.168.88.1 or 8.8.8.8:53',
         count_label: 'Count',
         probing: 'Probing...',
         submit: 'Start Probe',
@@ -168,9 +168,9 @@ export const ipamPageMessages = {
       ping: {
         title: 'Probe Keterjangkauan Real-Time (Handshake TCP SYN)',
         subtitle:
-          'Lakukan pemeriksaan keterjangkauan port TCP secara instan langsung dari server MWX-ISP ke pelanggan, router, atau gateway mana pun. Mendukung IPv4, IPv6, dan port kustom (mis. 192.168.1.1:8080 atau [::1]).',
-        host_label: 'Host, IPv4, atau IPv6 Target',
-        host_placeholder: 'mis. 192.168.88.1, [::1], atau 8.8.8.8:53',
+          'Lakukan pemeriksaan keterjangkauan port TCP secara instan langsung dari server MWX-ISP ke pelanggan, router, atau gateway. Target harus berupa alamat IP eksplisit: alamat privat harus berada di IPAM pool, data NAS, atau monitor target terdaftar, sedangkan hostname, loopback, dan link-local ditolak.',
+        host_label: 'Alamat IPv4 atau IPv6 Target',
+        host_placeholder: 'mis. 192.168.88.1 atau 8.8.8.8:53',
         count_label: 'Jumlah',
         probing: 'Memprobe...',
         submit: 'Mulai Probe',

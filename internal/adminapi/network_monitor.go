@@ -147,6 +147,9 @@ func validateMonitorInput(in *monitorTargetInput, secretConfigured bool) error {
 	if ip == nil || ip.IsUnspecified() || ip.IsMulticast() {
 		return errors.New("address must be one explicit unicast IP address")
 	}
+	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return errors.New("address must not be link-local")
+	}
 	if in.Kind == "" {
 		in.Kind = "router"
 	}

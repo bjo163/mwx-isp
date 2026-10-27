@@ -42,7 +42,7 @@ func registerISPOperationsRoutes() {
 	webserver.ApiGET("/network/ipam/audit", auditIPHistory)
 
 	// Live Network Diagnostic Probe (Ping)
-	webserver.ApiPOST("/network/diagnostics/ping", runLivePing, requireAdmin())
+	webserver.ApiPOST("/network/diagnostics/ping", runLivePing, requireAdmin(), diagnosticsRateLimiter())
 
 	// Trouble Tickets & Work Orders. Operators create and update tickets as part
 	// of the support workflow; dispatching an external WhatsApp notification is
@@ -835,26 +835,18 @@ func runLivePing(c echo.Context) error {
 		return fail(c, 400, "INVALID_REQUEST", "Invalid ping parameters", nil)
 	}
 	rawHost := strings.TrimSpace(in.Host)
-	if rawHost == "" {
-		return fail(c, 400, "HOST_REQUIRED", "Target host or IP address is required", nil)
+	target, err := parseProbeTarget(rawHost)
+	if err != nil {
+		return failDiagnosticTarget(c, err)
+	}
+	if err := authorizeProbeTarget(GetDB(c), net.ParseIP(target.Address)); err != nil {
+		return failDiagnosticTarget(c, err)
 	}
 	if in.Count <= 0 || in.Count > 10 {
 		in.Count = 4
 	}
-
-	// Resolve target address properly handling IPv4, IPv6 (with or without brackets), and host:port
-	var targetAddr string
-	targetPort := "80"
-
-	// Check if already has a port
-	if h, p, err := net.SplitHostPort(rawHost); err == nil {
-		targetAddr = net.JoinHostPort(h, p)
-		targetPort = p
-	} else {
-		// No port specified: strip IPv6 brackets if present, then join with default port 80
-		cleanHost := strings.Trim(rawHost, "[]")
-		targetAddr = net.JoinHostPort(cleanHost, targetPort)
-	}
+	targetAddr := net.JoinHostPort(target.Address, target.Port)
+	targetPort := target.Port
 
 	type pingResult struct {
 		Seq       int    `json:"seq"`
