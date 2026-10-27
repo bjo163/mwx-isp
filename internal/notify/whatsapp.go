@@ -323,9 +323,14 @@ func (m *WhatsAppManager) Disconnect(ctx context.Context) error {
 	if client != nil {
 		if client.IsLoggedIn() {
 			if err := client.Logout(ctx); err != nil {
+				// The remote unlink failed, so the device may still be listed on the
+				// operator's phone, but the local keys must go regardless. Report a
+				// failed local delete instead of claiming the session was removed.
 				client.Disconnect()
 				if client.Store != nil {
-					_ = client.Store.Delete(context.Background())
+					if deleteErr := client.Store.Delete(context.Background()); deleteErr != nil {
+						return fmt.Errorf("delete WhatsApp session after failed logout: %w", deleteErr)
+					}
 				}
 			}
 		} else {
