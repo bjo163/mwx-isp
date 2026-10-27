@@ -221,6 +221,7 @@ func TestGetNAS(t *testing.T) {
 
 func TestCreateNAS(t *testing.T) {
 	db, e, appCtx := CreateTestAppContext(t)
+	require.NoError(t, db.Create(&domain.NetNode{ID: 1, Name: "test-node"}).Error)
 
 	tests := []struct {
 		name           string
@@ -340,6 +341,17 @@ func TestCreateNAS(t *testing.T) {
 				"secret": "secret123"
 			}`,
 			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "Unknown node reference",
+			requestBody: `{
+				"name": "orphan-nas",
+				"ipaddr": "10.0.0.9",
+				"secret": "secret123",
+				"node_id": "999999"
+			}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "NODE_NOT_FOUND",
 		},
 	}
 

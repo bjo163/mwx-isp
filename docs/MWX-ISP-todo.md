@@ -34,7 +34,7 @@ Sumber detail dan kriteria penerimaan: [45 kartu audit, penguatan, dan brainstor
 
 ### Verifikasi dan penguatan
 
-- [ ] [H01 — Audit join, raw SQL dan relasi tenant](MWX-ISP-audit-backlog-2026-10-05.md#h01) (P1; Perlu verifikasi).
+- [x] [H01 — Audit join, raw SQL dan relasi tenant](MWX-ISP-audit-backlog-2026-10-05.md#h01) (P1; Selesai 2026-10-27: inventaris query + validasi referensi lintas tenant).
 - [x] [H02 — Matriks izin per aksi dan UI](MWX-ISP-audit-backlog-2026-10-05.md#h02) (P1; Selesai 2026-10-27: matriks akses + tes UI/API).
 - [x] [H03 — Rate limit surface publik dan registrasi](MWX-ISP-audit-backlog-2026-10-05.md#h03) (P1; Selesai 2026-10-27: limiter per tenant+IP).
 - [x] [H04 — Concurrency dan replay pembayaran](MWX-ISP-audit-backlog-2026-10-05.md#h04) (P1; Selesai 2026-10-27: tes konkurensi pembayaran).

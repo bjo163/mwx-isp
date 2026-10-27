@@ -536,7 +536,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### H01 — Audit join, raw SQL dan relasi tenant
 
-- **Prioritas / status:** P1 / Perlu verifikasi.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (inventaris + validasi referensi lintas tenant).
 - **Pemetaan scope:** TR-F033 / TR-F012.
 - **Dependensi:** A03.
 - **Entry point:** `internal/adminapi`; `internal/tenancy/scope.go`.
@@ -547,10 +547,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Semua jalur diuji atau memiliki alasan exclusion; akses lintas tenant ditolak tanpa mengubah data.
 
-- [ ] H01.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H01.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H01.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H01.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** [tenant-isolation.md](tenant-isolation.md) memuat inventaris seluruh `Table`/`Raw`/`Exec`/`Joins` di jalur produksi: dashboard, NOC impact, agregat `isp.go` dan upsert `DocumentSequence` semuanya menambahkan `tenant_id` eksplisit atau memakai model scoped; `setval`/DDL bootstrap `app.go` dikecualikan karena milik platform; route `/platform/*` dan `/system/backup|restore` memang lintas tenant dan dijaga `requirePlatformAdmin()`. Validasi foreign reference ditutup dengan perubahan minimal: `createTroubleTicket` (`isp_operations.go`) kini menolak `customer_id`/`subscription_id` tak terlihat (`CUSTOMER_NOT_FOUND`/`SUBSCRIPTION_NOT_FOUND`) dan subscription milik pelanggan lain (`SUBSCRIPTION_MISMATCH`); `CreateNAS`/`UpdateNAS` (`nas.go`) menolak `node_id` lintas tenant (`NODE_NOT_FOUND`) sebelum menulis. `tenant_reference_test.go` memakai dua tenant dengan `MWX-SAME-001`, `shared-user`, `PKG-SAME` dan `SUB-SAME` yang identik: list/detail/update lintas tenant ditolak tanpa mengubah baris, tidak ada tiket/NAS tersimpan saat referensi ditolak, dan histori IP berbasis username tidak membocorkan sesi tenant lain. Integrasi PostgreSQL `TestTenantAdminAPIRejectsCrossTenantIDsAndReferences` diperluas dengan subtes `ticket_customer`, `ticket_subscription`, dan `nas_node` termasuk PUT NAS lintas tenant yang gagal dengan baris tetap utuh. Server RADIUS dan job latar membangun konteks tenant eksplisit per tenant/NAS, sehingga tidak berjalan tanpa scope.
+
+- [x] H01.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H01.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H01.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H01.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h02"></a>
 

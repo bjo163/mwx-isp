@@ -19,6 +19,7 @@ import (
 	"github.com/bjo163/mwx-isp/pkg/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 	"layeh.com/radius"
 )
 
@@ -90,6 +91,11 @@ func TestTenantAdminAPIRejectsCrossTenantIDsAndReferences(t *testing.T) {
 	require.NoError(t, tenantDB.Create(&customer).Error)
 	pkg := domain.InternetPackage{ID: common.UUIDint64(), Code: "PRIVATE-" + suffix, Name: "Private Package", Price: 100000, RadiusProfileID: profile.ID, BillingCycle: "monthly", Status: "active"}
 	require.NoError(t, tenantDB.Create(&pkg).Error)
+	subscription := domain.Subscription{
+		ID: common.UUIDint64(), SubscriptionNo: "PRIVATE-SUB-" + suffix, CustomerID: customer.ID,
+		PackageID: pkg.ID, Status: domain.SubscriptionActive, StartDate: time.Now().AddDate(0, -1, 0), BillingDay: 1, GraceDays: 3,
+	}
+	require.NoError(t, tenantDB.Create(&subscription).Error)
 
 	client := newAPIClient(t) // authenticates into the default tenant
 	status, body := client.get(t, fmt.Sprintf("/api/v1/users/%d", user.ID))
@@ -174,6 +180,70 @@ func TestTenantAdminAPIRejectsCrossTenantIDsAndReferences(t *testing.T) {
 	var unchangedUser domain.RadiusUser
 	require.NoError(t, db.WithContext(tenancy.WithTenantID(t.Context(), domain.DefaultTenantID)).First(&unchangedUser, defaultUser.ID).Error)
 	require.Equal(t, defaultProfile.ID, unchangedUser.ProfileId, "a failed cross-tenant reassignment must leave the subscriber unchanged")
+
+	// Foreign references on tickets and NAS devices must be rejected before any
+	// row is written, because a persisted cross-tenant ID would outlive the
+	// request that created it.
+	defaultTenantDB := db.WithContext(tenancy.WithTenantID(t.Context(), domain.DefaultTenantID))
+	defaultNode := domain.NetNode{ID: common.UUIDint64(), Name: "Default node " + suffix}
+	require.NoError(t, defaultTenantDB.Create(&defaultNode).Error)
+	defaultNAS := domain.NetNas{
+		ID: common.UUIDint64(), NodeId: defaultNode.ID, Name: "Default NAS " + suffix,
+		Identifier: "default-nas-" + suffix, Ipaddr: uniqueNASIP(), Secret: "default-nas-secret",
+		VendorCode: "0", Status: common.ENABLED,
+	}
+	require.NoError(t, defaultTenantDB.Create(&defaultNAS).Error)
+
+	for _, tc := range []struct {
+		name   string
+		body   map[string]string
+		status int
+		code   string
+	}{
+		{
+			"ticket_customer",
+			map[string]string{"subject": "cross tenant ticket", "customer_id": fmt.Sprint(customer.ID)},
+			http.StatusBadRequest, "CUSTOMER_NOT_FOUND",
+		},
+		{
+			"ticket_subscription",
+			map[string]string{"subject": "cross tenant ticket", "subscription_id": fmt.Sprint(subscription.ID)},
+			http.StatusBadRequest, "SUBSCRIPTION_NOT_FOUND",
+		},
+		{
+			"nas_node",
+			map[string]string{"node_id": fmt.Sprint(node.ID), "name": "Cross NAS " + suffix, "ipaddr": uniqueNASIP(), "secret": "cross-nas-secret"},
+			http.StatusBadRequest, "NODE_NOT_FOUND",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			payload, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+			path := "/api/v1/isp/tickets"
+			if tc.name == "nas_node" {
+				path = "/api/v1/network/nas"
+			}
+			status, body := client.post(t, path, payload)
+			require.Equalf(t, tc.status, status, "cross-tenant reference %s must fail: %s", tc.name, body)
+			require.Contains(t, string(body), tc.code)
+		})
+	}
+
+	var leakedDefaultTickets int64
+	require.NoError(t, defaultTenantDB.Model(&domain.TroubleTicket{}).
+		Where("customer_id = ? OR subscription_id = ?", customer.ID, subscription.ID).Count(&leakedDefaultTickets).Error)
+	require.Zero(t, leakedDefaultTickets, "rejected cross-tenant ticket references must not persist a row")
+	var leakedCrossNAS domain.NetNas
+	require.ErrorIs(t, db.Where("name = ?", "Cross NAS "+suffix).First(&leakedCrossNAS).Error, gorm.ErrRecordNotFound)
+
+	updatePayload, err := json.Marshal(map[string]string{"node_id": fmt.Sprint(node.ID)})
+	require.NoError(t, err)
+	status, body = client.put(t, fmt.Sprintf("/api/v1/network/nas/%d", defaultNAS.ID), updatePayload)
+	require.Equalf(t, http.StatusBadRequest, status, "cross-tenant NAS node update must fail: %s", body)
+	require.Contains(t, string(body), "NODE_NOT_FOUND")
+	var unchangedDefaultNAS domain.NetNas
+	require.NoError(t, defaultTenantDB.First(&unchangedDefaultNAS, defaultNAS.ID).Error)
+	require.Equal(t, defaultNode.ID, unchangedDefaultNAS.NodeId, "rejected cross-tenant node update must leave the NAS unchanged")
 
 	var created []domain.RadiusUser
 	require.NoError(t, db.Where("username = ?", "cross-tenant-attempt-"+suffix).Find(&created).Error)
