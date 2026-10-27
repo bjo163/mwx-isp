@@ -1,5 +1,13 @@
 # MWX-ISP Changelog
 
+## v0.13.0 — 2026-10-27
+
+Changes since v0.12.0:
+
+### Features
+
+- ship EN/ID locale and translate custom pages (H13)
+
 ## v0.12.0 — 2026-10-27
 
 Changes since v0.11.0:
