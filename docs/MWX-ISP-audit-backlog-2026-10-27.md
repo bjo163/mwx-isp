@@ -31,14 +31,28 @@ the current tree.
 
 ## Progress
 
-Done: 1 / 100.
+Done: 2 / 100.
 
-- `ENG-021` (2026-10-27, `dev`): `/home` and `/portal` no longer advertise anonymous
+- `ENG-021` (2026-10-27, `dev` @ `404a3fe`): `/home` and `/portal` no longer advertise anonymous
   self-service or a checkout step; a 401 is reported as "staff login required" and an
   anonymous visitor is offered WhatsApp or the staff login. The fail-closed behaviour of
   `/public/packages`, `/public/register`, `/public/vouchers/check` and `/portal/lookup` is
   now asserted by `TestLandingSurfaceEndpointsFailClosedAnonymously`. Scope stayed inside the
   existing `Harden` rows of `docs/feature-checklist.md`.
+
+- `ENG-017` (2026-10-27, `dev` @ `f1a0b2c`): the membership-revocation mechanism already
+  existed (`membership_version` claim vs live `TenantMembership.TokenVersion` in
+  `resolveOperatorFromContext`, bumped by `SysOpr.AfterUpdate`), so this was an audit + regression
+  task rather than a missing mechanism. The gap the inventory named was that no test exercised
+  the real mutation endpoints -- the existing `TestTenantContextMiddlewareRejectsRevokedMembership`
+  only hits the middleware with a direct DB update. `TestPrivilegeDowngradeInvalidatesLiveToken`
+  in `internal/adminapi/access_control_test.go` now proves a downgrade to `operator`, a disable,
+  and a delete all reject the operator's previously-issued token on a real mutation endpoint
+  (401), that the membership token version actually bumps, that the operator row and its grant
+  are removed together, and that a cross-tenant token cannot read, update, or write into
+  another tenant's rows (404, no persisted side effect). No production code changed; the finding
+  is recorded in `docs/access-control-matrix.md` under a new "Immediate revocation (TR-F033)"
+  section.
 
 Critical path from the inventory: `ENG-001 → ENG-002`, `ENG-017 → ENG-018`,
 `ENG-041 → ENG-043 → ENG-045 → ECO-005`. Every `ASET` row that starts a chain
@@ -49,7 +63,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 ## Wave 0 — 5 item (LOKAL 4 · ASET 1)
 
-- [ ] `ENG-017` TR-F033 P1 — Audit penurunan hak anggota tenant saat token lama aktif · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-017` TR-F033 P1 — Audit penurunan hak anggota tenant saat token lama aktif · LOKAL · PROPOSED_VERIFICATION · commit `f1a0b2c`
 - [ ] `ENG-001` TR-F004 P1 — Audit & rancang outer anonymous NAI pada EAP-TLS 1.3 · LOKAL · VERIFIED_GAP
 - [ ] `ENG-018` TR-F033 P1 — Konsistensi tenant untuk NAS ambigu dan username sama · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
 - [x] `ENG-021` TR-F018 P1 — Rekonsiliasi landing/portal publik yang faktanya JWT-only · LOKAL · VERIFIED_GAP

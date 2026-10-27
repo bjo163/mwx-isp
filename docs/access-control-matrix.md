@@ -53,6 +53,22 @@ cannot call platform routes unless the platform flag is set.
 | Platform | `POST/PUT /platform/tenants*`, system config, certificates, backup/restore, branding writes, WhatsApp pairing | platform only | 403 | 403 | Requires `PlatformAdmin` |
 | Public/portal reads | `/public/packages`, `/public/vouchers/check`, `/public/register`, `/portal/*` | — | — | — | Behind JWT: an anonymous call returns 401 (`TestLandingSurfaceEndpointsFailClosedAnonymously`). `/home` and `/portal` say a staff login is required instead of advertising customer self-service |
 
+## Immediate revocation (TR-F033)
+
+A token embeds `membership_version`, which is compared against the live
+`TenantMembership.TokenVersion` on every authenticated request
+(`resolveOperatorFromContext`, `internal/adminapi/auth.go:280`). `SysOpr.AfterUpdate`
+(`internal/domain/system.go:106`) bumps that version whenever an operator's
+level or status changes, so a downgrade, disable, or delete takes effect on the
+**next** request -- no waiting for JWT expiry. `deleteOperator` removes the
+membership grant in the same transaction as the account row.
+
+Proven by `TestPrivilegeDowngradeInvalidatesLiveToken` in
+`internal/adminapi/access_control_test.go`: a downgrade to `operator`, a
+disable, and a delete all reject the operator's previously-issued token on a
+real mutation endpoint (401), and a cross-tenant token cannot read, update, or
+write into another tenant's rows (404, no persisted side effect).
+
 ## UI gating
 
 The shared hook `web/src/hooks/useIsAdmin.ts` mirrors `requireAdmin`

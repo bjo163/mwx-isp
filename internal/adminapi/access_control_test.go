@@ -246,3 +246,130 @@ func TestMutationRouteRoleMatrix(t *testing.T) {
 		assert.Equalf(t, http.StatusForbidden, status, "%s", body)
 	})
 }
+
+// TestPrivilegeDowngradeInvalidatesLiveToken proves ENG-017/TR-F033: a
+// downgrade or revocation performed through the real mutation endpoints
+// (updateOperator / deleteOperator) bumps TenantMembership.TokenVersion via the
+// SysOpr.AfterUpdate callback, so a token issued before the change is rejected
+// immediately on the next request -- no waiting for JWT expiry.
+//
+// The existing TestTenantContextMiddlewareRejectsRevokedMembership only covers a
+// direct DB update against the middleware; this test exercises the public
+// operator-management API end-to-end instead.
+func TestPrivilegeDowngradeInvalidatesLiveToken(t *testing.T) {
+	handler, db, appCtx := newRoleMatrixServer(t)
+
+	// Caller is a super admin; the target is an admin whose live token we will
+	// invalidate in three separate ways.
+	superToken := matrixToken(t, appCtx, seedMatrixOperator(t, db, 9301, LevelSuper, "matrix-super"))
+	target := seedMatrixOperator(t, db, 9302, LevelAdmin, "matrix-target")
+	targetToken := matrixToken(t, appCtx, target)
+
+	// Baseline: the target's token is live and has admin privileges.
+	status, body := matrixRequest(t, handler, http.MethodPost, "/api/v1/isp/customers", targetToken,
+		map[string]string{"name": "Pre-downgrade Customer"})
+	require.Equalf(t, http.StatusCreated, status, "%s", body)
+
+	// 1) Downgrade the target from admin to operator via the public API.
+	status, body = matrixRequest(t, handler, http.MethodPut,
+		fmt.Sprintf("/api/v1/system/operators/%d", target.ID), superToken,
+		map[string]string{"level": LevelOperator})
+	require.Equalf(t, http.StatusOK, status, "%s", body)
+
+	// The old token must now be rejected on a real mutation endpoint. The
+	// downgrade bumped TenantMembership.TokenVersion, so the stale token's
+	// membership_version claim no longer matches and resolveOperatorFromContext
+	// refuses it; RequireLevel surfaces that as a uniform 401.
+	status, body = matrixRequest(t, handler, http.MethodPost, "/api/v1/isp/customers", targetToken,
+		map[string]string{"name": "Should Fail"})
+	assert.Equalf(t, http.StatusUnauthorized, status, "%s", body)
+
+	// Confirm the bump actually happened on the membership row.
+	var membershipAfterDowngrade domain.TenantMembership
+	require.NoError(t, db.Where("operator_id = ?", target.ID).First(&membershipAfterDowngrade).Error)
+	assert.Greater(t, membershipAfterDowngrade.TokenVersion, target.MembershipVersion,
+		"downgrade must bump the membership token version so the old token is rejected")
+
+	// 2) Disable the target account via the public API.
+	status, body = matrixRequest(t, handler, http.MethodPut,
+		fmt.Sprintf("/api/v1/system/operators/%d", target.ID), superToken,
+		map[string]string{"status": common.DISABLED})
+	require.Equalf(t, http.StatusOK, status, "%s", body)
+
+	// Confirm the disable persisted through the membership row.
+	var membership domain.TenantMembership
+	require.NoError(t, db.Where("operator_id = ?", target.ID).First(&membership).Error)
+	assert.Equal(t, common.DISABLED, membership.Status)
+
+	// 3) Delete the target operator via the public API.
+	status, body = matrixRequest(t, handler, http.MethodDelete,
+		fmt.Sprintf("/api/v1/system/operators/%d", target.ID), superToken, nil)
+	require.Equalf(t, http.StatusOK, status, "%s", body)
+
+	// The operator row and its membership grant must both be gone.
+	var count int64
+	require.NoError(t, db.Model(&domain.SysOpr{}).Where("id = ?", target.ID).Count(&count).Error)
+	assert.Equal(t, int64(0), count)
+	require.NoError(t, db.Model(&domain.TenantMembership{}).Where("operator_id = ?", target.ID).Count(&count).Error)
+	assert.Equal(t, int64(0), count)
+
+	// 4) Boundary guard: the deleted operator must not resolve for detail or
+	// update, so the downgrade cannot be re-applied or recovered through a
+	// stale path.
+	status, body = matrixRequest(t, handler, http.MethodGet,
+		fmt.Sprintf("/api/v1/system/operators/%d", target.ID), superToken, nil)
+	assert.Equalf(t, http.StatusNotFound, status, "%s", body)
+
+	status, body = matrixRequest(t, handler, http.MethodPut,
+		fmt.Sprintf("/api/v1/system/operators/%d", target.ID), superToken,
+		map[string]string{"level": LevelOperator})
+	assert.Equalf(t, http.StatusNotFound, status, "%s", body)
+
+	// 5) Cross-tenant boundary: a token issued for tenant B must never resolve
+	// rows that belong to tenant A, and must never write into tenant A's data.
+	// This is the second half of the acceptance criterion -- the old role
+	// loses access AND cross-tenant access is 404/403 with no side effect.
+	const otherTenantID int64 = 2
+	require.NoError(t, db.Create(&domain.Tenant{
+		ID: otherTenantID, Name: "Other ISP", Slug: "other", Kind: "isp", Status: "active",
+	}).Error)
+	otherOperator := domain.SysOpr{
+		ID: 9303, TenantID: otherTenantID, Username: "other-target",
+		Password: "unused-in-this-test", Level: LevelAdmin, Status: "enabled",
+	}
+	// SysOpr.AfterCreate provisions the membership grant (token version 1).
+	require.NoError(t, db.Create(&otherOperator).Error)
+	var otherMembership domain.TenantMembership
+	require.NoError(t, db.Where("operator_id = ?", otherOperator.ID).First(&otherMembership).Error)
+	otherOperator.MembershipVersion = otherMembership.TokenVersion
+	otherToken := matrixToken(t, appCtx, otherOperator)
+
+	// The operator in tenant B may legitimately create a customer in tenant B.
+	status, body = matrixRequest(t, handler, http.MethodPost, "/api/v1/isp/customers", otherToken,
+		map[string]string{"name": "Tenant B Customer"})
+	require.Equalf(t, http.StatusCreated, status, "%s", body)
+
+	// But it must never see tenant A's customer: a cross-tenant detail lookup
+	// must 404 rather than leak the row.
+	var tenantACustomer domain.Customer
+	require.NoError(t, db.Where("tenant_id = ?", domain.DefaultTenantID).First(&tenantACustomer).Error)
+	status, body = matrixRequest(t, handler, http.MethodGet,
+		fmt.Sprintf("/api/v1/isp/customers/%d", tenantACustomer.ID), otherToken, nil)
+	assert.Equalf(t, http.StatusNotFound, status, "%s", body)
+
+	// And it must never modify tenant A's customer: a cross-tenant update must
+	// 404 and leave the original row untouched.
+	status, body = matrixRequest(t, handler, http.MethodPut,
+		fmt.Sprintf("/api/v1/isp/customers/%d", tenantACustomer.ID), otherToken,
+		map[string]string{"name": "Cross Tenant Overwrite"})
+	assert.Equalf(t, http.StatusNotFound, status, "%s", body)
+	var persisted domain.Customer
+	require.NoError(t, db.First(&persisted, tenantACustomer.ID).Error)
+	assert.Equal(t, tenantACustomer.Name, persisted.Name,
+		"cross-tenant update must not modify the row")
+
+	// A cross-tenant operator detail lookup must 404 for the caller.
+	status, body = matrixRequest(t, handler, http.MethodGet,
+		fmt.Sprintf("/api/v1/system/operators/%d", target.ID), otherToken, nil)
+	assert.Equalf(t, http.StatusNotFound, status, "%s", body)
+}
