@@ -134,7 +134,7 @@ A20 reconciles the non-goal tables with surfaces that already exist in code at b
 | Monitor targets, incidents, syslog, traffic | `/api/v1/network/monitor-*`, `/api/v1/network/syslog`, traffic APIs | Keep | TR-F031 | Unit tests; real SNMP/router validation remains blocked | No scanning, topology discovery, or device writes. |
 | Admin diagnostics | `/api/v1/network/diagnostics/*` | Keep | TR-F031 / TR-F022 | Admin-only; validation tests | Containment and safety fixes. |
 | WhatsApp notifications | `/api/v1/system/notifications/*` | Keep | TR-F030 | Unit/outbox tests; real QR pairing and delivery remain blocked | Allowlisted one-way operator alerts only. |
-| Branding and website content | `/api/v1/system/branding`, `/system/website` | Keep | TR-F029 | Branding tests; website editor has no dedicated test | Presentation fixes; no tenant theming or CMS. |
+| Branding and website content | `/api/v1/system/branding`, `/system/website` | Keep | TR-F029 | Branding tests; editor save/publish/reset route guards and inert-text publishing covered by `branding_editor_test.go` | Presentation fixes; no tenant theming or CMS. |
 | System settings, operators, certificates, logs | `/api/v1/system/*` | Keep | TR-F012 / TR-F014 / TR-F016 / TR-F026 | Unit tests; config schema tests | Security and compatibility fixes. |
 | Backup and restore | `/api/v1/system/backup`, `/api/v1/system/restore` | Keep | TR-F020 / TR-F012 | Envelope, manifest, dry-run, PG drill tests (#50) and the isolated 2026-10-27 restore drill report | Recovery fixes; no new backup product. |
 | Platform tenants | `/api/v1/platform/tenants` | Keep | TR-F033 | PG/OpenLDAP tenant acceptance | Isolation and membership fixes. |
