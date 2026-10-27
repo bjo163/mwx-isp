@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func TestMigrateDBBackfillsDefaultTenantAndReplacesLegacyUniqueKeys(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:tenant-migration?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:tenant-migration-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, db.Exec(`CREATE TABLE radius_user (id INTEGER PRIMARY KEY, username TEXT NOT NULL)`).Error)
 	require.NoError(t, db.Exec(`CREATE UNIQUE INDEX idx_radius_user_username ON radius_user(username)`).Error)
@@ -97,7 +98,7 @@ func TestMigrateDBBackfillsDefaultTenantAndReplacesLegacyUniqueKeys(t *testing.T
 }
 
 func TestOperatorUsernamesAreUniqueWithinTenant(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:tenant-operator-unique?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:tenant-operator-unique-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&domain.SysOpr{}))
 
@@ -109,7 +110,7 @@ func TestOperatorUsernamesAreUniqueWithinTenant(t *testing.T) {
 }
 
 func TestMigrateDBReplacesLegacyGlobalOperatorUsernameIndex(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:legacy-operator-index?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:legacy-operator-index-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, db.Exec(`CREATE TABLE sys_opr (id INTEGER PRIMARY KEY, username TEXT NOT NULL)`).Error)
 	require.NoError(t, db.Exec(`CREATE UNIQUE INDEX idx_sys_opr_username ON sys_opr(username)`).Error)

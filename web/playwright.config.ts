@@ -23,7 +23,12 @@ export default defineConfig({
   use: {
     /* 基础 URL */
     baseURL: 'http://localhost:3000',
-    
+
+    /* Vite compiles routes on the first hit; a cold server start with several
+       parallel workers needs more than the 30 s default for the first goto. */
+    navigationTimeout: 60_000,
+    actionTimeout: 15_000,
+
     /* 截图设置 */
     screenshot: 'only-on-failure',
     

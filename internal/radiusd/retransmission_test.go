@@ -2,6 +2,7 @@ package radiusd
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/glebarez/sqlite"
@@ -18,11 +19,14 @@ import (
 	vendorparserspkg "github.com/bjo163/mwx-isp/internal/radiusd/plugins/vendorparsers"
 	repogorm "github.com/bjo163/mwx-isp/internal/radiusd/repository/gorm"
 	"github.com/bjo163/mwx-isp/internal/tenancy"
+	"github.com/bjo163/mwx-isp/pkg/common"
 )
 
 func retransmissionDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file:retransmission-"+t.Name()+"?mode=memory&cache=shared"), &gorm.Config{})
+	// A fresh DSN per call keeps `go test -count=N` from replaying rows left by
+	// the previous iteration; the shared cache would otherwise keep the DB alive.
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:retransmission-%s-%d?mode=memory&cache=shared", t.Name(), common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, tenancy.RegisterCallbacks(db))
 	require.NoError(t, db.AutoMigrate(
