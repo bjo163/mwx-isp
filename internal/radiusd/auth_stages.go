@@ -139,11 +139,37 @@ func (s *AuthService) stageLoadUser(ctx *AuthPipelineContext) error {
 	if ctx.NAS == nil {
 		return fmt.Errorf("NAS must be resolved before user lookup")
 	}
+	// An anonymous outer NAI (RFC 7542 §2.4) names no subscriber: it only routes
+	// the request to the realm. EAP-TLS proves the real identity from the client
+	// certificate during the handshake, so the lookup is deferred to
+	// loadEAPAuthenticatedUser instead of being attempted on the routing name.
+	if ctx.IsEAP && eap.IsAnonymousNAI(ctx.Username) {
+		ctx.User = nil
+		return nil
+	}
 	user, err := s.GetValidUserForTenant(ctx.NAS.TenantID, ctx.Username, ctx.IsMacAuth)
 	if err != nil {
 		return err
 	}
 	ctx.User = user
+	return nil
+}
+
+// loadEAPAuthenticatedUser resolves the subscriber from the identity proven by
+// the completed EAP exchange. It is the deferred half of stageLoadUser for
+// anonymous outer NAIs (RFC 7542 §2.4), whose RADIUS user can only be known
+// once the client certificate has been verified (RFC 5216 §5.2).
+func (s *AuthService) loadEAPAuthenticatedUser(ctx *AuthPipelineContext) error {
+	username, err := s.eapHelper.AuthenticatedUsername(ctx.Request, ctx.NAS.TenantID)
+	if err != nil {
+		return err
+	}
+	user, err := s.GetValidUserForTenant(ctx.NAS.TenantID, username, false)
+	if err != nil {
+		return err
+	}
+	ctx.User = user
+	ctx.Username = username
 	return nil
 }
 
@@ -173,6 +199,16 @@ func (s *AuthService) stageEAPDispatch(ctx *AuthPipelineContext) error {
 
 	if handled {
 		if success {
+			if ctx.User == nil {
+				if err := s.loadEAPAuthenticatedUser(ctx); err != nil {
+					rejectErr := mapEAPDispatchError(err)
+					s.logEAPFailure(ctx, rejectErr)
+					_ = s.eapHelper.SendEAPFailure(ctx.Writer, ctx.Request, ctx.NAS.Secret, rejectErr)
+					s.eapHelper.CleanupState(ctx.Request, ctx.NAS.TenantID)
+					ctx.Stop()
+					return nil
+				}
+			}
 			err := s.AuthenticateUserWithPlugins(ctx.Context, ctx.Request, ctx.Response, ctx.User, ctx.NAS, ctx.VendorRequestForPlugin, ctx.IsMacAuth, SkipPasswordValidation())
 			if err != nil {
 				rejectErr := mapEAPDispatchError(err)

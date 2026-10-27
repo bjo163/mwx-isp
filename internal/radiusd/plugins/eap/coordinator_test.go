@@ -1001,6 +1001,82 @@ func TestCoordinator_EAPNakNegotiationFlow(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestCoordinator_AuthenticatedUsername covers the hand-off that lets the RADIUS
+// layer resolve a subscriber from the identity proven during the handshake
+// instead of the outer User-Name (RFC 7542 §2.4).
+func TestCoordinator_AuthenticatedUsername(t *testing.T) {
+	const tenantID int64 = 7
+
+	newRequest := func(t *testing.T, stateID string) *radius.Request {
+		t.Helper()
+		packet := radius.New(radius.CodeAccessRequest, []byte("secret"))
+		if stateID != "" {
+			require.NoError(t, rfc2865.State_SetString(packet, stateID))
+		}
+		return &radius.Request{Packet: packet}
+	}
+
+	t.Run("returns the proven identity from the tenant-scoped state", func(t *testing.T) {
+		sm := newMockStateManager()
+		sm.states["tenant:7:handshake-1"] = &EAPState{
+			StateID:  "handshake-1",
+			Username: "alice@example.com",
+			Success:  true,
+		}
+		c := NewCoordinator(sm, nil, nil, false)
+
+		username, err := c.AuthenticatedUsername(newRequest(t, "handshake-1"), tenantID)
+		require.NoError(t, err)
+		assert.Equal(t, "alice@example.com", username)
+	})
+
+	t.Run("fails closed when the handshake did not succeed", func(t *testing.T) {
+		sm := newMockStateManager()
+		sm.states["tenant:7:handshake-2"] = &EAPState{
+			StateID:  "handshake-2",
+			Username: "alice@example.com",
+			Success:  false,
+		}
+		c := NewCoordinator(sm, nil, nil, false)
+
+		_, err := c.AuthenticatedUsername(newRequest(t, "handshake-2"), tenantID)
+		assert.ErrorIs(t, err, ErrStateNotFound)
+	})
+
+	t.Run("never falls back to a leftover anonymous NAI", func(t *testing.T) {
+		sm := newMockStateManager()
+		sm.states["tenant:7:handshake-3"] = &EAPState{
+			StateID:  "handshake-3",
+			Username: "anonymous@example.com",
+			Success:  true,
+		}
+		c := NewCoordinator(sm, nil, nil, false)
+
+		_, err := c.AuthenticatedUsername(newRequest(t, "handshake-3"), tenantID)
+		assert.ErrorIs(t, err, ErrTLSNoIdentity)
+	})
+
+	t.Run("another tenant cannot read the recorded identity", func(t *testing.T) {
+		sm := newMockStateManager()
+		sm.states["tenant:7:handshake-4"] = &EAPState{
+			StateID:  "handshake-4",
+			Username: "alice@example.com",
+			Success:  true,
+		}
+		c := NewCoordinator(sm, nil, nil, false)
+
+		_, err := c.AuthenticatedUsername(newRequest(t, "handshake-4"), 8)
+		assert.ErrorIs(t, err, ErrStateNotFound)
+	})
+
+	t.Run("a request without State is refused", func(t *testing.T) {
+		c := NewCoordinator(newMockStateManager(), nil, nil, false)
+
+		_, err := c.AuthenticatedUsername(newRequest(t, ""), tenantID)
+		assert.ErrorIs(t, err, ErrStateNotFound)
+	})
+}
+
 // Test interface compliance
 
 func TestCoordinator_Interfaces(t *testing.T) {

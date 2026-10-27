@@ -56,8 +56,9 @@ func (h *EAPAuthHelper) HandleEAPAuthentication(
 	eapMethod string,
 ) (handled bool, success bool, err error) {
 
-	// Check if is MAC authentication
-	isMacAuth := vendorReq.MacAddr != "" && vendorReq.MacAddr == user.Username
+	// Check if is MAC authentication. user is nil while an anonymous outer NAI
+	// (RFC 7542 §2.4) is still being resolved by the EAP exchange itself.
+	isMacAuth := user != nil && vendorReq != nil && vendorReq.MacAddr != "" && vendorReq.MacAddr == user.Username
 
 	// Call coordinator to handle EAP request
 	handled, success, err = h.coordinator.HandleEAPRequest(
@@ -65,6 +66,13 @@ func (h *EAPAuthHelper) HandleEAPAuthentication(
 	)
 
 	return handled, success, err
+}
+
+// AuthenticatedUsername returns the identity proven by the completed EAP
+// exchange carried by r, so the RADIUS layer can resolve a subscriber without
+// trusting an anonymous outer User-Name (RFC 7542 §2.4).
+func (h *EAPAuthHelper) AuthenticatedUsername(r *radius.Request, tenantID int64) (string, error) {
+	return h.coordinator.AuthenticatedUsername(r, tenantID)
 }
 
 // SendEAPSuccess Send EAP Success response

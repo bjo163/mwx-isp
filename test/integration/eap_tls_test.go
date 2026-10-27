@@ -99,6 +99,35 @@ func TestEAPTLSEndToEnd(t *testing.T) {
 		assertEAPTLSMPPEKeys(t, resp, sup, secret)
 	})
 
+	t.Run("anonymous outer NAI resolves the account from the certificate", func(t *testing.T) {
+		// RFC 7542 §2.4: the outer identifier may be an anonymous NAI that only
+		// routes the request to the realm. The account must be resolved from the
+		// certificate identity proven inside the TLS handshake (RFC 5216 §5.2),
+		// not from the outer User-Name.
+		ca := newEAPTLSTestCA(t, "IT EAP-TLS Anon CA "+suffix)
+		serverCert := ca.issueServer(t, "radius.example.com")
+		certIdentity := "it-eaptls-anon-" + suffix + "@example.com"
+		clientCert := ca.issueClient(t, "anon", certIdentity)
+		seedEAPTLSUser(t, profileID, certIdentity)
+
+		configureEAPTLS(t, serverCert, ca.certPEM())
+
+		sup := &eapTLSSupplicant{
+			serverAddr: serverAddr,
+			secret:     secret,
+			username:   "anonymous@example.com",
+			nasID:      nasID,
+			nasIP:      nasIP,
+			clientCfg:  clientTLSConfig(ca, clientCert),
+		}
+		resp := sup.authenticate(t)
+		assert.Equalf(t, radius.CodeAccessAccept, resp.Code,
+			"an anonymous outer NAI must authenticate on the certificate identity, got %v (%q)",
+			resp.Code, rfc2865.ReplyMessage_GetString(resp))
+		assertEAPCode(t, resp, eap.CodeSuccess)
+		assertEAPTLSMPPEKeys(t, resp, sup, secret)
+	})
+
 	t.Run("untrusted client certificate is rejected", func(t *testing.T) {
 		serverCA := newEAPTLSTestCA(t, "IT EAP-TLS Server CA "+suffix)
 		rogueCA := newEAPTLSTestCA(t, "IT EAP-TLS Rogue CA "+suffix)
