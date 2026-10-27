@@ -43,6 +43,29 @@ build an explicit tenant context per tenant/NAS with `tenancy.WithTenantID`
 `internal/radiusd/radius_acct.go`), so they never run unscoped against
 tenant-owned tables.
 
+### CI ratchet for new raw SQL
+
+`TestRawSQLTenantScopeRatchet` (`internal/tenancy/rawsql_ratchet_test.go`) runs
+in the ordinary unit lane and fails when a production `Raw`/`Exec`/`Table`/
+`Joins` call in `internal/`, `cmd/` or `pkg/` neither mentions `tenant_id` in
+the same statement nor carries an exemption. This turns the inventory above
+into an enforced ratchet instead of a review habit: adding an unscoped query
+turns the branch red until it is either scoped or annotated.
+
+An exemption is a comment on the call's line, or on the line directly above it,
+with a non-empty reason:
+
+```go
+// tenancy:unscoped: platform schema DDL, operates on the whole table by design
+if err := a.gormDB.Exec(stmt).Error; err != nil { ... }
+```
+
+The scanner is statement-scoped: a tenant predicate in a different statement
+does not cover the call, so a scoped query elsewhere in the same function cannot
+mask an unscoped one. Every new exemption must also be added to the inventory
+table above, and every new tenant-scoped query should gain the two-tenant test
+described under Verification.
+
 ## Foreign-reference matrix
 
 Every tenant-owned foreign key that is writable through the Admin API is
@@ -82,7 +105,8 @@ to another tenant's row.
 ## Known limits
 
 - The audit covers the current source tree; new raw SQL must extend the
-  inventory above and add a two-tenant test.
+  inventory above and add a two-tenant test. `TestRawSQLTenantScopeRatchet`
+  enforces the first half mechanically (unscoped calls fail the unit lane).
 - SQLite unit tests prove handler behavior; PostgreSQL remains the reference
   for constraint and concurrency behavior.
 - Cross-tenant access through platform-only endpoints is by design and is

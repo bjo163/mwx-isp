@@ -31,7 +31,19 @@ the current tree.
 
 ## Progress
 
-Done: 4 / 100.
+Done: 5 / 100.
+
+- `ENG-019` (2026-10-27, `dev` @ pending): raw-SQL tenancy ratchet. The existing inventory in
+  `docs/tenant-isolation.md` already covered all nine production `Table`/`Raw`/`Exec`/`Joins`
+  sites, so the gap was enforcement: nothing failed when a new unscoped query appeared.
+  `TestRawSQLTenantScopeRatchet` (`internal/tenancy/rawsql_ratchet_test.go`) now parses every
+  production file under `internal/`, `cmd/` and `pkg/` with `go/ast` and fails when a raw call
+  neither mentions `tenant_id` in its own statement nor carries `// tenancy:unscoped: <reason>`.
+  The scan is statement-scoped (a scoped query elsewhere in the function cannot mask it), the
+  exemption requires a non-empty reason, and fixture subtests prove an unscoped query is
+  reported while a scoped one passes. The three platform-level sites in `internal/app/app.go`
+  (tenant sequence bootstrap, unique-index DDL, startup dedup) carry the annotation and stay
+  documented in the inventory. No production query changed behaviour.
 
 - `ENG-001` (2026-10-27, `dev` @ `4026637`): anonymous outer NAI for EAP-TLS. The gap was real and
   in two places: `validateIdentity` compared the certificate identity against the outer
@@ -98,7 +110,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 ## Wave 1 — 37 item (LOKAL 30 · ASET 7)
 
 - [ ] `ENG-032` TR-F028 P1 — Invariant suspend manual tidak tertimpa bayar otomatis · LOKAL · PROPOSED_VERIFICATION
-- [ ] `ENG-019` TR-F033 P1 — Ratcheting audit query SQL raw dan joins tenancy · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-019` TR-F033 P1 — Ratcheting audit query SQL raw dan joins tenancy · LOKAL · PROPOSED_VERIFICATION · commit `pending`
 - [ ] `ENG-028` TR-F022 P1 — Penyamaran PII di logs, traces dan support evidence · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · dep ENG-010 · PROPOSED_VERIFICATION
