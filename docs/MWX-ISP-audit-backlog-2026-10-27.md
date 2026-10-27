@@ -31,7 +31,24 @@ the current tree.
 
 ## Progress
 
-Done: 6 / 100.
+Done: 7 / 100.
+
+- `ENG-033` (2026-10-27, `dev` @ `c89624d`): idempotent manual payment retries. `RecordPayment`
+  had no retry guard, so two identical requests each added to `PaidAmount` as long as balance
+  remained. Manual payments now accept an optional `Idempotency-Key` header (1–64 printable
+  ASCII, same rule as public registration) stored in a new tenant-unique
+  `isp_payment.idempotency_key` index. The lookup runs under the existing invoice row lock and
+  before the closed/balance guards: an identical retry returns the original payment with `200` +
+  `Idempotent-Replay: true` without touching money state, even after the invoice is fully paid;
+  reusing the key with a different invoice/amount/method/reference returns
+  `409 IDEMPOTENCY_CONFLICT`; a concurrent duplicate that loses the unique-index race is mapped to
+  the same replay path. Requests without a key remain independent so two equal cash instalments
+  stay two payments. The admin payment dialog sends one key per dialog session. Evidence:
+  `TestRecordPaymentIdempotentRetryDoesNotDoubleBook`,
+  `TestRecordPaymentRetryAfterInvoicePaidReportsDuplicate`,
+  `TestRecordPaymentWithoutKeyRecordsSeparateIdenticalPayments`, and the endpoint-level
+  `TestCreatePaymentIdempotencyKeyReplaysWithoutDoubleBooking`. Contract recorded in
+  `docs/payment-concurrency.md`.
 
 - `ENG-028` (2026-10-27, `dev` @ `59a429d`): PII and secret redaction on log export.
   `/admin/loki/query` returned each log line verbatim, so a password, bearer token, customer
@@ -129,7 +146,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · dep ENG-010 · PROPOSED_VERIFICATION
 - [ ] `ENG-031` TR-F028 P1 — Invoice numbering tahan retry setelah crash PostgreSQL · LOKAL · PROPOSED_VERIFICATION
-- [ ] `ENG-033` TR-F028 P1 — Idempotency pembayaran manual dengan request ulang · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-033` TR-F028 P1 — Idempotency pembayaran manual dengan request ulang · LOKAL · PROPOSED_VERIFICATION · commit `c89624d`
 - [ ] `ENG-052` TR-F016 P1 — E2E matriks tombol per role operator/admin/super · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
 - [ ] `ENG-009` TR-F003 P1 — Regression RadSec mTLS sertifikat tidak tepercaya · LOKAL · dep ENG-004 · PROPOSED_VERIFICATION
 - [ ] `ENG-010` TR-F001 P1 — Audit duplikasi RADIUS retransmission dan replay · LOKAL · PROPOSED_VERIFICATION
@@ -235,6 +252,6 @@ Ordered so each step stays executable without new hardware:
 1. `ENG-019` / `ENG-028` — raw-SQL tenancy ratchet and PII redaction in logs; both feed the
    later `ENG-060` support-bundle and `FUT-010` items.
 2. `ENG-051` — website editor functional coverage, currently a `VERIFIED_GAP` and fully local.
-3. `ENG-032` / `ENG-031` / `ENG-033` — the `TR-F028` billing invariant cluster, fully local.
+3. `ENG-032` / `ENG-031` — the `TR-F028` billing invariant cluster, fully local.
 4. `ENG-010` / `ENG-012` — RADIUS retransmission/replay audit and accounting out-of-order
    regressions; both feed the later `ENG-013` CoA pilot.
