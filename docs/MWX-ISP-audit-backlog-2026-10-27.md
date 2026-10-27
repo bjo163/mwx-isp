@@ -31,7 +31,20 @@ the current tree.
 
 ## Progress
 
-Done: 21 / 100.
+Done: 22 / 100.
+
+- `ENG-038` (2026-10-27, `dev` @ `7c2e06e`): voucher terminal-state concurrency. The
+  radiusd tests drive `activateHotspotVoucher` from eight goroutines against expired and
+  revoked rows: every caller gets an expiry in the past, the status stays terminal, no
+  first-login timestamp appears, and the credential expiry does not move. A deterministic
+  login → revoke → login interleaving keeps the revoked status, the original timestamps,
+  and the disabled credential. The adminapi tests fire the real revoke handler from eight
+  goroutines: exactly one response performs the revoke, all responses are 200, and retries
+  replay `already_revoked`. A `used` voucher whose window already passed stays revoked
+  through the lazy expiry marker. The credential fallback matches username and password,
+  so a shared password on another username and a rotated credential are both left
+  enabled. `docs/voucher-lifecycle.md` lists the new commands; TR-N006/A20 records the
+  coverage. Full radiusd and adminapi suites pass (40.2s / 47.4s).
 
 - `ENG-035` (2026-10-27, `dev` @ `c070535`): subscription lifecycle state machine and
   rollback evidence. `internal/adminapi/isp_subscription_state_machine_test.go` drives all 16
@@ -321,7 +334,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-027` TR-F031 P1 — Hardening diagnostik jaringan terhadap SSRF · LOKAL · PROPOSED_VERIFICATION
 - [x] `ENG-035` TR-F027 P1 — Konsistensi status Subscription dan RadiusUser saat transisi · LOKAL · PROPOSED_VERIFICATION · commit `c070535`
 - [x] `ENG-037` TR-F028 P1 — Validasi integer IDR dan batas invoice items · LOKAL · PROPOSED_VERIFICATION · commit `e8da24f`
-- [ ] `ENG-038` TR-F007 P1 — Voucher terminal-state concurrency regressions · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-038` TR-F007 P1 — Voucher terminal-state concurrency regressions · LOKAL · PROPOSED_VERIFICATION · commit `7c2e06e`
 - [ ] `ENG-056` TR-F029 P1 — Informasi jujur untuk action portal/payment yang disabled · LOKAL · dep ENG-021 · PROPOSED_VERIFICATION
 - [ ] `ENG-061` TR-F022 P1 — Stabilitas test E2E CI branch main dan dev · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-064` TR-F010 P1 — Pemeriksaan session-action queue dead-letter dan alert · LOKAL · dep ENG-013 · PROPOSED_VERIFICATION
@@ -412,7 +425,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-038` — voucher terminal-state concurrency regressions.
-2. `ENG-056` — honest copy for disabled portal/payment actions (follows `ENG-021`).
-3. `ENG-053` — keyboard navigation on data grids and critical dialogs.
-4. `ENG-061` — CI E2E stability on `main` and `dev`.
+1. `ENG-056` — honest copy for disabled portal/payment actions (follows `ENG-021`).
+2. `ENG-053` — keyboard navigation on data grids and critical dialogs.
+3. `ENG-061` — CI E2E stability on `main` and `dev`.
+4. `ENG-009` — RadSec mTLS untrusted-certificate regression (follows `ENG-004`).
