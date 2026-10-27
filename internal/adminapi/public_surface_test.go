@@ -34,7 +34,7 @@ func anonymousRequest(t *testing.T, handler http.Handler, method, path string, p
 }
 
 // The landing page (/home) and the customer portal (/portal) render without a
-// session, but the catalogue, bill lookup, voucher check and installation
+// session, but the package catalog, bill lookup, voucher check and installation
 // intake APIs they advertise are not in the JWT skip list. They must answer 401
 // anonymously so those pages can state honestly that a staff login is required,
 // and so nobody repairs the public copy by opening customer self-service, which
@@ -48,7 +48,7 @@ func TestLandingSurfaceEndpointsFailClosedAnonymously(t *testing.T) {
 		path    string
 		payload any
 	}{
-		{"package catalogue", http.MethodGet, "/api/v1/public/packages", nil},
+		{"package catalog", http.MethodGet, "/api/v1/public/packages", nil},
 		{"new installation intake", http.MethodPost, "/api/v1/public/register", map[string]string{
 			"name": "Anonymous Visitor", "phone": "081234560000", "address": "Jl. Uji No. 1",
 		}},
@@ -71,7 +71,7 @@ func TestLandingSurfaceEndpointsFailClosedAnonymously(t *testing.T) {
 		assert.Zero(t, tickets, "anonymous intake must not create an installation ticket")
 	})
 
-	t.Run("an authenticated operator does get the catalogue", func(t *testing.T) {
+	t.Run("an authenticated operator does get the catalog", func(t *testing.T) {
 		profile := domain.RadiusProfile{TenantID: domain.DefaultTenantID, Name: "surface-profile", Status: "enabled"}
 		require.NoError(t, db.Create(&profile).Error)
 		pkg := domain.InternetPackage{
@@ -86,6 +86,6 @@ func TestLandingSurfaceEndpointsFailClosedAnonymously(t *testing.T) {
 
 		var packages []map[string]any
 		decodeMatrixData(t, body, &packages)
-		assert.Len(t, packages, 1, "the operator sees the catalogue the visitor is withheld")
+		assert.Len(t, packages, 1, "the operator sees the catalog the visitor is withheld")
 	})
 }
