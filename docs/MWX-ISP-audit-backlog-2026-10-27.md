@@ -31,7 +31,19 @@ the current tree.
 
 ## Progress
 
-Done: 24 / 100.
+Done: 25 / 100.
+
+- `ENG-061` (2026-10-27, `dev` @ `521963e`): repeatable test runs. Repeated
+  `go test -count=N` runs failed on the second iteration because five files opened
+  fixed-name in-memory SQLite DSNs and the shared cache kept the previous rows alive.
+  Every such DSN now carries a per-open unique suffix (14 in total), and
+  `go test -count=3 ./internal/radiusd ./internal/app ./internal/tenancy ./internal/adminapi`
+  passes (93.9s / 8.5s / 1.3s / 135.6s). The browser suite failed its first `goto`
+  against a cold Vite server, so `navigationTimeout` is 60s and an action timeout of
+  15s is explicit; `npx playwright test --project=chromium --repeat-each=3` is 75/75
+  in 1.4 min. `docs/e2e-stability-2026-10-27.md` records the baseline, the isolation
+  model, how failure artifacts are read, and the limits (only Chromium is installed;
+  no E2E CI lane by owner preference).
 
 - `ENG-053` (2026-10-27, `dev` @ `4404b1b`): keyboard path through the critical
   grids and the payment dialog. The audit found a real gap: customer, invoice and NAS rows
@@ -357,7 +369,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-037` TR-F028 P1 — Validasi integer IDR dan batas invoice items · LOKAL · PROPOSED_VERIFICATION · commit `e8da24f`
 - [x] `ENG-038` TR-F007 P1 — Voucher terminal-state concurrency regressions · LOKAL · PROPOSED_VERIFICATION · commit `7c2e06e`
 - [x] `ENG-056` TR-F029 P1 — Informasi jujur untuk action portal/payment yang disabled · LOKAL · dep ENG-021 · PROPOSED_VERIFICATION · commit `a171299`
-- [ ] `ENG-061` TR-F022 P1 — Stabilitas test E2E CI branch main dan dev · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-061` TR-F022 P1 — Stabilitas test E2E CI branch main dan dev · LOKAL · PROPOSED_VERIFICATION · commit `521963e`
 - [ ] `ENG-064` TR-F010 P1 — Pemeriksaan session-action queue dead-letter dan alert · LOKAL · dep ENG-013 · PROPOSED_VERIFICATION
 - [x] `ENG-053` TR-F013 P2 — Navigasi keyboard pada data-grid dan dialog kritis · LOKAL · PROPOSED_VERIFICATION · commit `4404b1b`
 - [ ] `ENG-004` TR-F003 P2 — Kesiapan rotasi sertifikat RadSec dan EAP · LOKAL · PROPOSED_VERIFICATION
@@ -446,7 +458,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-061` — CI E2E stability on `main` and `dev`.
-2. `ENG-004` — RadSec/EAP certificate rotation readiness.
-3. `ENG-009` — RadSec mTLS untrusted-certificate regression (follows `ENG-004`).
-4. `ENG-030` — SBOM and license inventory for backend/frontend.
+1. `ENG-004` — RadSec/EAP certificate rotation readiness.
+2. `ENG-009` — RadSec mTLS untrusted-certificate regression (follows `ENG-004`).
+3. `ENG-030` — SBOM and license inventory for backend/frontend.
+4. `ENG-027` — network diagnostic SSRF hardening.
