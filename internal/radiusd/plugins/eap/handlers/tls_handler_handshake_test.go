@@ -536,6 +536,83 @@ func TestTLSHandler_FullHandshake_SANIdentityDoesNotMatchCN(t *testing.T) {
 	assert.ErrorIs(t, err, eap.ErrTLSIdentityMismatch)
 }
 
+// TestTLSHandler_FullHandshake_AnonymousOuterNAI pins the RFC 7542 §2.4 privacy
+// profile: the outer User-Name is "anonymous@realm" and therefore differs from
+// the certificate identity by design. The handshake must authenticate and the
+// proven identity must replace the routing-only outer name on the EAP state, so
+// the RADIUS layer can resolve the subscriber afterwards.
+func TestTLSHandler_FullHandshake_AnonymousOuterNAI(t *testing.T) {
+	ca := newHSTestCA(t, "Test Root CA")
+	clientCert := ca.issue(t, "alice", func(c *x509.Certificate) {
+		c.EmailAddresses = []string{"alice@example.com"}
+	})
+
+	cfg := serverEngineConfig(t, ca, ca)
+	h := NewTLSHandlerWithConfig(func() (*tlsengine.Config, error) { return cfg, nil })
+
+	sm := statemanager.NewMemoryStateManager()
+	defer sm.Close()
+
+	stateID := startHandshake(t, h, sm, "anonymous@example.com", "secret")
+	sup := newSupplicant(t, h, sm, stateID, "secret", clientCfg(ca, clientCert))
+	success, err := sup.run()
+	require.NoError(t, err)
+	assert.True(t, success, "an anonymous outer NAI must authenticate on the certificate identity")
+
+	state, err := sm.GetState(stateID)
+	require.NoError(t, err)
+	assert.True(t, state.Success)
+	assert.Equal(t, "alice@example.com", state.Username,
+		"the proven certificate identity must replace the anonymous outer NAI")
+}
+
+func TestTLSHandler_TLS13_AnonymousOuterNAI(t *testing.T) {
+	ca := newHSTestCA(t, "Test Root CA")
+	clientCert := ca.issue(t, "alice", func(c *x509.Certificate) {
+		c.EmailAddresses = []string{"alice@example.com"}
+	})
+
+	cfg := serverEngineConfig(t, ca, ca)
+	h := NewTLSHandlerWithConfig(func() (*tlsengine.Config, error) { return cfg, nil })
+
+	sm := statemanager.NewMemoryStateManager()
+	defer sm.Close()
+
+	stateID := startHandshake(t, h, sm, "anonymous@example.com", "secret")
+
+	tlsCfg := clientCfg(ca, clientCert)
+	tlsCfg.MinVersion = tls.VersionTLS13
+	tlsCfg.MaxVersion = tls.VersionTLS13
+
+	readIndication := func(client *tls.Conn) error {
+		if err := client.Handshake(); err != nil {
+			return err
+		}
+		if v := client.ConnectionState().Version; v != tls.VersionTLS13 {
+			return fmt.Errorf("negotiated version %#x, want TLS 1.3", v)
+		}
+		buf := make([]byte, 1)
+		if _, err := io.ReadFull(client, buf); err != nil {
+			return fmt.Errorf("read protected success indication: %w", err)
+		}
+		if buf[0] != 0x00 {
+			return fmt.Errorf("protected success indication byte %#x, want 0x00", buf[0])
+		}
+		return nil
+	}
+
+	sup := newSupplicantWithClient(t, h, eap.TypeTLS, sm, stateID, "secret", tlsCfg, readIndication)
+	success, err := sup.run()
+	require.NoError(t, err)
+	assert.True(t, success, "TLS 1.3 with an anonymous outer NAI must authenticate")
+	require.NoError(t, sup.clientErr, "client must decrypt the 0x00 protected success indication")
+
+	state, err := sm.GetState(stateID)
+	require.NoError(t, err)
+	assert.True(t, state.Success)
+	assert.Equal(t, "alice@example.com", state.Username)
+}
+
 func TestTLSHandler_FullHandshake_OutboundFragmentation(t *testing.T) {
 	ca := newHSTestCA(t, "Test Root CA")
 	clientCert := ca.issue(t, "carol", func(c *x509.Certificate) {

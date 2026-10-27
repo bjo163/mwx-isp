@@ -6,11 +6,29 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/bjo163/mwx-isp/internal/app"
+	"github.com/bjo163/mwx-isp/internal/domain"
 	radiuserrors "github.com/bjo163/mwx-isp/internal/radiusd/errors"
 	eap "github.com/bjo163/mwx-isp/internal/radiusd/plugins/eap"
 	"github.com/bjo163/mwx-isp/pkg/metrics"
 )
+
+// TestStageLoadUser_DefersAnonymousOuterNAIForEAP pins the RFC 7542 §2.4
+// profile: an anonymous outer identifier only routes the request to the realm,
+// so it must never be resolved as a subscriber. EAP-TLS proves the real identity
+// from the certificate and stageEAPDispatch loads that user afterwards.
+func TestStageLoadUser_DefersAnonymousOuterNAIForEAP(t *testing.T) {
+	s := &AuthService{}
+	ctx := &AuthPipelineContext{
+		IsEAP:    true,
+		Username: "anonymous@example.com",
+		NAS:      &domain.NetNas{TenantID: 3},
+	}
+
+	require.NoError(t, s.stageLoadUser(ctx))
+	assert.Nil(t, ctx.User, "an anonymous outer NAI must not be looked up as a user")
+}
 
 func TestMapEAPDispatchError(t *testing.T) {
 	tests := []struct {

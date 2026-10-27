@@ -194,6 +194,15 @@ func (h *TLSHandler) validateIdentity(state *eap.EAPState, engine *tlsengine.Eng
 		return eap.ErrTLSNoIdentity
 	}
 
+	// An anonymous outer NAI (RFC 7542 §2.4) deliberately carries no subscriber
+	// name, so the certificate identity is authoritative: adopt it instead of
+	// comparing against the routing-only identifier. Everything downstream --
+	// the RADIUS user lookup included -- then runs on the proven identity.
+	if eap.IsAnonymousNAI(state.Username) {
+		state.Username = identity.Name
+		return nil
+	}
+
 	// Bind the TLS-authenticated certificate identity to the RADIUS User-Name.
 	if state.Username != "" && !identity.Matches(state.Username) {
 		return fmt.Errorf("%w: certificate identity %q does not match user %q",

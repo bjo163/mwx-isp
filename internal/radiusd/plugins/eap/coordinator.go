@@ -2,6 +2,7 @@ package eap
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
 	radiuserrors "github.com/bjo163/mwx-isp/internal/radiusd/errors"
@@ -293,6 +294,36 @@ func safeReplyMessage(reason error) string {
 		}
 	}
 	return reason.Error()
+}
+
+// AuthenticatedUsername returns the identity proven by the completed EAP
+// exchange carried by r. For EAP-TLS this is the certificate identity
+// (RFC 5216 §5.2) once an anonymous outer NAI has been replaced by it, which
+// lets the RADIUS layer resolve the subscriber without ever trusting the outer
+// User-Name (RFC 7542 §2.4). It fails closed when no successful state exists.
+func (c *Coordinator) AuthenticatedUsername(r *radius.Request, tenantID int64) (string, error) {
+	stateID := rfc2865.State_GetString(r.Packet)
+	if stateID == "" {
+		return "", ErrStateNotFound
+	}
+
+	manager := c.stateManager
+	if tenantID > 0 {
+		manager = tenantStateManager{base: c.stateManager, tenantID: tenantID}
+	}
+	state, err := manager.GetState(stateID)
+	if err != nil {
+		return "", err
+	}
+	if state == nil || !state.Success {
+		return "", ErrStateNotFound
+	}
+
+	username := strings.TrimSpace(state.Username)
+	if username == "" || IsAnonymousNAI(username) {
+		return "", ErrTLSNoIdentity
+	}
+	return username, nil
 }
 
 // CleanupState Cleanup EAP Status
