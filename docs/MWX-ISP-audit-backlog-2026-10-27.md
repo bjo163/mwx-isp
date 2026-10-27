@@ -31,7 +31,7 @@ the current tree.
 
 ## Progress
 
-Done: 2 / 100.
+Done: 3 / 100.
 
 - `ENG-021` (2026-10-27, `dev` @ `404a3fe`): `/home` and `/portal` no longer advertise anonymous
   self-service or a checkout step; a 401 is reported as "staff login required" and an
@@ -54,6 +54,15 @@ Done: 2 / 100.
   is recorded in `docs/access-control-matrix.md` under a new "Immediate revocation (TR-F033)"
   section.
 
+- `ENG-018` (2026-10-27, `dev` @ `38df193`): audit + regression for ambiguous-NAS and
+  identical-username tenant consistency on the RADIUS side. `TestRadiusTenantIsolationForNASAndUsername`
+  in `internal/radiusd/radius_test.go` proves that a duplicate NAS source IP with no tenant context
+  fails closed (`ErrAmbiguousNASIP`), that tenant-scoped `GetNasForTenant`/`GetValidUserForTenant`
+  resolve only the caller's tenant even when two tenants share the same NAS IP and the same
+  username, and that accounting Start/Stop writes persist only inside the caller's tenant
+  (a cross-tenant stop reports a miss and does not touch the other tenant's row). No production
+  code changed.
+
 Critical path from the inventory: `ENG-001 → ENG-002`, `ENG-017 → ENG-018`,
 `ENG-041 → ENG-043 → ENG-045 → ECO-005`. Every `ASET` row that starts a chain
 (`ENG-041`, `ENG-013`, `ENG-049`, `ENG-002`) is blocked on hardware or a host that has not
@@ -65,7 +74,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 - [x] `ENG-017` TR-F033 P1 — Audit penurunan hak anggota tenant saat token lama aktif · LOKAL · PROPOSED_VERIFICATION · commit `a3803b1`
 - [ ] `ENG-001` TR-F004 P1 — Audit & rancang outer anonymous NAI pada EAP-TLS 1.3 · LOKAL · VERIFIED_GAP
-- [ ] `ENG-018` TR-F033 P1 — Konsistensi tenant untuk NAS ambigu dan username sama · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
+- [x] `ENG-018` TR-F033 P1 — Konsistensi tenant untuk NAS ambigu dan username sama · LOKAL · dep ENG-017 · commit `38df193`
 - [x] `ENG-021` TR-F018 P1 — Rekonsiliasi landing/portal publik yang faktanya JWT-only · LOKAL · VERIFIED_GAP
 - [ ] `ENG-041` TR-F020 P1 — Uji instalasi fresh pada VPS Ubuntu/Debian bersih · ASET · VERIFIED_GAP
 
