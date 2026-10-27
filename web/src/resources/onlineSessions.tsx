@@ -112,9 +112,9 @@ interface CoaActionResult {
 }
 
 // SessionActionRecord mirrors GET /session-actions. The scheduler queues a
-// Disconnect-Request when billing suspends a subscription; a failed attempt stays
-// visible here until it succeeds, exhausts its attempt budget, or is retried by
-// an operator.
+// Disconnect-Request when billing suspends a subscription or an operator
+// suspends/terminates one; a failed attempt stays visible here until it
+// succeeds, exhausts its attempt budget, or is retried by an operator.
 interface SessionActionRecord {
   id: string;
   session_id?: string;
@@ -1675,10 +1675,11 @@ const OnlineSessionActions = () => {
 
 // ============ List content ============
 
-// SessionActionQueuePanel surfaces billing-driven disconnects that have not yet
+// SessionActionQueuePanel surfaces session disconnects that have not yet
 // converged: pending actions waiting for the next retry and failed actions whose
-// automatic budget is exhausted. Each row can be retried immediately (admin only
-// on the backend); a successful retry removes the row on the next load.
+// automatic budget is exhausted. Rows come from billing suspension and from
+// operator suspend/terminate actions. Each row can be retried immediately (admin
+// only on the backend); a successful retry removes the row on the next load.
 const SessionActionQueuePanel = () => {
   const translate = useTranslate();
   const notify = useNotify();
@@ -1754,7 +1755,7 @@ const SessionActionQueuePanel = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             {translate('resources.radius/online.session_actions.title', {
-              _: 'Pending billing disconnects',
+              _: 'Pending disconnects',
             })}
           </Typography>
           <Chip size="small" color="warning" label={actions.length} />
@@ -1795,6 +1796,11 @@ const SessionActionQueuePanel = () => {
                   color={action.status === 'failed' ? 'error' : 'warning'}
                   sx={{ textTransform: 'capitalize' }}
                 />
+                {action.reason && (
+                  <Typography variant="caption" color="text.secondary">
+                    {action.reason.replace(/_/g, ' ')}
+                  </Typography>
+                )}
                 <Typography variant="caption" color="text.secondary">
                   {translate('resources.radius/online.session_actions.attempts', {
                     _: '%{attempts}/%{max} attempts',

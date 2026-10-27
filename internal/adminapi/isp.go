@@ -15,10 +15,13 @@ import (
 	"github.com/bjo163/mwx-isp/internal/notify"
 	"github.com/bjo163/mwx-isp/internal/radiusd"
 	"github.com/bjo163/mwx-isp/internal/radiusd/vendors/mikrotik"
+	"github.com/bjo163/mwx-isp/internal/sessionqueue"
+	"github.com/bjo163/mwx-isp/internal/tenancy"
 	"github.com/bjo163/mwx-isp/internal/webserver"
 	"github.com/bjo163/mwx-isp/pkg/common"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"layeh.com/radius"
 )
@@ -1253,12 +1256,61 @@ func subscriptionAction(c echo.Context) error {
 		return fail(c, 500, "DATABASE_ERROR", "Failed to update subscription", err.Error())
 	}
 	if action == "suspend" || action == "terminate" {
-		if _, err := disconnectRadiusUsername(c, sub.RadiusUserID); err != nil {
-			return fail(c, http.StatusBadGateway, "DISCONNECT_FAILED", "Subscription was disabled but a live session could not be disconnected", err.Error())
+		if err := queueSubscriptionDisconnects(c, sub.RadiusUserID); err != nil {
+			return fail(c, http.StatusInternalServerError, "SESSION_ACTION_QUEUE_FAILED",
+				"Subscription was disabled but its session disconnect could not be queued", err.Error())
 		}
 	}
 	db.First(&sub, id)
 	return ok(c, sub)
+}
+
+// queueSubscriptionDisconnects records a durable Disconnect-Request for every
+// online session of the linked RADIUS user, then attempts the due actions once.
+// A NAS that is offline, rejects the request, or times out leaves the action
+// pending for the retry scheduler, so an operator suspension converges without
+// blocking on the NAS. The action reason distinguishes manual suspension from
+// billing enforcement in the queue and audit trail.
+func queueSubscriptionDisconnects(c echo.Context, userID int64) error {
+	if userID <= 0 {
+		return nil
+	}
+	db := GetDB(c)
+	var user domain.RadiusUser
+	if err := db.First(&user, userID).Error; err != nil {
+		return fmt.Errorf("load linked RADIUS user: %w", err)
+	}
+	var sessions []domain.RadiusOnline
+	if err := db.Where("username = ?", user.Username).Find(&sessions).Error; err != nil {
+		return fmt.Errorf("load online sessions: %w", err)
+	}
+	if len(sessions) == 0 {
+		return nil
+	}
+	now := time.Now()
+	for _, session := range sessions {
+		if _, err := sessionqueue.EnqueueDisconnect(db, session, sessionqueue.ReasonManualSuspension, now); err != nil {
+			return fmt.Errorf("queue disconnect for session %d: %w", session.ID, err)
+		}
+	}
+	tenantID := domain.DefaultTenantID
+	if scopedID, ok := tenancy.TenantID(c.Request().Context()); ok {
+		tenantID = scopedID
+	}
+	summary, err := sessionqueue.ProcessDue(c.Request().Context(), db, tenantID, now,
+		sessionActionSenderForRequest(c), len(sessions)+1)
+	if err != nil {
+		zap.L().Warn("manual suspension session action pass failed",
+			zap.Int64("tenant_id", tenantID), zap.Int64("user_id", userID), zap.Error(err))
+	}
+	if summary.Attempted > 0 {
+		zap.L().Info("manual suspension session actions processed",
+			zap.Int64("tenant_id", tenantID), zap.Int64("user_id", userID),
+			zap.Int("attempted", summary.Attempted), zap.Int("succeeded", summary.Succeeded),
+			zap.Int("retried", summary.Retried), zap.Int("failed", summary.Failed),
+			zap.Int("canceled", summary.Canceled), zap.Int("audit_errors", summary.AuditErrors))
+	}
+	return nil
 }
 
 func disconnectRadiusUsername(c echo.Context, userID int64) (int, error) {

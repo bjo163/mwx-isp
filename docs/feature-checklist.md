@@ -119,7 +119,7 @@ A20 reconciles the non-goal tables with surfaces that already exist in code at b
 | RADIUS users | `/api/v1/users`, `users_import.go`, `web/src/resources/radiusUsers.tsx` | Keep | TR-F007 | Unit tests, import tests, PG/OpenLDAP integration | Field, validation, and tenant fixes. |
 | RADIUS profiles | `/api/v1/radius-profiles`, `profile_cache.go` | Keep | TR-F008 | Unit tests | Cache and inheritance correctness fixes. |
 | NAS devices and network nodes | `/api/v1/network/nas`, `/api/v1/network/nodes` | Keep | TR-F009 | Unit tests; fake-NAS integration | Protocol-compatible fixes. |
-| Online sessions, CoA, Disconnect retry | `/api/v1/sessions`, `/api/v1/session-actions`, `session_action_queue.go` | Keep | TR-F010 | Fake-NAS ACK/NAK/timeout tests and #52 retry/audit tests; a real NAS pilot remains blocked | Correctness and audit fixes. |
+| Online sessions, CoA, Disconnect retry | `/api/v1/sessions`, `/api/v1/session-actions`, `session_action_queue.go` | Keep | TR-F010 | Fake-NAS ACK/NAK/timeout tests, #52 retry/audit tests and H05 manual-suspension queue tests; a real NAS pilot remains blocked | Correctness and audit fixes. |
 | Accounting records | `/api/v1/accounting` | Keep | TR-F011 | Unit tests; tenant-scoped retention test in PostgreSQL | Query and retention fixes. |
 | ISP customers, packages, subscriptions | `/api/v1/isp/*` | Keep | TR-F027 | Unit and PG integration tests | Isolation and lifecycle fixes. |
 | Customer 360 timeline | `/api/v1/isp/customers/:id/timeline` | Keep | TR-F027 | Unit tests; read-only event merge | Pagination and filter fixes; never fabricate events. |

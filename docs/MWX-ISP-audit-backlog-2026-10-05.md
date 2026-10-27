@@ -624,7 +624,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### H05 — Suspend/reactivate dan kegagalan NAS
 
-- **Prioritas / status:** P1 / Perlu verifikasi.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (jalur suspend manual + bukti retry).
 - **Pemetaan scope:** TR-F028 / TR-F010.
 - **Dependensi:** H04.
 - **Entry point:** `internal/billing`; `internal/app/jobs.go`; `internal/adminapi/isp.go`.
@@ -635,10 +635,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Pembayaran tidak membatalkan suspend manual; debt tersisa sesuai kebijakan; retry tidak menduplikasi aksi atau audit.
 
-- [ ] H05.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H05.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H05.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H05.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** [session-action-queue.md](session-action-queue.md) sekarang memetakan dua produsen aksi: `billing_suspension` dari scheduler dan `manual_suspension` dari `subscriptionAction`. Suspend/terminate manual tidak lagi gagal 502 setelah status sudah berubah; ia mencatat Disconnect-Request durable per sesi online lalu menjalankan `ProcessDue` sekali, sehingga NAS yang timeout/NAK menyisakan aksi `pending` yang diretry scheduler dengan backoff (bukan hilang). Kebijakan billing: `RecordPayment` hanya mengaktifkan kembali suspend `billing_overdue` dan hanya jika tidak ada invoice outstanding lain; suspend manual tetap manual. Bukti tes: `TestSubscriptionSuspendQueuesDurableDisconnect` (fake NAS ACK → `succeeded`, timeout → `pending`, audit tepat satu per attempt, suspend ulang tidak menduplikasi aksi), `TestRecordPaymentKeepsSuspensionUntilEveryOverdueInvoiceIsPaid`, `TestRecordPaymentDoesNotReactivateManualSuspension`, `TestSuspendOverdueSkipsManualSuspension`, dan suite integrasi PostgreSQL `TestPostgresSessionActionQueue*` (ACK, NAK, timeout lalu NAS pulih, retry konkuren, cancel setelah reaktivasi, isolasi tenant). Panel UI sesi online menampilkan aksi `pending`/`failed` beserta reason dan tombol retry untuk kedua sumber.
+
+- [x] H05.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H05.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H05.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H05.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h06"></a>
 

@@ -38,7 +38,7 @@ Sumber detail dan kriteria penerimaan: [45 kartu audit, penguatan, dan brainstor
 - [x] [H02 — Matriks izin per aksi dan UI](MWX-ISP-audit-backlog-2026-10-05.md#h02) (P1; Selesai 2026-10-27: matriks akses + tes UI/API).
 - [x] [H03 — Rate limit surface publik dan registrasi](MWX-ISP-audit-backlog-2026-10-05.md#h03) (P1; Selesai 2026-10-27: limiter per tenant+IP).
 - [x] [H04 — Concurrency dan replay pembayaran](MWX-ISP-audit-backlog-2026-10-05.md#h04) (P1; Selesai 2026-10-27: tes konkurensi pembayaran).
-- [ ] [H05 — Suspend/reactivate dan kegagalan NAS](MWX-ISP-audit-backlog-2026-10-05.md#h05) (P1; Perlu verifikasi).
+- [x] [H05 — Suspend/reactivate dan kegagalan NAS](MWX-ISP-audit-backlog-2026-10-05.md#h05) (P1; Selesai 2026-10-27: suspend manual masuk queue durable + tes ACK/timeout/retry).
 - [ ] [H06 — Buktikan disaster recovery dan migrasi](MWX-ISP-audit-backlog-2026-10-05.md#h06) (P1; Perlu verifikasi).
 - [x] [H07 — Integritas alokasi port ODP](MWX-ISP-audit-backlog-2026-10-05.md#h07) (P1; Selesai 2026-10-27).
 - [x] [H08 — Validasi pool IPAM dan kapasitas subnet](MWX-ISP-audit-backlog-2026-10-05.md#h08) (P2; Selesai 2026-10-27).
