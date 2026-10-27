@@ -12,7 +12,7 @@ Money state is written only by `billing.RecordPayment`
 1. Locks the invoice row with `SELECT ... FOR UPDATE` before reading its balance.
 2. Rejects void/paid invoices and any invoice with `balance <= 0` (`ErrInvoiceClosed`).
 3. Rejects `amount > balance` (`ErrInvalidPayment`), so a balance can never go negative.
-4. Allocates the next `PAY-...` serial atomically via `NextDocumentSerial` inside the same transaction.
+4. Allocates the next `PAY-...` serial atomically via `NextDocumentSerial` inside the same transaction (crash/retry policy: [`document-numbering.md`](document-numbering.md)).
 5. Creates exactly one `Payment` and one `payment_received` `BillingEvent`, then updates `PaidAmount`, `Balance` and the partial/paid status in the same commit.
 6. Optionally reactivates a billing-suspended subscription only after the final payment and only when no other overdue invoice remains.
 
