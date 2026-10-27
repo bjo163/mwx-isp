@@ -2,7 +2,9 @@ package tenancy
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/require"
@@ -16,7 +18,9 @@ type scopedRecord struct {
 }
 
 func TestCallbacksScopeTenantReadsAndWrites(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:tenant-scope-test?mode=memory&cache=shared"), &gorm.Config{})
+	// A fresh DSN per run keeps `go test -count=N` from seeing rows created by
+	// the previous iteration through the shared in-memory cache.
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:tenant-scope-test-%d?mode=memory&cache=shared", time.Now().UnixNano())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, RegisterCallbacks(db))
 	require.NoError(t, db.AutoMigrate(&scopedRecord{}))

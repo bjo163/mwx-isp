@@ -49,7 +49,7 @@ func TestCheckAuthRateLimitBasic(t *testing.T) {
 }
 
 func TestRadiusAuthenticationCachesAreTenantScoped(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:radius-tenant-users?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:radius-tenant-users-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, tenancy.RegisterCallbacks(db))
 	require.NoError(t, db.AutoMigrate(&domain.RadiusUser{}))
@@ -75,7 +75,7 @@ func TestRadiusAuthenticationCachesAreTenantScoped(t *testing.T) {
 }
 
 func TestCachedRadiusUsersStillEnforceStatusAndExpiration(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:radius-expiry-cache?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:radius-expiry-cache-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, tenancy.RegisterCallbacks(db))
 	require.NoError(t, db.AutoMigrate(&domain.RadiusUser{}))
@@ -111,7 +111,7 @@ func TestCachedRadiusUsersStillEnforceStatusAndExpiration(t *testing.T) {
 }
 
 func TestHotspotVoucherValidityStartsOnceAndIsTenantScoped(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:radius-voucher-activation?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:radius-voucher-activation-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, tenancy.RegisterCallbacks(db))
 	require.NoError(t, db.AutoMigrate(&domain.HotspotVoucher{}, &domain.RadiusUser{}))
@@ -151,7 +151,7 @@ func TestHotspotVoucherValidityStartsOnceAndIsTenantScoped(t *testing.T) {
 }
 
 func TestHotspotVoucherConcurrentFirstLoginSharesOneWindow(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:radius-voucher-concurrent?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:radius-voucher-concurrent-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	// SQLite upgrades read transactions to write locks and reports a deadlock
 	// instead of waiting, so serialize callers through a single connection. The
@@ -221,7 +221,7 @@ func TestHotspotVoucherConcurrentFirstLoginSharesOneWindow(t *testing.T) {
 }
 
 func TestMarkExpiredHotspotVoucherIsTenantScoped(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:radius-voucher-expiration?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:radius-voucher-expiration-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, tenancy.RegisterCallbacks(db))
 	require.NoError(t, db.AutoMigrate(&domain.HotspotVoucher{}))
@@ -241,7 +241,7 @@ func TestMarkExpiredHotspotVoucherIsTenantScoped(t *testing.T) {
 func timePtr(value time.Time) *time.Time { return &value }
 
 func TestRadiusNASLookupAndCacheAreTenantScoped(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:radius-tenant-nas?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:radius-tenant-nas-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, tenancy.RegisterCallbacks(db))
 	require.NoError(t, db.AutoMigrate(&domain.NetNas{}))
@@ -273,7 +273,7 @@ func TestRadiusNASLookupAndCacheAreTenantScoped(t *testing.T) {
 // real plugin handler so the assertion covers NAS lookup, user lookup, session
 // create, and accounting write end-to-end.
 func TestRadiusTenantIsolationForNASAndUsername(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:radius-tenant-iso?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(fmt.Sprintf("file:radius-tenant-iso-%d?mode=memory&cache=shared", common.UUIDint64())), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, tenancy.RegisterCallbacks(db))
 	require.NoError(t, db.AutoMigrate(
