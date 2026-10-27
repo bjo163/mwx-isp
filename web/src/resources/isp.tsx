@@ -4,7 +4,7 @@ import {
   ArrayField, Create, Datagrid, DateField, Edit, Empty, FunctionField, List, NumberField,
   NumberInput, ReferenceField, ReferenceInput, SearchInput, SelectInput, Show, SimpleForm,
   SimpleShowLayout, TextField, TextInput, TopToolbar, CreateButton, EditButton, useNotify,
-  useRefresh, useRecordContext, useListContext,
+  useRefresh, useRecordContext, useListContext, ShowButton,
 } from 'react-admin';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider,
@@ -199,6 +199,11 @@ export const CustomerList = () => (
       <FunctionField source="radius_username" render={(r: any) => <Mono>{r.radius_username || '-'}</Mono>} />
       <StatusField />
       <MoneyField source="outstanding" />
+      {/* rowClick only listens for a pointer, so give keyboard users a focusable way in */}
+      <FunctionField
+        label="Open"
+        render={(record: any) => <ShowButton record={record} label={`Open ${record.customer_no}`} />}
+      />
     </Datagrid>
   </List>
 );
@@ -709,6 +714,10 @@ export const InvoiceList = () => (
       <MoneyField source="paid_amount" />
       <MoneyField source="balance" />
       <StatusField />
+      <FunctionField
+        label="Open"
+        render={(record: any) => <ShowButton record={record} label={`Open ${record.invoice_no}`} />}
+      />
     </Datagrid>
   </List>
 );
