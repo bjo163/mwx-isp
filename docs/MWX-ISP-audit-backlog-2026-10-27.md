@@ -31,7 +31,7 @@ the current tree.
 
 ## Progress
 
-Done: 17 / 100.
+Done: 18 / 100.
 
 - `ENG-024` (2026-10-27, `dev` @ `db08c5f`): rotating `web.secret` and the sealed SNMP
   credentials. The monitor stores the SNMPv2c community and SNMPv3 auth/privacy passwords as
