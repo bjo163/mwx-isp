@@ -1,5 +1,18 @@
 # MWX-ISP Changelog
 
+## v0.14.0 — 2026-10-27
+
+Changes since v0.13.0:
+
+### Features
+
+- queue manual suspension disconnects (H05)
+
+### Fixes and Improvements
+
+- verify installer recovery, update health and image metadata (H14)
+- reject cross-tenant ticket and NAS foreign references (H01)
+
 ## v0.13.0 — 2026-10-27
 
 Changes since v0.12.0:
