@@ -31,7 +31,17 @@ the current tree.
 
 ## Progress
 
-Done: 23 / 100.
+Done: 24 / 100.
+
+- `ENG-053` (2026-10-27, `dev` @ `4404b1b`): keyboard path through the critical
+  grids and the payment dialog. The audit found a real gap: customer, invoice and NAS rows
+  were pointer-only because React Admin's `rowClick` listens for clicks and the data cells
+  hold no focusable element. Each list now has a per-row `ShowButton` with a
+  record-specific accessible name ("Open CUST-0001"), and `web/e2e/keyboard-navigation.spec.ts`
+  tabs to it, asserts `:focus-visible`, and opens the record with Enter. The invoice
+  payment dialog already met the criterion: focus moves inside, Tab/Shift+Tab stay trapped,
+  Escape closes, and focus returns to "Record Payment". All 25 chromium e2e tests pass
+  (33.3s); TR-F013 and the three surface rows record the new evidence.
 
 - `ENG-056` (2026-10-27, `dev` @ `a171299`): honest affordances for staff-gated
   portal actions. `/home` bill lookup, voucher check and registration submit, plus the
@@ -349,7 +359,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-056` TR-F029 P1 — Informasi jujur untuk action portal/payment yang disabled · LOKAL · dep ENG-021 · PROPOSED_VERIFICATION · commit `a171299`
 - [ ] `ENG-061` TR-F022 P1 — Stabilitas test E2E CI branch main dan dev · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-064` TR-F010 P1 — Pemeriksaan session-action queue dead-letter dan alert · LOKAL · dep ENG-013 · PROPOSED_VERIFICATION
-- [ ] `ENG-053` TR-F013 P2 — Navigasi keyboard pada data-grid dan dialog kritis · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-053` TR-F013 P2 — Navigasi keyboard pada data-grid dan dialog kritis · LOKAL · PROPOSED_VERIFICATION · commit `4404b1b`
 - [ ] `ENG-004` TR-F003 P2 — Kesiapan rotasi sertifikat RadSec dan EAP · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-030` TR-F022 P2 — Inventory SBOM backend/frontend serta lisensi · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-008` TR-F004 P2 — Pastikan EAP-OTP tak dapat diaktifkan tanpa validator · LOKAL · PROPOSED_VERIFICATION
@@ -436,7 +446,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-053` — keyboard navigation on data grids and critical dialogs.
-2. `ENG-061` — CI E2E stability on `main` and `dev`.
+1. `ENG-061` — CI E2E stability on `main` and `dev`.
+2. `ENG-004` — RadSec/EAP certificate rotation readiness.
 3. `ENG-009` — RadSec mTLS untrusted-certificate regression (follows `ENG-004`).
-4. `ENG-004` — RadSec/EAP certificate rotation readiness.
+4. `ENG-030` — SBOM and license inventory for backend/frontend.
