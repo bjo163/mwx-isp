@@ -59,16 +59,12 @@ func (r *GormSessionRepository) Update(ctx context.Context, session *domain.Radi
 	if err := r.db.WithContext(ctx).Select("tenant_id, username, nas_addr, acct_input_total, acct_output_total, last_update").
 		Where("acct_session_id = ?", session.AcctSessionId).First(&existing).Error; err == nil {
 		deltaSec := now.Sub(existing.LastUpdate).Seconds()
-		if deltaSec > 0 {
-			var inRate, outRate int64
-			inDiff := session.AcctInputTotal - existing.AcctInputTotal
-			outDiff := session.AcctOutputTotal - existing.AcctOutputTotal
-			if inDiff > 0 {
-				inRate = int64(float64(inDiff*8) / deltaSec)
-			}
-			if outDiff > 0 {
-				outRate = int64(float64(outDiff*8) / deltaSec)
-			}
+		inDiff := session.AcctInputTotal - existing.AcctInputTotal
+		outDiff := session.AcctOutputTotal - existing.AcctOutputTotal
+		// A shrinking counter is a NAS reboot or 32/64-bit wrap, and a gap over
+		// an hour means interim updates stopped. Neither interval has a
+		// measurable rate, so persist no sample rather than a fabricated zero.
+		if deltaSec > 0 && deltaSec <= 3600 && inDiff >= 0 && outDiff >= 0 {
 			_ = r.db.WithContext(ctx).Create(&domain.RadiusTrafficSample{
 				TenantID:      existing.TenantID,
 				Username:      existing.Username,
@@ -76,8 +72,8 @@ func (r *GormSessionRepository) Update(ctx context.Context, session *domain.Radi
 				NasAddr:       existing.NasAddr,
 				InOctets:      session.AcctInputTotal,
 				OutOctets:     session.AcctOutputTotal,
-				InRateBps:     inRate,
-				OutRateBps:    outRate,
+				InRateBps:     int64(float64(inDiff) * 8 / deltaSec),
+				OutRateBps:    int64(float64(outDiff) * 8 / deltaSec),
 				RecordedAt:    now,
 			})
 		}

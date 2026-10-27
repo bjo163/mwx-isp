@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Container, Typography, Button, Stack, Chip,
@@ -138,6 +138,7 @@ export const LandingPage: React.FC = () => {
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
   const [regSuccess, setRegSuccess] = useState<any | null>(null);
+  const regIdempotencyKey = useRef<string>('');
 
   const handleOpenRegister = (packageId?: string) => {
     setRegForm((prev) => ({
@@ -146,6 +147,9 @@ export const LandingPage: React.FC = () => {
     }));
     setRegError(null);
     setRegSuccess(null);
+    regIdempotencyKey.current = typeof crypto?.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `reg-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     setRegisterOpen(true);
   };
 
@@ -160,6 +164,7 @@ export const LandingPage: React.FC = () => {
     try {
       const result = await apiRequest<any>('/public/register', {
         method: 'POST',
+        headers: { 'Idempotency-Key': regIdempotencyKey.current },
         body: JSON.stringify(regForm),
       });
       setRegSuccess(result);

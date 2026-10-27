@@ -108,6 +108,59 @@ func TestCleanRemovesDemoRowsOnlyInsideTenantContext(t *testing.T) {
 	require.Len(t, remainingB, 1, "tenant A demo cleanup must preserve tenant B samples")
 }
 
+func TestCleanNeverDeletesRowsWithoutDemoMarker(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(domain.Tables...))
+
+	// Look-alike production records deliberately reuse demo names and numbering
+	// but never carry the marker, so cleanup must leave them untouched.
+	customer := domain.Customer{CustomerNo: "MWX-000001", Name: "Sample Ayu Pratama", Status: domain.CustomerActive, Notes: "operator-owned"}
+	require.NoError(t, db.Create(&customer).Error)
+	pkg := domain.InternetPackage{Code: "DEMO-PKG-STARTER", Name: "Sample Fiber 50", Status: "active", Description: "operator-owned"}
+	require.NoError(t, db.Create(&pkg).Error)
+	target := domain.NetMonitorTarget{Name: "demo-monitor-edge", Address: "192.0.2.10", Enabled: false, LastError: "operator-owned"}
+	require.NoError(t, db.Create(&target).Error)
+	user := domain.RadiusUser{Username: "demo-alice", Password: "operator-secret", Status: "disabled", Remark: "operator-owned"}
+	require.NoError(t, db.Create(&user).Error)
+
+	require.NoError(t, Clean(db))
+
+	var customerCount, packageCount, targetCount, userCount int64
+	require.NoError(t, db.Model(&domain.Customer{}).Count(&customerCount).Error)
+	require.NoError(t, db.Model(&domain.InternetPackage{}).Count(&packageCount).Error)
+	require.NoError(t, db.Model(&domain.NetMonitorTarget{}).Count(&targetCount).Error)
+	require.NoError(t, db.Model(&domain.RadiusUser{}).Count(&userCount).Error)
+	require.EqualValues(t, 1, customerCount, "cleanup must not delete an unmarked look-alike customer")
+	require.EqualValues(t, 1, packageCount)
+	require.EqualValues(t, 1, targetCount)
+	require.EqualValues(t, 1, userCount)
+}
+
+func TestCleanPreservesDemoRowsReclassifiedByOperator(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(domain.Tables...))
+	now := time.Date(2026, time.October, 4, 10, 0, 0, 0, time.UTC)
+	seeder := &demoSeeder{db: db, now: now, historyDays: 1}
+	require.NoError(t, seeder.run())
+
+	var adopted domain.Customer
+	require.NoError(t, db.Where("notes = ? AND name LIKE ?", demoMarker, "Sample %").Order("id ASC").First(&adopted).Error)
+	require.NoError(t, db.Model(&adopted).Update("notes", "adopted by operator").Error)
+	var adoptedSubscription domain.Subscription
+	require.NoError(t, db.Where("customer_id = ?", adopted.ID).First(&adoptedSubscription).Error)
+
+	require.NoError(t, seeder.clean())
+
+	var retained domain.Customer
+	require.NoError(t, db.First(&retained, adopted.ID).Error)
+	require.Equal(t, "adopted by operator", retained.Notes)
+	var retainedSubscriptions int64
+	require.NoError(t, db.Model(&domain.Subscription{}).Where("customer_id = ?", adopted.ID).Count(&retainedSubscriptions).Error)
+	require.EqualValues(t, 1, retainedSubscriptions, "removing the demo marker takes the customer out of demo cleanup")
+}
+
 func assertSampleCounts(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	counts := []struct {

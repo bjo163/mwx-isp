@@ -49,25 +49,26 @@ const (
 // RadiusUser so commercial identity and network credentials have independent
 // lifecycles.
 type Customer struct {
-	ID         int64     `json:"id,string" gorm:"primaryKey"`
-	TenantID   int64     `json:"-" gorm:"not null;default:1;uniqueIndex:udx_isp_customer_tenant_no,priority:1;index"`
-	CustomerNo string    `json:"customer_no" gorm:"uniqueIndex:udx_isp_customer_tenant_no,priority:2;size:32"`
-	Name       string    `json:"name" gorm:"index;size:150;not null"`
-	Phone      string    `json:"phone" gorm:"size:32"`
-	Email      string    `json:"email" gorm:"size:150"`
-	Address    string    `json:"address" gorm:"size:500"`
-	City       string    `json:"city" gorm:"size:100"`
-	Province   string    `json:"province" gorm:"size:100"`
-	IdentityNo string    `json:"identity_no" gorm:"size:100"`
-	ODPID      int64     `json:"odp_id,string" gorm:"index"`
-	ODPCode    string    `json:"odp_code" gorm:"size:32"`
-	ODPPort    int       `json:"odp_port"`
-	Latitude   float64   `json:"latitude"`
-	Longitude  float64   `json:"longitude"`
-	Status     string    `json:"status" gorm:"index;size:24;not null;default:active"`
-	Notes      string    `json:"notes" gorm:"size:1000"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID              int64     `json:"id,string" gorm:"primaryKey"`
+	TenantID        int64     `json:"-" gorm:"not null;default:1;uniqueIndex:udx_isp_customer_tenant_no,priority:1;uniqueIndex:udx_isp_customer_registration_key,priority:1;index"`
+	CustomerNo      string    `json:"customer_no" gorm:"uniqueIndex:udx_isp_customer_tenant_no,priority:2;size:32"`
+	RegistrationKey *string   `json:"-" gorm:"size:64;uniqueIndex:udx_isp_customer_registration_key,priority:2"`
+	Name            string    `json:"name" gorm:"index;size:150;not null"`
+	Phone           string    `json:"phone" gorm:"size:32"`
+	Email           string    `json:"email" gorm:"size:150"`
+	Address         string    `json:"address" gorm:"size:500"`
+	City            string    `json:"city" gorm:"size:100"`
+	Province        string    `json:"province" gorm:"size:100"`
+	IdentityNo      string    `json:"identity_no" gorm:"size:100"`
+	ODPID           int64     `json:"odp_id,string" gorm:"index"`
+	ODPCode         string    `json:"odp_code" gorm:"size:32"`
+	ODPPort         int       `json:"odp_port"`
+	Latitude        float64   `json:"latitude"`
+	Longitude       float64   `json:"longitude"`
+	Status          string    `json:"status" gorm:"index;size:24;not null;default:active"`
+	Notes           string    `json:"notes" gorm:"size:1000"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 // TableName returns the database table name for Customer.

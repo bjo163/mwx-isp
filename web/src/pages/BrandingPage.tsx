@@ -9,7 +9,7 @@ import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
-import { useGetIdentity, useNotify } from 'react-admin';
+import { useNotify } from 'react-admin';
 import { apiRequest } from '../utils/apiClient';
 import { createAppTheme } from '../theme';
 import { BrandMark } from '../components/BrandMark';
@@ -45,7 +45,6 @@ const BrandingPreview = ({ branding, logoUrl }: { branding: ProductBranding; log
 };
 
 const BrandingPage = () => {
-  const { data: identity } = useGetIdentity();
   const { branding: currentBranding, updateBranding } = useBranding();
   const notify = useNotify();
   const [saved, setSaved] = useState<ProductBranding>(currentBranding);
@@ -57,7 +56,16 @@ const BrandingPage = () => {
   const [saving, setSaving] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
-  const isAdmin = identity?.level === 'super' || identity?.level === 'admin';
+  // Branding is a single global record; the server guards writes with
+  // requirePlatformAdmin, so only platform administrators may edit it here.
+  const isAdmin = (() => {
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem('permissions') || '[]');
+      return Array.isArray(parsed) && parsed.includes('platform_admin');
+    } catch {
+      return false;
+    }
+  })();
 
   useEffect(() => {
     let active = true;
@@ -151,7 +159,7 @@ const BrandingPage = () => {
     }
   };
 
-  if (!isAdmin) return <Box sx={{ p: 3 }}><Alert severity="error">Only Admin and Super Admin can edit product branding.</Alert></Box>;
+  if (!isAdmin) return <Box sx={{ p: 3 }}><Alert severity="error">Only platform administrators can edit product branding.</Alert></Box>;
   if (loading) return <Box sx={{ p: 3 }}><LinearProgress /></Box>;
 
   return (

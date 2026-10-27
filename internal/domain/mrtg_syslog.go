@@ -35,6 +35,7 @@ type SyslogEvent struct {
 	SeverityName string    `json:"severity_name" gorm:"size:16"`
 	Tag          string    `json:"tag" gorm:"index;size:64"` // e.g. pppoe, system, firewall
 	Message      string    `json:"message" gorm:"type:text"`
+	Synthetic    bool      `json:"synthetic" gorm:"not null;default:false;index"`
 	CreatedAt    time.Time `json:"created_at" gorm:"index"`
 }
 

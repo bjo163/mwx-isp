@@ -36,7 +36,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotify } from 'react-admin';
 import { apiRequest, extractData } from '../utils/apiClient';
-import { ConsoleBox, KpiStrip, KpiTile, Mono, PageHeader, Panel, StatusChip } from '../components/Enterprise';
+import { ConsoleBox, KpiStrip, KpiTile, Mono, PageHeader, Panel, QueryFeedback, StatusChip } from '../components/Enterprise';
 
 interface IPAMPool {
   id: string;
@@ -48,6 +48,7 @@ interface IPAMPool {
   dns_primary: string;
   dns_secondary: string;
   total_ips: number;
+  capacity_label?: string;
   used_ips: number;
   description: string;
   created_at: string;
@@ -208,76 +209,74 @@ export const IPAMPage: React.FC = () => {
 
       {/* Tab 0: Subnet Pools */}
       {tab === 0 && (
-        <Stack spacing={2.5}>
-          {poolsQuery.isLoading ? (
-            <LinearProgress />
-          ) : pools.length === 0 ? (
-            <Card variant="outlined">
-              <CardContent sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-                <AccountTree sx={{ fontSize: 48, opacity: 0.4, mb: 1 }} />
-                <Typography variant="h6">No IPAM Pools Configured</Typography>
-                <Typography variant="caption">
-                  Add CGNAT, Public IP, or IPv6 prefix pools to track subnet utilization.
-                </Typography>
-              </CardContent>
-            </Card>
-          ) : (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-                gap: 2,
-              }}
-            >
-              {pools.map((p) => {
-                const used = p.used_ips || 0;
-                const total = p.total_ips || 1;
-                const percent = Math.min(100, Math.round((used / total) * 100));
-                return (
-                  <Card key={p.id} variant="outlined">
-                    <CardContent sx={{ p: 2 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                        <Typography variant="subtitle1" fontWeight={700}>
-                          {p.name}
-                        </Typography>
-                        <StatusChip value={p.pool_type} />
-                      </Stack>
-
-                      <Typography variant="body2" sx={{ color: 'primary.main', mb: 1.5 }}>
-                        <Mono>{p.cidr}</Mono>
+        <QueryFeedback
+          loading={poolsQuery.isLoading}
+          error={poolsQuery.error}
+          isEmpty={pools.length === 0}
+          onRetry={() => void poolsQuery.refetch()}
+          emptyIcon={<AccountTree sx={{ fontSize: 48, opacity: 0.4 }} />}
+          emptyTitle="No IPAM Pools Configured"
+          emptyHint="Add CGNAT, Public IP, or IPv6 prefix pools to track subnet utilization."
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+              gap: 2,
+            }}
+          >
+            {pools.map((p) => {
+              const used = p.used_ips || 0;
+              const hasExactTotal = p.total_ips > 0;
+              const percent = hasExactTotal ? Math.min(100, Math.round((used / p.total_ips) * 100)) : undefined;
+              return (
+                <Card key={p.id} variant="outlined">
+                  <CardContent sx={{ p: 2 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        {p.name}
                       </Typography>
+                      <StatusChip value={p.pool_type} />
+                    </Stack>
 
-                      <Box sx={{ mb: 1.5 }}>
-                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            Utilization
-                          </Typography>
-                          <Typography variant="caption" fontWeight={700}>
-                            {used} / {total} IPs ({percent}%)
-                          </Typography>
-                        </Stack>
+                    <Typography variant="body2" sx={{ color: 'primary.main', mb: 1.5 }}>
+                      <Mono>{p.cidr}</Mono>
+                    </Typography>
+
+                    <Box sx={{ mb: 1.5 }}>
+                      <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Utilization
+                        </Typography>
+                        <Typography variant="caption" fontWeight={700}>
+                          {percent !== undefined
+                            ? `${used} / ${p.total_ips} IPs (${percent}%)`
+                            : `${used} used · ${p.capacity_label || 'capacity too large to count'}`}
+                        </Typography>
+                      </Stack>
+                      {percent !== undefined && (
                         <LinearProgress
                           variant="determinate"
                           value={percent}
                           color={percent > 85 ? 'error' : percent > 65 ? 'warning' : 'primary'}
                           sx={{ height: 6, borderRadius: 1 }}
                         />
-                      </Box>
+                      )}
+                    </Box>
 
-                      <Divider sx={{ my: 1 }} />
+                    <Divider sx={{ my: 1 }} />
 
-                      <Stack spacing={0.5} sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                        <div>Gateway: <strong>{p.gateway || '—'}</strong></div>
-                        <div>DNS: <strong>{p.dns_primary || '1.1.1.1'}</strong> {p.dns_secondary && `, ${p.dns_secondary}`}</div>
-                        {p.description && <div>Note: {p.description}</div>}
-                      </Stack>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </Box>
-          )}
-        </Stack>
+                    <Stack spacing={0.5} sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                      <div>Gateway: <strong>{p.gateway || '—'}</strong></div>
+                      <div>DNS: <strong>{p.dns_primary || '1.1.1.1'}</strong> {p.dns_secondary && `, ${p.dns_secondary}`}</div>
+                      {p.description && <div>Note: {p.description}</div>}
+                    </Stack>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Box>
+        </QueryFeedback>
       )}
 
       {/* Tab 1: Reverse IP Audit Trail */}

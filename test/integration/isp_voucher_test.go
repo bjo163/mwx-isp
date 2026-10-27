@@ -205,6 +205,11 @@ func TestCustomerRegistrationAndTicketsSharePostgresSequenceConcurrently(t *test
 			}
 			req.Header.Set("Authorization", "Bearer "+client.token)
 			req.Header.Set("Content-Type", "application/json")
+			if index%2 != 0 {
+				// Each public registration represents a distinct caller; sharing
+				// the loopback address would exhaust the burst-3 rate limit.
+				req.Header.Set("X-Forwarded-For", fmt.Sprintf("198.51.100.%d", index+1))
+			}
 			resp, err := client.http.Do(req)
 			if err != nil {
 				results <- result{body: []byte(err.Error()), expected: expectedStatus}
@@ -236,8 +241,14 @@ func TestCustomerRegistrationAndTicketsSharePostgresSequenceConcurrently(t *test
 	}
 	require.Len(t, seen, requestCount)
 
+	// Scope the DB assertion to the ticket/work-order numbers this test actually
+	// created, so unrelated pre-existing TCK/WO rows cannot skew the count.
+	ticketNos := make([]string, 0, len(seen))
+	for no := range seen {
+		ticketNos = append(ticketNos, no)
+	}
 	var ticketCount int64
-	require.NoError(t, db.Model(&domain.TroubleTicket{}).Where("ticket_no LIKE ? OR ticket_no LIKE ?", "TCK-%", "WO-%").Count(&ticketCount).Error)
+	require.NoError(t, db.Model(&domain.TroubleTicket{}).Where("ticket_no IN ?", ticketNos).Count(&ticketCount).Error)
 	assert.EqualValues(t, requestCount, ticketCount)
 	var customerCount int64
 	require.NoError(t, db.Model(&domain.Customer{}).Where("name LIKE ?", "Concurrent customer "+suffix+"%").Count(&customerCount).Error)
@@ -297,6 +308,79 @@ func TestCustomerRegistrationAndTicketsSharePostgresSequenceConcurrently(t *test
 	var flapCount int64
 	require.NoError(t, db.Model(&domain.TroubleTicket{}).Where("ticket_no = ?", flapTicketNo).Count(&flapCount).Error)
 	assert.EqualValues(t, 1, flapCount)
+}
+
+func TestVoucherRevokeRejectsReauthenticationAndIsIdempotent(t *testing.T) {
+	db := h.appCtx.DB()
+	suffix := uniqueSuffix()
+	profileID := seedProfile(t, "it-voucher-revoke-"+suffix)
+	pkg := domain.InternetPackage{
+		Code: "IT-REVOKE-" + suffix, Name: "Integration revoke " + suffix,
+		Status: "active", RadiusProfileID: profileID,
+	}
+	require.NoError(t, db.Create(&pkg).Error)
+	client := newAPIClient(t)
+
+	payload, err := json.Marshal(map[string]any{
+		"name": "Revoke test " + suffix, "package_id": fmt.Sprint(pkg.ID),
+		"quantity": 1, "validity_seconds": 3600, "quota_mb": 0,
+		"code_length": 12, "same_user_pass": true,
+	})
+	require.NoError(t, err)
+	status, body := client.post(t, "/api/v1/isp/vouchers/generate", payload)
+	require.Equalf(t, http.StatusOK, status, "generation response: %s", string(body))
+	var generated struct {
+		Data struct {
+			Batch domain.HotspotBatch `json:"batch"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(body, &generated))
+
+	var voucher domain.HotspotVoucher
+	require.NoError(t, db.Where("batch_id = ?", generated.Data.Batch.ID).First(&voucher).Error)
+	require.NotZero(t, voucher.RadiusUserID)
+
+	const secret = "it-voucher-revoke-secret"
+	nasIP := uniqueNASIP()
+	nasID := "it-voucher-revoke-nas-" + suffix
+	nas := domain.NetNas{ID: common.UUIDint64(), Identifier: nasID, Ipaddr: nasIP, Secret: secret, VendorCode: "0", Status: common.ENABLED}
+	require.NoError(t, db.Create(&nas).Error)
+	serverAddr := fmt.Sprintf("127.0.0.1:%d", h.cfg.Radiusd.AuthPort)
+
+	accepted := exchange(t, serverAddr, secret, voucher.Code, voucher.Password, nasID, nasIP)
+	require.Equal(t, radius.CodeAccessAccept, accepted.Code)
+	releaseIntegrationAuthRateLimit(voucher.Code)
+
+	status, body = client.post(t, fmt.Sprintf("/api/v1/isp/vouchers/%d/revoke", voucher.ID), nil)
+	require.Equalf(t, http.StatusOK, status, "revoke response: %s", string(body))
+	var revoke struct {
+		Data struct {
+			Status         string `json:"status"`
+			AlreadyRevoked bool   `json:"already_revoked"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(body, &revoke))
+	assert.Equal(t, "revoked", revoke.Data.Status)
+	assert.False(t, revoke.Data.AlreadyRevoked)
+
+	var storedVoucher domain.HotspotVoucher
+	require.NoError(t, db.First(&storedVoucher, voucher.ID).Error)
+	assert.Equal(t, "revoked", storedVoucher.Status)
+	var storedUser domain.RadiusUser
+	require.NoError(t, db.First(&storedUser, voucher.RadiusUserID).Error)
+	assert.Equal(t, common.DISABLED, storedUser.Status)
+
+	releaseIntegrationAuthRateLimit(voucher.Code)
+	rejected := exchange(t, serverAddr, secret, voucher.Code, voucher.Password, nasID, nasIP)
+	assert.Equal(t, radius.CodeAccessReject, rejected.Code, "a revoked voucher must not reauthenticate")
+
+	status, body = client.post(t, fmt.Sprintf("/api/v1/isp/vouchers/%d/revoke", voucher.ID), nil)
+	require.Equalf(t, http.StatusOK, status, "idempotent revoke response: %s", string(body))
+	require.NoError(t, json.Unmarshal(body, &revoke))
+	assert.True(t, revoke.Data.AlreadyRevoked)
+
+	status, body = client.delete(t, fmt.Sprintf("/api/v1/isp/vouchers/batches/%d", generated.Data.Batch.ID))
+	require.Equalf(t, http.StatusOK, status, "batch cleanup response: %s", string(body))
 }
 
 func batchIDs(batches []domain.HotspotBatch) []int64 {

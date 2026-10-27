@@ -280,10 +280,10 @@ func isEmptyValue(v interface{}) bool {
 func registerUserRoutes() {
 	webserver.ApiGET("/users", listRadiusUsers)
 	webserver.ApiGET("/users/:id", getRadiusUser)
-	webserver.ApiPOST("/users", createRadiusUser)
-	webserver.ApiPOST("/users/import", importRadiusUsers)
-	webserver.ApiPUT("/users/:id", updateRadiusUser)
-	webserver.ApiDELETE("/users/:id", deleteRadiusUser)
+	webserver.ApiPOST("/users", createRadiusUser, requireAdmin())
+	webserver.ApiPOST("/users/import", importRadiusUsers, requireAdmin())
+	webserver.ApiPUT("/users/:id", updateRadiusUser, requireAdmin())
+	webserver.ApiDELETE("/users/:id", deleteRadiusUser, requireAdmin())
 }
 
 func listRadiusUsers(c echo.Context) error {

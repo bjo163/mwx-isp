@@ -10,10 +10,20 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+)
+
+const (
+	// maxSyslogPayloadBytes bounds a single datagram so a hostile or verbose
+	// device cannot force multi-megabyte rows into the database.
+	maxSyslogPayloadBytes = 2048
+	// sourceRateLimit is the per-source-IP packet budget per sourceRateWindow.
+	sourceRateLimit  = 120
+	sourceRateWindow = time.Minute
 )
 
 var severityNames = map[int]string{
@@ -42,9 +52,59 @@ type Server struct {
 	conn    *net.UDPConn
 	queue   chan *domain.SyslogEvent
 	stopCh  chan struct{}
+	limiter *sourceLimiter
 	wg      sync.WaitGroup
 	mu      sync.Mutex
 	running bool
+}
+
+// sourceLimiter enforces a per-source-IP fixed-window packet budget so one
+// misbehaving device cannot exhaust the ingestion queue.
+type sourceLimiter struct {
+	mu     sync.Mutex
+	window map[string]sourceWindow
+}
+
+type sourceWindow struct {
+	start time.Time
+	count int
+}
+
+func newSourceLimiter() *sourceLimiter {
+	return &sourceLimiter{window: make(map[string]sourceWindow)}
+}
+
+func (l *sourceLimiter) allow(ip string, now time.Time) bool {
+	if ip == "" {
+		return true
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	current, ok := l.window[ip]
+	if !ok || now.Sub(current.start) >= sourceRateWindow {
+		l.window[ip] = sourceWindow{start: now, count: 1}
+		l.pruneLocked(now)
+		return true
+	}
+	if current.count >= sourceRateLimit {
+		return false
+	}
+	current.count++
+	l.window[ip] = current
+	return true
+}
+
+// pruneLocked keeps the per-source map bounded by dropping expired sources
+// once the map grows beyond a realistic number of NAS devices.
+func (l *sourceLimiter) pruneLocked(now time.Time) {
+	if len(l.window) < 1024 {
+		return
+	}
+	for ip, window := range l.window {
+		if now.Sub(window.start) >= 2*sourceRateWindow {
+			delete(l.window, ip)
+		}
+	}
 }
 
 // NewServer creates a new Syslog UDP server instance.
@@ -53,10 +113,11 @@ func NewServer(db *gorm.DB, addr string) *Server {
 		addr = ":1514"
 	}
 	return &Server{
-		db:     db,
-		addr:   addr,
-		queue:  make(chan *domain.SyslogEvent, 1024),
-		stopCh: make(chan struct{}),
+		db:      db,
+		addr:    addr,
+		queue:   make(chan *domain.SyslogEvent, 1024),
+		stopCh:  make(chan struct{}),
+		limiter: newSourceLimiter(),
 	}
 }
 
@@ -126,10 +187,15 @@ func (s *Server) listener() {
 			}
 		}
 
-		raw := string(buf[:n])
+		raw := truncateSyslogPayload(string(buf[:n]))
 		remoteIP := ""
 		if udp, ok := remoteAddr.(*net.UDPAddr); ok {
 			remoteIP = udp.IP.String()
+		}
+
+		if !s.limiter.allow(remoteIP, time.Now()) {
+			zap.L().Debug("syslog packet dropped by source rate limit", zap.String("source", remoteIP))
+			continue
 		}
 
 		event := ParseSyslogPacket(raw, remoteIP)
@@ -203,6 +269,21 @@ var (
 	rfc3164HeaderRegex = regexp.MustCompile(`^[A-Z][a-z]{2}\s+\d+\s+\d{2}:\d{2}:\d{2}(?:\s+[^\s:]+)?\s+`)
 	rfc5424HeaderRegex = regexp.MustCompile(`^1\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(?:-\s+)?`)
 )
+
+// truncateSyslogPayload caps an oversized datagram, keeping the result valid
+// UTF-8 and marking the truncation so operators can see what happened.
+func truncateSyslogPayload(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if len(raw) <= maxSyslogPayloadBytes {
+		return raw
+	}
+	const marker = " [truncated]"
+	cut := maxSyslogPayloadBytes - len(marker)
+	for cut > 0 && !utf8.RuneStart(raw[cut]) {
+		cut--
+	}
+	return strings.ToValidUTF8(raw[:cut], "") + marker
+}
 
 // ParseSyslogPacket parses an RFC 3164 or RFC 5424 syslog string into a domain.SyslogEvent.
 func ParseSyslogPacket(raw, remoteIP string) *domain.SyslogEvent {

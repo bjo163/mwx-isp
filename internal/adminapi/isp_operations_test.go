@@ -4,16 +4,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/bjo163/mwx-isp/internal/app"
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"github.com/bjo163/mwx-isp/pkg/common"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
+	"layeh.com/radius"
 )
 
 func TestISPOperations(t *testing.T) {
@@ -28,6 +33,8 @@ func TestISPOperations(t *testing.T) {
 		&domain.TroubleTicket{},
 		&domain.RadiusUser{},
 		&domain.Customer{},
+		&domain.NotificationSettings{},
+		&domain.NotificationOutbox{},
 	))
 	profile := domain.RadiusProfile{Name: "Hotspot 10 Mbps", Status: "enabled", UpRate: 10000, DownRate: 10000, ActiveNum: 1}
 	require.NoError(t, db.Create(&profile).Error)
@@ -141,6 +148,17 @@ func TestISPOperations(t *testing.T) {
 	assert.Equal(t, "urgent", ticketRes.Data.Priority)
 	assert.Equal(t, "open", ticketRes.Data.Status)
 
+	// Dispatch only claims success when the outbox actually queued a message,
+	// so enable the event for one allowlisted recipient first.
+	acknowledged := time.Now()
+	require.NoError(t, db.Create(&domain.NotificationSettings{
+		TenantID:           domain.DefaultTenantID,
+		WhatsAppEnabled:    true,
+		RiskAcknowledgedAt: &acknowledged,
+		RecipientsJSON:     `["+6281234567890"]`,
+		EventsJSON:         `["ticket.assigned"]`,
+	}).Error)
+
 	// Dispatch ticket WhatsApp
 	reqDispatch := httptest.NewRequest(http.MethodPost, "/api/v1/isp/tickets/"+strconv.FormatInt(ticketRes.Data.ID, 10)+"/dispatch", nil)
 	recDispatch := httptest.NewRecorder()
@@ -150,7 +168,20 @@ func TestISPOperations(t *testing.T) {
 
 	err = dispatchTicketWhatsApp(cDispatch)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, recDispatch.Code)
+	require.Equal(t, http.StatusOK, recDispatch.Code, recDispatch.Body.String())
+
+	var dispatchRes struct {
+		Data struct {
+			Queued int `json:"queued"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(recDispatch.Body.Bytes(), &dispatchRes))
+	assert.Equal(t, 1, dispatchRes.Data.Queued)
+	var outbox domain.NotificationOutbox
+	require.NoError(t, db.First(&outbox).Error)
+	assert.Equal(t, "ticket.assigned", outbox.EventType)
+	assert.Equal(t, "6281234567890", outbox.Recipient)
+	assert.Contains(t, outbox.Body, "Budi Lapangan")
 
 	// 5. Test Live Ping Tool
 	pingPayload := []byte(`{"host": "127.0.0.1", "count": 2}`)
@@ -239,6 +270,62 @@ func TestVoucherBatchNumbersUseAtomicDailySequence(t *testing.T) {
 	assert.NotEqual(t, batches[0].BatchNo, batches[1].BatchNo)
 	assert.Equal(t, "BATCH-"+time.Now().Format("060102")+"-000001", batches[0].BatchNo)
 	assert.Equal(t, "BATCH-"+time.Now().Format("060102")+"-000002", batches[1].BatchNo)
+}
+
+func TestVoucherBatchPaginationSupportsFullPrint(t *testing.T) {
+	db, e, appCtx := CreateTestAppContext(t)
+	require.NoError(t, db.AutoMigrate(&domain.HotspotBatch{}, &domain.HotspotVoucher{}, &domain.InternetPackage{}, &domain.RadiusProfile{}, &domain.RadiusUser{}, &domain.DocumentSequence{}))
+	profile := domain.RadiusProfile{Name: "Print profile", Status: "enabled"}
+	require.NoError(t, db.Create(&profile).Error)
+	pkg := domain.InternetPackage{Code: "PRINT-250", Name: "Print 250", Status: "active", RadiusProfileID: profile.ID}
+	require.NoError(t, db.Create(&pkg).Error)
+
+	body := []byte(`{"package_id":"` + strconv.FormatInt(pkg.ID, 10) + `","quantity":250,"code_length":8}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/isp/vouchers/generate", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	require.NoError(t, generateVouchers(CreateTestContext(e, db, req, rec, appCtx)))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	var batch domain.HotspotBatch
+	require.NoError(t, db.Order("id DESC").First(&batch).Error)
+	require.EqualValues(t, 250, batch.Quantity)
+
+	// Mirror the print dialog: walk every page of the batch instead of trusting
+	// a single page capped at 100 rows.
+	seen := make(map[string]struct{}, 250)
+	var reportedTotal int64
+	for page := 1; ; page++ {
+		listReq := httptest.NewRequest(http.MethodGet,
+			fmt.Sprintf("/api/v1/isp/vouchers?batch_id=%d&page=%d&perPage=100", batch.ID, page), nil)
+		listRec := httptest.NewRecorder()
+		require.NoError(t, listVouchers(CreateTestContext(e, db, listReq, listRec, appCtx)))
+		require.Equal(t, http.StatusOK, listRec.Code, listRec.Body.String())
+		var payload struct {
+			Data []domain.HotspotVoucher `json:"data"`
+			Meta struct {
+				Total    int64 `json:"total"`
+				Page     int   `json:"page"`
+				PageSize int   `json:"pageSize"`
+			} `json:"meta"`
+		}
+		require.NoError(t, json.Unmarshal(listRec.Body.Bytes(), &payload))
+		assert.Equal(t, page, payload.Meta.Page)
+		assert.Equal(t, 100, payload.Meta.PageSize)
+		reportedTotal = payload.Meta.Total
+		if len(payload.Data) == 0 {
+			break
+		}
+		for _, voucher := range payload.Data {
+			assert.Equal(t, batch.ID, voucher.BatchID)
+			seen[voucher.Code] = struct{}{}
+		}
+		if int64(len(seen)) >= reportedTotal {
+			break
+		}
+	}
+	assert.EqualValues(t, 250, reportedTotal, "server must report the full batch size")
+	assert.Len(t, seen, 250, "printing must see 250 unique voucher codes across pages")
 }
 
 func TestDeleteVoucherBatchReportsMissingAndRemovesCredentials(t *testing.T) {
@@ -390,22 +477,22 @@ func TestAuditIPHistoryValidationAndTemporalFiltering(t *testing.T) {
 	baseTime := time.Date(2026, 10, 5, 8, 0, 0, 0, time.UTC)
 	// Active session started at 08:00
 	require.NoError(t, db.Create(&domain.RadiusOnline{
-		Username:       "user_current",
-		FramedIpaddr:   "100.64.10.5",
-		AcctSessionId:  "SESS-001",
-		AcctStartTime:  baseTime,
-		LastUpdate:     baseTime.Add(30 * time.Minute),
+		Username:      "user_current",
+		FramedIpaddr:  "100.64.10.5",
+		AcctSessionId: "SESS-001",
+		AcctStartTime: baseTime,
+		LastUpdate:    baseTime.Add(30 * time.Minute),
 	}).Error)
 
 	// Historical session yesterday
 	yesterdayStart := baseTime.Add(-24 * time.Hour)
 	yesterdayStop := yesterdayStart.Add(2 * time.Hour)
 	require.NoError(t, db.Create(&domain.RadiusAccounting{
-		Username:       "user_yesterday",
-		FramedIpaddr:   "100.64.10.5",
-		AcctSessionId:  "SESS-000",
-		AcctStartTime:  yesterdayStart,
-		AcctStopTime:   yesterdayStop,
+		Username:        "user_yesterday",
+		FramedIpaddr:    "100.64.10.5",
+		AcctSessionId:   "SESS-000",
+		AcctStartTime:   yesterdayStart,
+		AcctStopTime:    yesterdayStop,
 		AcctSessionTime: 7200,
 	}).Error)
 
@@ -501,4 +588,118 @@ func TestLivePingProbeIPv4AndIPv6Handling(t *testing.T) {
 	require.NoError(t, json.Unmarshal(recIPv6.Body.Bytes(), &resIPv6))
 	assert.Equal(t, "[::1]:80", resIPv6.Data.TargetAddr)
 	assert.Equal(t, "80", resIPv6.Data.Port)
+}
+
+func newVoucherRevokeCtx(t *testing.T, db *gorm.DB, appCtx app.AppContext, id int64) (echo.Context, *httptest.ResponseRecorder) {
+	t.Helper()
+	e := setupTestEcho()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/isp/vouchers/"+strconv.FormatInt(id, 10)+"/revoke", nil)
+	rec := httptest.NewRecorder()
+	c := CreateTestContext(e, db, req, rec, appCtx)
+	c.SetParamNames("id")
+	c.SetParamValues(strconv.FormatInt(id, 10))
+	return c, rec
+}
+
+type voucherRevokeBody struct {
+	Data struct {
+		Status               string `json:"status"`
+		AlreadyRevoked       bool   `json:"already_revoked"`
+		DisconnectedSessions int    `json:"disconnected_sessions"`
+		FailedDisconnects    int    `json:"failed_disconnects"`
+	} `json:"data"`
+}
+
+func TestRevokeVoucherDisablesCredentialAndDisconnectsLiveSessions(t *testing.T) {
+	db := setupTestDB(t)
+	require.NoError(t, db.AutoMigrate(&domain.HotspotBatch{}, &domain.HotspotVoucher{}))
+	appCtx := setupTestApp(t, db)
+
+	nas := newFakeCoANAS(t, coaTestSecret, radius.CodeDisconnectACK, 0)
+	nasRow := &domain.NetNas{
+		Name: "voucher-nas", Identifier: "voucher-nas", Ipaddr: "127.0.0.1",
+		Secret: coaTestSecret, CoaPort: nas.port(t), Status: common.ENABLED,
+	}
+	require.NoError(t, db.Create(nasRow).Error)
+	user := &domain.RadiusUser{
+		ID: common.UUIDint64(), Username: "HOT-REVOKE", Password: "HOT-REVOKE",
+		Status: common.ENABLED, ExpireTime: time.Now().Add(time.Hour),
+	}
+	require.NoError(t, db.Create(user).Error)
+	voucher := &domain.HotspotVoucher{
+		BatchID: 1, PackageID: 1, RadiusUserID: user.ID, Code: user.Username,
+		Password: user.Password, ValiditySeconds: 3600, Status: "used",
+	}
+	require.NoError(t, db.Create(voucher).Error)
+	session := &domain.RadiusOnline{
+		Username: user.Username, NasId: nasRow.Identifier, NasAddr: nasRow.Ipaddr,
+		AcctSessionId: "revoke-live-session", AcctStartTime: time.Now().Add(-time.Minute),
+	}
+	require.NoError(t, db.Create(session).Error)
+
+	c, rec := newVoucherRevokeCtx(t, db, appCtx, voucher.ID)
+	require.NoError(t, revokeVoucher(c))
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var body voucherRevokeBody
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	assert.Equal(t, "revoked", body.Data.Status)
+	assert.False(t, body.Data.AlreadyRevoked)
+	assert.Equal(t, 1, body.Data.DisconnectedSessions)
+	assert.Equal(t, 0, body.Data.FailedDisconnects)
+
+	var storedVoucher domain.HotspotVoucher
+	require.NoError(t, db.First(&storedVoucher, voucher.ID).Error)
+	assert.Equal(t, "revoked", storedVoucher.Status)
+	var storedUser domain.RadiusUser
+	require.NoError(t, db.First(&storedUser, user.ID).Error)
+	assert.Equal(t, common.DISABLED, storedUser.Status)
+
+	received := nas.snapshot()
+	require.Len(t, received, 1, "the live session must receive one Disconnect-Request")
+	assert.Equal(t, radius.CodeDisconnectRequest, received[0].code)
+	assert.Equal(t, user.Username, received[0].username)
+	assert.Equal(t, session.AcctSessionId, received[0].acctSessionID)
+
+	// A second revoke (operator retry or double click) is idempotent and must
+	// not send another Disconnect-Request.
+	c2, rec2 := newVoucherRevokeCtx(t, db, appCtx, voucher.ID)
+	require.NoError(t, revokeVoucher(c2))
+	require.Equal(t, http.StatusOK, rec2.Code)
+	var body2 voucherRevokeBody
+	require.NoError(t, json.Unmarshal(rec2.Body.Bytes(), &body2))
+	assert.True(t, body2.Data.AlreadyRevoked)
+	assert.Equal(t, 0, body2.Data.DisconnectedSessions)
+	assert.Len(t, nas.snapshot(), 1)
+}
+
+func TestRevokeVoucherRejectsExpiredVoucher(t *testing.T) {
+	db := setupTestDB(t)
+	require.NoError(t, db.AutoMigrate(&domain.HotspotBatch{}, &domain.HotspotVoucher{}))
+	appCtx := setupTestApp(t, db)
+
+	user := &domain.RadiusUser{
+		ID: common.UUIDint64(), Username: "HOT-EXPIRED", Password: "HOT-EXPIRED",
+		Status: common.ENABLED, ExpireTime: time.Now().Add(-time.Hour),
+	}
+	require.NoError(t, db.Create(user).Error)
+	past := time.Now().Add(-time.Hour)
+	voucher := &domain.HotspotVoucher{
+		BatchID: 1, PackageID: 1, RadiusUserID: user.ID, Code: user.Username,
+		Password: user.Password, ValiditySeconds: 3600, Status: "expired",
+		FirstLoginAt: &past, ExpiresAt: &past,
+	}
+	require.NoError(t, db.Create(voucher).Error)
+
+	c, rec := newVoucherRevokeCtx(t, db, appCtx, voucher.ID)
+	require.NoError(t, revokeVoucher(c))
+	require.Equal(t, http.StatusConflict, rec.Code)
+	assert.Equal(t, "VOUCHER_EXPIRED", decodeErr(t, rec).Error)
+
+	var storedVoucher domain.HotspotVoucher
+	require.NoError(t, db.First(&storedVoucher, voucher.ID).Error)
+	assert.Equal(t, "expired", storedVoucher.Status)
+	var storedUser domain.RadiusUser
+	require.NoError(t, db.First(&storedUser, user.ID).Error)
+	assert.Equal(t, common.ENABLED, storedUser.Status)
 }

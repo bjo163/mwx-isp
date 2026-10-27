@@ -1,6 +1,7 @@
 package radiusd
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"testing"
@@ -146,6 +147,76 @@ func TestHotspotVoucherValidityStartsOnceAndIsTenantScoped(t *testing.T) {
 	require.Equal(t, "expired", activated.Status)
 	require.NoError(t, db.Where("tenant_id = ? AND id = ?", 2, otherTenantVoucher.ID).First(&otherTenantVoucher).Error)
 	require.Equal(t, "active", otherTenantVoucher.Status)
+}
+
+func TestHotspotVoucherConcurrentFirstLoginSharesOneWindow(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open("file:radius-voucher-concurrent?mode=memory&cache=shared"), &gorm.Config{})
+	require.NoError(t, err)
+	// SQLite upgrades read transactions to write locks and reports a deadlock
+	// instead of waiting, so serialize callers through a single connection. The
+	// cross-instance guarantee is the conditional UPDATE in
+	// activateHotspotVoucher; this test proves every concurrent caller shares its
+	// outcome. PostgreSQL exercises the same statement with real row locking in
+	// test/integration.
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	sqlDB.SetMaxOpenConns(1)
+	require.NoError(t, tenancy.RegisterCallbacks(db))
+	require.NoError(t, db.AutoMigrate(&domain.HotspotVoucher{}, &domain.RadiusUser{}))
+
+	now := time.Date(2026, time.October, 5, 12, 0, 0, 0, time.UTC)
+	const workers = 8
+	user := domain.RadiusUser{ID: 701, TenantID: 1, Username: "HOT-CONCURRENT", Status: "enabled", ExpireTime: now.AddDate(1, 0, 0)}
+	require.NoError(t, db.Create(&user).Error)
+	voucher := domain.HotspotVoucher{ID: 702, TenantID: 1, Code: user.Username, Status: "active", ValiditySeconds: 3600, CreatedAt: now.Add(-time.Hour)}
+	require.NoError(t, db.Create(&voucher).Error)
+
+	type result struct {
+		expiry time.Time
+		err    error
+	}
+	results := make(chan result, workers)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+			<-start
+			candidate := &domain.RadiusUser{ID: user.ID, TenantID: 1, Username: user.Username, Status: "enabled"}
+			expiry, found, err := activateHotspotVoucher(db, 1, candidate, now)
+			if err != nil {
+				results <- result{err: err}
+				return
+			}
+			if !found {
+				results <- result{err: fmt.Errorf("voucher row was not found")}
+				return
+			}
+			results <- result{expiry: expiry}
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	wantExpiry := now.Add(time.Hour)
+	accepted := 0
+	for res := range results {
+		require.NoError(t, res.err)
+		require.True(t, res.expiry.Equal(wantExpiry), "every concurrent first login must see the same expiry, got %v", res.expiry)
+		accepted++
+	}
+	require.Equal(t, workers, accepted)
+
+	var stored domain.HotspotVoucher
+	require.NoError(t, db.Where("tenant_id = ? AND id = ?", 1, voucher.ID).First(&stored).Error)
+	require.Equal(t, "used", stored.Status)
+	require.NotNil(t, stored.FirstLoginAt)
+	require.True(t, stored.ExpiresAt.Equal(wantExpiry))
+	var storedUser domain.RadiusUser
+	require.NoError(t, db.Where("tenant_id = ? AND id = ?", 1, user.ID).First(&storedUser).Error)
+	require.True(t, storedUser.ExpireTime.Equal(wantExpiry))
 }
 
 func TestMarkExpiredHotspotVoucherIsTenantScoped(t *testing.T) {

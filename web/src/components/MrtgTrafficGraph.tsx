@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Box,
+  Button,
   Card,
   CardContent,
   CircularProgress,
@@ -41,6 +42,16 @@ export interface TrafficSeriesResponse {
   total_in_bytes: number;
   total_out_bytes: number;
   points: TrafficPoint[];
+  scope: 'nas_interface' | 'subscriber_session' | string;
+  in_label: string;
+  out_label: string;
+  last_updated?: string;
+  stale: boolean;
+  stale_after_seconds?: number;
+  sample_count: number;
+  data_available: boolean;
+  counter_resets?: number;
+  missing_intervals?: number;
 }
 
 export const formatBps = (bps: number): string => {
@@ -91,7 +102,7 @@ export const MrtgTrafficGraph: React.FC<MrtgTrafficGraphProps> = ({
     return `${cleanEndpoint}?${params.toString()}`;
   }, [endpoint, timeRange, selectedInterface]);
 
-  const { data, isLoading, isFetching, refetch } = useQuery<TrafficSeriesResponse>({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery<TrafficSeriesResponse>({
     queryKey: ['mrtg-traffic', queryUrl],
     queryFn: async () => {
       const payload = await apiRequest<unknown>(queryUrl);
@@ -102,6 +113,11 @@ export const MrtgTrafficGraph: React.FC<MrtgTrafficGraphProps> = ({
 
   const availableInterfaces = data?.available_interfaces ?? [];
   const currentInterface = data?.interface_name || selectedInterface || (availableInterfaces[0] ?? '');
+  const inLabel = data?.in_label || 'Inbound';
+  const outLabel = data?.out_label || 'Outbound';
+  const lastUpdatedLabel = data?.last_updated
+    ? new Date(data.last_updated).toLocaleString([], { dateStyle: 'medium', timeStyle: 'medium' })
+    : undefined;
 
   // ECharts options
   const chartOption = useMemo(() => {
@@ -150,7 +166,7 @@ export const MrtgTrafficGraph: React.FC<MrtgTrafficGraphProps> = ({
         },
       },
       legend: {
-        data: ['Inbound / Download', 'Outbound / Upload'],
+        data: [inLabel, outLabel],
         textStyle: { color: theme.palette.text.secondary },
         top: 0,
         right: 10,
@@ -191,7 +207,7 @@ export const MrtgTrafficGraph: React.FC<MrtgTrafficGraphProps> = ({
       },
       series: [
         {
-          name: 'Inbound / Download',
+          name: inLabel,
           type: 'line',
           smooth: true,
           showSymbol: false,
@@ -213,7 +229,7 @@ export const MrtgTrafficGraph: React.FC<MrtgTrafficGraphProps> = ({
           },
         },
         {
-          name: 'Outbound / Upload',
+          name: outLabel,
           type: 'line',
           smooth: true,
           showSymbol: false,
@@ -236,7 +252,7 @@ export const MrtgTrafficGraph: React.FC<MrtgTrafficGraphProps> = ({
         },
       ],
     };
-  }, [data, isDark, theme, timeRange]);
+  }, [data, isDark, theme, timeRange, inLabel, outLabel]);
 
   return (
     <Card
@@ -337,6 +353,38 @@ export const MrtgTrafficGraph: React.FC<MrtgTrafficGraphProps> = ({
             </Tooltip>
           </Stack>
         </Stack>
+
+        {(data || isError) && (
+          <Stack direction="row" spacing={1.5} flexWrap="wrap" sx={{ mb: 1.5 }}>
+            {isError && (
+              <Typography variant="caption" color="error.main" fontWeight={700}>
+                Failed to load telemetry: {(error as Error)?.message || 'unknown error'}
+              </Typography>
+            )}
+            {data && (
+              <Typography
+                variant="caption"
+                color={data.stale ? 'warning.main' : 'text.secondary'}
+                fontWeight={data.stale ? 700 : 500}
+              >
+                {lastUpdatedLabel ? `Last sample: ${lastUpdatedLabel}` : 'No samples recorded'}
+                {data.stale && data.stale_after_seconds
+                  ? ` · stale, no update for over ${Math.round(data.stale_after_seconds / 60)} min`
+                  : ''}
+              </Typography>
+            )}
+            {data && (data.counter_resets ?? 0) > 0 && (
+              <Typography variant="caption" color="warning.main" fontWeight={600}>
+                {data.counter_resets} counter reset interval(s) excluded
+              </Typography>
+            )}
+            {data && (data.missing_intervals ?? 0) > 0 && (
+              <Typography variant="caption" color="warning.main" fontWeight={600}>
+                {data.missing_intervals} missing interval(s) excluded
+              </Typography>
+            )}
+          </Stack>
+        )}
 
         {/* 4 KPI Summary Cards */}
         <Box
@@ -449,11 +497,27 @@ export const MrtgTrafficGraph: React.FC<MrtgTrafficGraphProps> = ({
                 Loading MRTG telemetry points...
               </Typography>
             </Stack>
+          ) : isError && !data ? (
+            <Stack alignItems="center" justifyContent="center" spacing={1} sx={{ height: '100%' }}>
+              <Typography color="error.main">Traffic telemetry could not be loaded.</Typography>
+              <Button size="small" variant="outlined" onClick={() => void refetch()}>
+                Retry
+              </Button>
+            </Stack>
           ) : chartOption ? (
             <ReactECharts option={chartOption} style={{ height: '100%', width: '100%' }} notMerge />
           ) : (
-            <Stack alignItems="center" justifyContent="center" sx={{ height: '100%' }}>
-              <Typography color="text.secondary">No traffic points recorded for this range.</Typography>
+            <Stack alignItems="center" justifyContent="center" spacing={0.5} sx={{ height: '100%' }}>
+              <Typography color="text.secondary">
+                {data?.sample_count
+                  ? `${data.sample_count} sample(s) found, but no interval produced a valid rate.`
+                  : 'No traffic samples recorded for this range.'}
+              </Typography>
+              {data?.sample_count ? (
+                <Typography variant="caption" color="text.secondary">
+                  Counter resets and polling gaps are excluded instead of being plotted as zero.
+                </Typography>
+              ) : null}
             </Stack>
           )}
         </Box>

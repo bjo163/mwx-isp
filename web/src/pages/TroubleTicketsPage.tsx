@@ -30,6 +30,7 @@ import {
 } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotify } from 'react-admin';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 import { apiRequest, extractData } from '../utils/apiClient';
 import { KpiStrip, KpiTile, PageHeader, Panel, StatusChip } from '../components/Enterprise';
 
@@ -67,6 +68,7 @@ interface Ticket {
 export const TroubleTicketsPage: React.FC = () => {
   const notify = useNotify();
   const queryClient = useQueryClient();
+  const isAdmin = useIsAdmin();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -265,17 +267,19 @@ export const TroubleTicketsPage: React.FC = () => {
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="error"
-                        startIcon={<Build sx={{ fontSize: 16 }} />}
-                        onClick={() => autoTicketMutation.mutate(flap)}
-                        disabled={autoTicketMutation.isPending}
-                        sx={{ textTransform: 'none', fontWeight: 700 }}
-                      >
-                        Auto-Ticket & Dispatch
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="error"
+                          startIcon={<Build sx={{ fontSize: 16 }} />}
+                          onClick={() => autoTicketMutation.mutate(flap)}
+                          disabled={autoTicketMutation.isPending}
+                          sx={{ textTransform: 'none', fontWeight: 700 }}
+                        >
+                          Auto-Ticket & Dispatch
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -338,6 +342,14 @@ export const TroubleTicketsPage: React.FC = () => {
       }>
           {ticketsQuery.isLoading ? (
             <LinearProgress />
+          ) : ticketsQuery.isError ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="h6" color="error.main">Could not load trouble tickets</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                {(ticketsQuery.error as Error)?.message || 'The server did not return a valid response.'}
+              </Typography>
+              <Button variant="outlined" onClick={() => void ticketsQuery.refetch()}>Retry</Button>
+            </Box>
           ) : tickets.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
               <Build sx={{ fontSize: 48, opacity: 0.4, mb: 1 }} />
@@ -382,7 +394,7 @@ export const TroubleTicketsPage: React.FC = () => {
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                        {t.technician_phone && (
+                        {isAdmin && t.technician_phone && (
                           <Button
                             size="small"
                             color="success"

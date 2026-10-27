@@ -420,4 +420,65 @@ func TestCustomerODPPortValidation(t *testing.T) {
 	c2 := CreateTestContext(e, db, req2, rec2, appCtx)
 	require.NoError(t, createCustomer(c2))
 	require.Equal(t, http.StatusCreated, rec2.Code)
+
+	// 6. Moving Customer 1 onto a port held by another live customer conflicts.
+	reqMove := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/isp/customers/%d", cust1.Data.ID),
+		strings.NewReader(body1))
+	reqMove.Header.Set("Content-Type", "application/json")
+	recMove := httptest.NewRecorder()
+	cMove := CreateTestContext(e, db, reqMove, recMove, appCtx)
+	cMove.SetParamNames("id")
+	cMove.SetParamValues(fmt.Sprintf("%d", cust1.Data.ID))
+	require.NoError(t, updateCustomer(cMove))
+	require.Equal(t, http.StatusConflict, recMove.Code)
+
+	// 7. Keeping the customer on its own port must not conflict with itself.
+	reqSelf := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/isp/customers/%d", cust1.Data.ID),
+		strings.NewReader(updateBody))
+	reqSelf.Header.Set("Content-Type", "application/json")
+	recSelf := httptest.NewRecorder()
+	cSelf := CreateTestContext(e, db, reqSelf, recSelf, appCtx)
+	cSelf.SetParamNames("id")
+	cSelf.SetParamValues(fmt.Sprintf("%d", cust1.Data.ID))
+	require.NoError(t, updateCustomer(cSelf))
+	require.Equal(t, http.StatusOK, recSelf.Code)
+}
+
+// TestODPShrinkGuard verifies an ODP cannot be shrunk below a port that is
+// still assigned to a live customer.
+func TestODPShrinkGuard(t *testing.T) {
+	db, e, appCtx := CreateTestAppContext(t)
+	require.NoError(t, db.AutoMigrate(&domain.ODP{}, &domain.Customer{}))
+
+	odp := domain.ODP{Code: "ODP-SHRINK", Name: "ODP Shrink", TotalPorts: 16, Status: "active"}
+	require.NoError(t, db.Create(&odp).Error)
+	require.NoError(t, db.Create(&domain.Customer{
+		CustomerNo: "C-SHRINK", Name: "Port Occupant", ODPID: odp.ID, ODPPort: 12, Status: domain.CustomerActive,
+	}).Error)
+
+	update := func(payload string) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPut,
+			fmt.Sprintf("/api/v1/network/odp/%d", odp.ID), strings.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		c := CreateTestContext(e, db, req, rec, appCtx)
+		c.SetParamNames("id")
+		c.SetParamValues(fmt.Sprintf("%d", odp.ID))
+		require.NoError(t, updateODP(c))
+		return rec
+	}
+
+	rec := update(`{"total_ports":8}`)
+	require.Equal(t, http.StatusConflict, rec.Code)
+	require.Contains(t, rec.Body.String(), "port 12")
+
+	var stored domain.ODP
+	require.NoError(t, db.First(&stored, odp.ID).Error)
+	require.Equal(t, 16, stored.TotalPorts)
+
+	rec = update(`{"total_ports":12}`)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.NoError(t, db.First(&stored, odp.ID).Error)
+	require.Equal(t, 12, stored.TotalPorts)
 }

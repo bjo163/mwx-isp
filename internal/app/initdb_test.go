@@ -58,6 +58,33 @@ func TestFreshInstallSeedsSamplesOnce(t *testing.T) {
 	require.Equal(t, "Operator edit", sampleUser.Realname)
 }
 
+func TestFreshInstallSeedingDoesNotReseedAfterInitializationMarker(t *testing.T) {
+	app := newTestApplication(t)
+	app.seedSamplesOnFreshInstall()
+
+	// Even if an operator later removes every sample row, the persisted marker
+	// keeps the bootstrap from repopulating a database that was already used.
+	for _, model := range []interface{}{
+		&domain.NetNas{}, &domain.RadiusProfile{}, &domain.RadiusUser{}, &domain.RadiusOnline{}, &domain.RadiusAccounting{},
+		&domain.Customer{}, &domain.InternetPackage{}, &domain.Subscription{}, &domain.Invoice{},
+		&domain.Payment{}, &domain.NetMonitorTarget{}, &domain.NetMonitorSample{}, &domain.NetMonitorIncident{}, &domain.SysCert{},
+		&domain.NetNode{},
+	} {
+		require.NoError(t, app.gormDB.Where("1 = 1").Delete(model).Error)
+	}
+	var customers int64
+	require.NoError(t, app.gormDB.Model(&domain.Customer{}).Count(&customers).Error)
+	require.Zero(t, customers)
+
+	app.seedSamplesOnFreshInstall()
+
+	require.NoError(t, app.gormDB.Model(&domain.Customer{}).Count(&customers).Error)
+	require.Zero(t, customers, "the initialization marker must prevent reseeding")
+	var marker domain.SysConfig
+	require.NoError(t, app.gormDB.Where("type = ? AND name = ?", "internal", "sample_data_initialized").First(&marker).Error)
+	require.Equal(t, "seeded", marker.Value)
+}
+
 func TestFreshInstallSeedingSkipsExistingInstallation(t *testing.T) {
 	app := newTestApplication(t)
 	require.NoError(t, app.gormDB.Create(&domain.NetNode{Name: "operator-node"}).Error)

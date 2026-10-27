@@ -8,7 +8,7 @@
 
 Prioritas pertama adalah menutup pelunasan publik tanpa verifikasi, menetapkan tenant context pada public API, serta melindungi lookup data pelanggan. Berikutnya: transaksi voucher/registrasi, sequence nomor, backup model operasional, pembuktian kuota/expiry voucher, dan akurasi diagnostik. M18 pada roadmap menampung containment dan penguatan; ekspansi produk tetap proposal.
 
-**Gap scope:** kode sekarang sudah memiliki portal, voucher, tiket, IPAM dan ODP, sementara bagian batas ruang lingkup di bawah masih mencatat sebagian sebagai non-goal. A20 mencatat rekonsiliasi keep/harden/hide/deprecate yang harus dilakukan sebelum ekspansi. Memperbaiki kebocoran atau kehilangan data pada surface existing tidak membutuhkan pembangunan produk baru. Usulan gateway, portal berlogin, work order lanjutan dan API token ditandai perlu keputusan scope.
+**Gap scope:** kode sekarang sudah memiliki portal, voucher, tiket, IPAM dan ODP, sementara bagian batas ruang lingkup di bawah masih mencatat sebagian sebagai non-goal. Rekonsiliasi keep/harden/hide/deprecate sudah dicatat di [inventory A20](feature-checklist.md#existing-surface-scope-inventory-a20-2026-10-27); keputusan itu adalah aturan containment, bukan persetujuan ekspansi. Memperbaiki kebocoran atau kehilangan data pada surface existing tidak membutuhkan pembangunan produk baru. Usulan gateway, portal berlogin, work order lanjutan dan API token tetap perlu keputusan scope.
 
 **Arah arsitektur:** gunakan modular monolith dan service billing/RADIUS existing; semua akses publik memerlukan tenant resolution tepercaya; perubahan dokumen bisnis dan akun terkait harus atomik; seluruh data durable harus memiliki jalur recovery. UI wajib membedakan demo, belum dikonfigurasi, pending, failed dan hasil runtime nyata.
 
@@ -40,7 +40,7 @@ Produk fungsional lebih diutamakan daripada pemolesan atau pengujian ekstensif p
 
 ### Tidak termasuk sekarang
 
-Payment gateway, chat bot WhatsApp / layanan pelanggan otomatis, portal pelanggan, ticketing, CRM lanjutan, provisioning/perubahan konfigurasi router, inventaris OLT/ODP/fiber, reseller marketplace, laporan lanjutan, pajak/ERP akuntansi, dan aplikasi mobile. Multi-tenant hanya termasuk dalam batas isolasi dan migrasi yang disetujui pada TR-F033; reseller marketplace dan hierarki tenant tidak termasuk. Pengecualian terbatas: notifikasi satu arah untuk operator (TR-F030) dan pembacaan metrik kesehatan perangkat yang didaftarkan (TR-F031).
+Payment gateway, chat bot WhatsApp / layanan pelanggan otomatis, portal pelanggan, ticketing, CRM lanjutan, provisioning/perubahan konfigurasi router, inventaris OLT/ODP/fiber, reseller marketplace, laporan lanjutan, pajak/ERP akuntansi, dan aplikasi mobile. Multi-tenant hanya termasuk dalam batas isolasi dan migrasi yang disetujui pada TR-F033; reseller marketplace dan hierarki tenant tidak termasuk. Pengecualian terbatas: notifikasi satu arah untuk operator (TR-F030) dan pembacaan metrik kesehatan perangkat yang didaftarkan (TR-F031). Surface operator yang sudah ada — voucher hotspot, tiket, lookup pelanggan, IPAM/ODP, dan registrasi publik — dicatat sebagai *grandfathered* di [inventory A20](feature-checklist.md#existing-surface-scope-inventory-a20-2026-10-27) dan hanya boleh diperbaiki atau diperketat; keberadaannya bukan persetujuan ekspansi. Portal pelanggan tanpa login dan gateway pembayaran online tetap tidak didukung.
 
 ## 3. Model dan aturan bisnis
 

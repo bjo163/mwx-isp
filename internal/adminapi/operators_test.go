@@ -636,6 +636,50 @@ func TestUpdateOperator(t *testing.T) {
 	}
 }
 
+func TestUpdateOperatorPrivilegeBoundaries(t *testing.T) {
+	db := setupTestDB(t)
+	appCtx := setupTestApp(t, db)
+	_ = db.AutoMigrate(&domain.SysOpr{}) //nolint:errcheck
+
+	target := createTestOperator(db, "target-operator", LevelOperator)
+	superTarget := createTestOperator(db, "target-super", LevelSuper)
+
+	updateAs := func(actor *domain.SysOpr, targetID int64, body string) (int, string) {
+		e := setupTestEcho()
+		req := httptest.NewRequest(http.MethodPut, "/api/v1/system/operators/"+strconv.FormatInt(targetID, 10), strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := CreateTestContext(e, db, req, rec, appCtx)
+		c.Set("current_operator", actor)
+		c.SetParamNames("id")
+		c.SetParamValues(strconv.FormatInt(targetID, 10))
+		require.NoError(t, updateOperator(c))
+		var errResponse ErrorResponse
+		_ = json.Unmarshal(rec.Body.Bytes(), &errResponse) //nolint:errcheck
+		return rec.Code, errResponse.Error
+	}
+
+	admin := &domain.SysOpr{ID: 7001, Username: "actor-admin", Level: LevelAdmin, Status: common.ENABLED}
+	super := &domain.SysOpr{ID: 7002, Username: "actor-super", Level: LevelSuper, Status: common.ENABLED}
+
+	status, code := updateAs(admin, target.ID, `{"level":"super"}`)
+	assert.Equal(t, http.StatusForbidden, status)
+	assert.Equal(t, "PERMISSION_DENIED", code)
+	var reloaded domain.SysOpr
+	require.NoError(t, db.Where("id = ?", target.ID).First(&reloaded).Error)
+	assert.Equal(t, LevelOperator, reloaded.Level)
+
+	status, code = updateAs(admin, superTarget.ID, `{"realname":"Hijacked"}`)
+	assert.Equal(t, http.StatusForbidden, status)
+	assert.Equal(t, "PERMISSION_DENIED", code)
+
+	status, _ = updateAs(admin, target.ID, `{"level":"admin"}`)
+	assert.Equal(t, http.StatusOK, status)
+
+	status, _ = updateAs(super, target.ID, `{"level":"super"}`)
+	assert.Equal(t, http.StatusOK, status)
+}
+
 func TestUpdateCurrentOperatorKeepPassword(t *testing.T) {
 	db := setupTestDB(t)
 	appCtx := setupTestApp(t, db)

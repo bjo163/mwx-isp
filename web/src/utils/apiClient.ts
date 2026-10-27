@@ -91,7 +91,7 @@ export class ApiError extends Error {
   }
 }
 
-export const apiRequest = async <T = unknown>(path: string, init: RequestInit = {}) => {
+const requestPayload = async (path: string, init: RequestInit = {}): Promise<unknown> => {
   const response = await fetch(normalizePath(path), withAuth(init));
   const contentType = response.headers.get('content-type') ?? '';
 
@@ -108,9 +108,23 @@ export const apiRequest = async <T = unknown>(path: string, init: RequestInit = 
     throw new ApiError(response.status, payload);
   }
 
+  return payload;
+};
+
+export const apiRequest = async <T = unknown>(path: string, init: RequestInit = {}) => {
+  const payload = await requestPayload(path, init);
+
   if (payload === null || payload === undefined || payload === '') {
     return payload as T;
   }
 
   return extractData<T>(payload);
+};
+
+export const apiRequestPage = async <T = unknown>(path: string, init: RequestInit = {}) => {
+  const payload = await requestPayload(path, init);
+  return {
+    data: payload === null || payload === undefined || payload === '' ? (payload as T) : extractData<T>(payload),
+    total: extractTotal(payload),
+  };
 };

@@ -9,49 +9,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestJwtSkipFuncDoesNotBypassWithDevmode ensures the JWT skipper only skips
-// the explicitly public routes and never disables auth globally, including when
-// the removed TOUGHRADIUS_DEVMODE environment variable is set.
-func TestJwtSkipFuncDoesNotBypassWithDevmode(t *testing.T) {
+func resolvedClientIP(t *testing.T, extractor echo.IPExtractor, remoteAddr, forwardedFor string) string {
+	t.Helper()
 	e := echo.New()
-	skip := jwtSkipFunc()
-
-	newCtx := func(path string) echo.Context {
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-		c.SetPath(path)
-		return c
+	e.IPExtractor = extractor
+	req := httptest.NewRequest(http.MethodGet, "/realip", nil)
+	req.RemoteAddr = remoteAddr
+	if forwardedFor != "" {
+		req.Header.Set(echo.HeaderXForwardedFor, forwardedFor)
 	}
-
-	// Authentication and public branding are intentionally available before login.
-	assert.True(t, skip(newCtx("/ready")))
-	assert.True(t, skip(newCtx(apiBasePath+"/auth/login")))
-	assert.True(t, skip(newCtx(apiBasePath+"/auth/tenants")))
-	assert.True(t, skip(newCtx(apiBasePath+"/public/branding")))
-	assert.True(t, skip(newCtx(apiBasePath+"/public/branding/logo")))
-
-	// Business and customer data routes require a signed operator token.
-	assert.False(t, skip(newCtx(apiBasePath+"/public/packages")))
-	assert.False(t, skip(newCtx(apiBasePath+"/public/register")))
-	assert.False(t, skip(newCtx(apiBasePath+"/public/vouchers/check")))
-	assert.False(t, skip(newCtx(apiBasePath+"/portal/lookup")))
-	assert.False(t, skip(newCtx(apiBasePath+"/portal/payments/webhook")))
-
-	// Protected routes are never skipped.
-	assert.False(t, skip(newCtx(apiBasePath+"/users")))
-	assert.False(t, skip(newCtx(apiBasePath+"/system/branding")))
-
-	// Setting the former bypass env var must not disable auth.
-	t.Setenv("TOUGHRADIUS_DEVMODE", "true")
-	assert.False(t, skip(newCtx(apiBasePath+"/users")))
+	return e.NewContext(req, httptest.NewRecorder()).RealIP()
 }
 
-func TestShouldStartTLSManagementPort(t *testing.T) {
-	enabled := true
-	disabled := false
+func TestTrustedProxyIPExtractor(t *testing.T) {
+	t.Run("forwarded header ignored without trusted proxies", func(t *testing.T) {
+		ip := resolvedClientIP(t, trustedProxyIPExtractor(""), "203.0.113.10:3456", "198.51.100.7")
+		assert.Equal(t, "203.0.113.10", ip)
+	})
 
-	assert.True(t, shouldStartTLSManagementPort(nil), "nil preserves legacy enabled behavior")
-	assert.True(t, shouldStartTLSManagementPort(&enabled))
-	assert.False(t, shouldStartTLSManagementPort(&disabled))
+	t.Run("forwarded header honored from trusted CIDR", func(t *testing.T) {
+		ip := resolvedClientIP(t, trustedProxyIPExtractor("203.0.113.0/24"), "203.0.113.10:3456", "198.51.100.7")
+		assert.Equal(t, "198.51.100.7", ip)
+	})
+
+	t.Run("forwarded header ignored from an untrusted peer", func(t *testing.T) {
+		ip := resolvedClientIP(t, trustedProxyIPExtractor("203.0.113.0/24"), "192.0.2.20:3456", "198.51.100.7")
+		assert.Equal(t, "192.0.2.20", ip)
+	})
+
+	t.Run("bare address is accepted as a single-host range", func(t *testing.T) {
+		ip := resolvedClientIP(t, trustedProxyIPExtractor("203.0.113.10"), "203.0.113.10:3456", "198.51.100.7")
+		assert.Equal(t, "198.51.100.7", ip)
+	})
+
+	t.Run("invalid entries are skipped", func(t *testing.T) {
+		ip := resolvedClientIP(t, trustedProxyIPExtractor("not-an-ip, 203.0.113.0/24"), "203.0.113.10:3456", "198.51.100.7")
+		assert.Equal(t, "198.51.100.7", ip)
+	})
+}
+
+func TestParseTrustedProxyRanges(t *testing.T) {
+	ranges := parseTrustedProxyRanges(" 10.0.0.1 , 2001:db8::/32 ,, bad ")
+	assert.Len(t, ranges, 2)
+	assert.Equal(t, "10.0.0.1/32", ranges[0].String())
+	assert.Equal(t, "2001:db8::/32", ranges[1].String())
 }

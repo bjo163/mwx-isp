@@ -16,6 +16,7 @@ import (
 	"github.com/bjo163/mwx-isp/internal/app"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/radiusd"
+	"github.com/bjo163/mwx-isp/internal/sessionqueue"
 	"github.com/bjo163/mwx-isp/internal/webserver"
 	"github.com/bjo163/mwx-isp/pkg/common"
 	"golang.org/x/sync/errgroup"
@@ -109,6 +110,28 @@ func main() {
 			RTTMillis:     result.RTT.Milliseconds(),
 			TriggeredAt:   result.SentAt,
 		}).Error
+	})
+	application.SetSessionActionSender(func(ctx context.Context, session domain.RadiusOnline) sessionqueue.Outcome {
+		var nas domain.NetNas
+		if err := application.DB().WithContext(ctx).Where("ipaddr = ?", session.NasAddr).First(&nas).Error; err != nil {
+			return sessionqueue.Outcome{Target: session.NasAddr, Error: fmt.Sprintf("resolve NAS for session %d: %v", session.ID, err)}
+		}
+		target := radiusd.CoATargetFromNas(&nas)
+		result, err := coaService.Disconnect(ctx, target, radiusd.SessionIdentityFromOnline(&session))
+		if err != nil {
+			return sessionqueue.Outcome{Target: target.Addr, Error: err.Error()}
+		}
+		return sessionqueue.Outcome{
+			Success:        result.Success,
+			Target:         result.Target,
+			ResponseCode:   result.ResponseCode,
+			ErrorCause:     result.ErrorCause,
+			ErrorCauseText: result.ErrorCauseText,
+			Error:          result.Err,
+			TimedOut:       result.TimedOut,
+			Attempts:       result.Attempts,
+			RTTMillis:      result.RTT.Milliseconds(),
+		}
 	})
 	application.Init(_config)
 

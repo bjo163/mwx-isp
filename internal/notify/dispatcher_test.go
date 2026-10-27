@@ -129,3 +129,33 @@ func TestNormalizePhone(t *testing.T) {
 	_, err = normalizePhone("wa.me/6281234567890")
 	require.Error(t, err)
 }
+
+// TestDispatcherEnqueueCountReportsNewRows covers the honest dispatch contract:
+// callers may only claim a notification was sent when rows were actually
+// created, so duplicates, disabled events, and missing settings report zero.
+func TestDispatcherEnqueueCountReportsNewRows(t *testing.T) {
+	db := notificationTestDB(t)
+	dispatcher := NewDispatcher(db, &fakeSender{})
+	now := time.Now()
+
+	queued, err := dispatcher.EnqueueCount(context.Background(), "ticket.assigned", "ticket:1", "ticket body")
+	require.NoError(t, err)
+	require.Zero(t, queued, "absent settings must queue nothing")
+
+	require.NoError(t, db.Create(&domain.NotificationSettings{
+		ID: 1, WhatsAppEnabled: true, RiskAcknowledgedAt: &now,
+		RecipientsJSON: `["+6281234567890", "+6281299999999"]`, EventsJSON: `["ticket.assigned"]`,
+	}).Error)
+
+	queued, err = dispatcher.EnqueueCount(context.Background(), "ticket.assigned", "ticket:1", "ticket body")
+	require.NoError(t, err)
+	require.Equal(t, 2, queued, "one row per allowlisted recipient")
+
+	queued, err = dispatcher.EnqueueCount(context.Background(), "ticket.assigned", "ticket:1", "ticket body")
+	require.NoError(t, err)
+	require.Zero(t, queued, "a duplicate dedupe key must not inflate the count")
+
+	queued, err = dispatcher.EnqueueCount(context.Background(), "network.down", "ticket:2", "other event")
+	require.NoError(t, err)
+	require.Zero(t, queued, "events outside the allowlist must not queue")
+}

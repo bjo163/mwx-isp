@@ -100,9 +100,26 @@ func TestSystemBackupRestoreRoundTrip(t *testing.T) {
 	require.NoError(t, tenantDB.Create(&tenantMonitor).Error)
 
 	// 1) Download a backup over HTTP and confirm the plaintext password is present.
-	// The endpoint streams the bare SystemBackup JSON (no {"data":...} envelope).
+	// The endpoint streams a manifest-carrying envelope; the SystemBackup payload
+	// sits unencrypted under "payload" when no backup passphrase is configured.
 	status, backupBytes := c.get(t, "/api/v1/system/backup")
 	require.Equalf(t, http.StatusOK, status, "backup body: %s", string(backupBytes))
+
+	var envelope struct {
+		Format   string `json:"format"`
+		Manifest struct {
+			SchemaVersion string         `json:"schema_version"`
+			Encrypted     bool           `json:"encrypted"`
+			RecordCounts  map[string]int `json:"record_counts"`
+		} `json:"manifest"`
+		Payload    json.RawMessage `json:"payload"`
+		Ciphertext string          `json:"ciphertext"`
+	}
+	require.NoErrorf(t, json.Unmarshal(backupBytes, &envelope), "backup not JSON: %s", string(backupBytes))
+	require.Equal(t, "mwx-isp-backup", envelope.Format)
+	require.False(t, envelope.Manifest.Encrypted)
+	require.NotEmpty(t, envelope.Manifest.RecordCounts["radius_user"])
+	require.Empty(t, envelope.Ciphertext)
 
 	var backup struct {
 		Version       string                   `json:"version"`
@@ -128,7 +145,7 @@ func TestSystemBackupRestoreRoundTrip(t *testing.T) {
 		} `json:"monitor_targets"`
 		TenantIDs map[string]map[string]int64 `json:"tenant_ids"`
 	}
-	require.NoErrorf(t, json.Unmarshal(backupBytes, &backup), "backup not JSON: %s", string(backupBytes))
+	require.NoError(t, json.Unmarshal(envelope.Payload, &backup))
 	require.Equal(t, "9.3", backup.Version)
 	require.True(t, containsUserWithPassword(backup.Users, username, password),
 		"backup must contain %s with its plaintext password", username)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/tenancy"
@@ -311,4 +312,54 @@ func TestSessionRepository_Delete_MissingSession(t *testing.T) {
 	ctx := context.Background()
 
 	require.NoError(t, repo.Delete(ctx, "does-not-exist"))
+}
+
+// TestSessionRepository_Update_OnlyRecordsMeasurableTrafficIntervals verifies
+// that a counter reset and a long polling gap persist no sample at all, so the
+// traffic chart cannot present a reboot or an outage as idle traffic.
+func TestSessionRepository_Update_OnlyRecordsMeasurableTrafficIntervals(t *testing.T) {
+	db := newSessionTestDB(t)
+	require.NoError(t, db.AutoMigrate(&domain.RadiusTrafficSample{}))
+	repo := NewGormSessionRepository(db)
+	ctx := context.Background()
+
+	sampleCount := func() int64 {
+		t.Helper()
+		var count int64
+		require.NoError(t, db.Model(&domain.RadiusTrafficSample{}).
+			Where("acct_session_id = ?", "sess-h09").Count(&count).Error)
+		return count
+	}
+
+	require.NoError(t, db.Create(&domain.RadiusOnline{
+		TenantID: 1, Username: "u1", AcctSessionId: "sess-h09", NasAddr: "10.0.0.1",
+		AcctInputTotal: 1000, AcctOutputTotal: 2000, LastUpdate: time.Now().Add(-time.Minute),
+	}).Error)
+
+	// A normal interval yields exactly one measurable sample.
+	require.NoError(t, repo.Update(ctx, &domain.RadiusOnline{
+		AcctSessionId: "sess-h09", AcctInputTotal: 1600, AcctOutputTotal: 3200,
+	}))
+	require.Equal(t, int64(1), sampleCount())
+	var sample domain.RadiusTrafficSample
+	require.NoError(t, db.First(&sample).Error)
+	require.Positive(t, sample.InRateBps)
+	require.Positive(t, sample.OutRateBps)
+	require.Equal(t, int64(1600), sample.InOctets)
+
+	// A shrinking counter is a NAS reboot or wrap: no sample may be fabricated.
+	require.NoError(t, db.Model(&domain.RadiusOnline{}).Where("acct_session_id = ?", "sess-h09").
+		Update("last_update", time.Now().Add(-time.Minute)).Error)
+	require.NoError(t, repo.Update(ctx, &domain.RadiusOnline{
+		AcctSessionId: "sess-h09", AcctInputTotal: 10, AcctOutputTotal: 20,
+	}))
+	require.Equal(t, int64(1), sampleCount())
+
+	// Interim updates stopped for hours: that gap is missing data, not zero traffic.
+	require.NoError(t, db.Model(&domain.RadiusOnline{}).Where("acct_session_id = ?", "sess-h09").
+		Update("last_update", time.Now().Add(-3*time.Hour)).Error)
+	require.NoError(t, repo.Update(ctx, &domain.RadiusOnline{
+		AcctSessionId: "sess-h09", AcctInputTotal: 5000, AcctOutputTotal: 9000,
+	}))
+	require.Equal(t, int64(1), sampleCount())
 }

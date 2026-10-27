@@ -20,40 +20,40 @@ Sumber detail dan kriteria penerimaan: [45 kartu audit, penguatan, dan brainstor
 - [ ] [A07 — Hubungkan masa berlaku dan kuota voucher ke runtime](MWX-ISP-audit-backlog-2026-10-05.md#a07) (P1; Celah integrasi dari pencarian kode).
 - [ ] [A08 — Transaksi atomik batch, voucher dan kredensial](MWX-ISP-audit-backlog-2026-10-05.md#a08) (P1; Terbukti dari kode).
 - [ ] [A09 — Penghapusan voucher tidak boleh sukses palsu](MWX-ISP-audit-backlog-2026-10-05.md#a09) (P1; Terbukti dari kode).
-- [ ] [A10 — Registrasi pelanggan dan work order atomik](MWX-ISP-audit-backlog-2026-10-05.md#a10) (P1; Terbukti dari kode).
+- [x] [A10 — Registrasi pelanggan dan work order atomik](MWX-ISP-audit-backlog-2026-10-05.md#a10) (P1; Selesai 2026-10-27: transaksi + idempotency + tes retry).
 - [ ] [A11 — Tolak paket registrasi yang tidak tersedia](MWX-ISP-audit-backlog-2026-10-05.md#a11) (P1; Terbukti dari kode).
 - [ ] [A12 — Satukan sequence tiket dan work order](MWX-ISP-audit-backlog-2026-10-05.md#a12) (P1; Terbukti dari kode).
 - [ ] [A13 — Lengkapi cakupan backup JSON aplikasi](MWX-ISP-audit-backlog-2026-10-05.md#a13) (P1; Terbukti dari kode).
 - [ ] [A14 — Edit ODP bisa mengosongkan nilai](MWX-ISP-audit-backlog-2026-10-05.md#a14) (P2; Terbukti dari kode).
-- [ ] [A15 — Cetak seluruh voucher batch melalui pagination](MWX-ISP-audit-backlog-2026-10-05.md#a15) (P2; Terbukti dari kode).
+- [x] [A15 — Cetak seluruh voucher batch melalui pagination](MWX-ISP-audit-backlog-2026-10-05.md#a15) (P2; Selesai 2026-10-27: paging server, batas 500, gagal fetch menutup print).
 - [ ] [A16 — Hubungkan pilihan paket pada generator voucher](MWX-ISP-audit-backlog-2026-10-05.md#a16) (P1; Terbukti dari kode).
 - [ ] [A17 — Audit IP menghormati waktu yang diminta](MWX-ISP-audit-backlog-2026-10-05.md#a17) (P2; Terbukti dari kode).
 - [ ] [A18 — Jelaskan jenis probe TCP dan dukung alamat IPv6](MWX-ISP-audit-backlog-2026-10-05.md#a18) (P2; Terbukti dari kode).
 - [x] [A19 — Jangan mempublikasikan paket fiktif ketika katalog kosong](MWX-ISP-audit-backlog-2026-10-05.md#a19) (ditutup PR #31, merge `3168bbd`).
-- [ ] [A20 — Selaraskan scope dokumen dengan fitur yang telah ada](MWX-ISP-audit-backlog-2026-10-05.md#a20) (P1; Terbukti dari dokumen dan route).
+- [x] [A20 — Selaraskan scope dokumen dengan fitur yang telah ada](MWX-ISP-audit-backlog-2026-10-05.md#a20) (P1; Selesai 2026-10-27: inventory 25 surface keep/harden/hide + handbook EN/ID).
 
 ### Verifikasi dan penguatan
 
 - [ ] [H01 — Audit join, raw SQL dan relasi tenant](MWX-ISP-audit-backlog-2026-10-05.md#h01) (P1; Perlu verifikasi).
-- [ ] [H02 — Matriks izin per aksi dan UI](MWX-ISP-audit-backlog-2026-10-05.md#h02) (P1; Perlu verifikasi).
-- [ ] [H03 — Rate limit surface publik dan registrasi](MWX-ISP-audit-backlog-2026-10-05.md#h03) (P1; Penguatan).
-- [ ] [H04 — Concurrency dan replay pembayaran](MWX-ISP-audit-backlog-2026-10-05.md#h04) (P1; Perlu verifikasi).
+- [x] [H02 — Matriks izin per aksi dan UI](MWX-ISP-audit-backlog-2026-10-05.md#h02) (P1; Selesai 2026-10-27: matriks akses + tes UI/API).
+- [x] [H03 — Rate limit surface publik dan registrasi](MWX-ISP-audit-backlog-2026-10-05.md#h03) (P1; Selesai 2026-10-27: limiter per tenant+IP).
+- [x] [H04 — Concurrency dan replay pembayaran](MWX-ISP-audit-backlog-2026-10-05.md#h04) (P1; Selesai 2026-10-27: tes konkurensi pembayaran).
 - [ ] [H05 — Suspend/reactivate dan kegagalan NAS](MWX-ISP-audit-backlog-2026-10-05.md#h05) (P1; Perlu verifikasi).
 - [ ] [H06 — Buktikan disaster recovery dan migrasi](MWX-ISP-audit-backlog-2026-10-05.md#h06) (P1; Perlu verifikasi).
-- [ ] [H07 — Integritas alokasi port ODP](MWX-ISP-audit-backlog-2026-10-05.md#h07) (P1; Perlu verifikasi).
-- [ ] [H08 — Validasi pool IPAM dan kapasitas subnet](MWX-ISP-audit-backlog-2026-10-05.md#h08) (P2; Perlu verifikasi).
-- [ ] [H09 — Kebenaran grafik trafik dan data stale](MWX-ISP-audit-backlog-2026-10-05.md#h09) (P2; Perlu verifikasi).
-- [ ] [H10 — Scope ingestion syslog](MWX-ISP-audit-backlog-2026-10-05.md#h10) (P1; Perlu verifikasi).
-- [ ] [H11 — WhatsApp tahan putus koneksi dan dedup](MWX-ISP-audit-backlog-2026-10-05.md#h11) (P2; Perlu verifikasi).
-- [ ] [H12 — State UI, cache tenant dan pagination](MWX-ISP-audit-backlog-2026-10-05.md#h12) (P2; Perlu verifikasi).
-- [ ] [H13 — EN/ID, aksesibilitas dan branding konsisten](MWX-ISP-audit-backlog-2026-10-05.md#h13) (P2; Penguatan).
+- [x] [H07 — Integritas alokasi port ODP](MWX-ISP-audit-backlog-2026-10-05.md#h07) (P1; Selesai 2026-10-27).
+- [x] [H08 — Validasi pool IPAM dan kapasitas subnet](MWX-ISP-audit-backlog-2026-10-05.md#h08) (P2; Selesai 2026-10-27).
+- [x] [H09 — Kebenaran grafik trafik dan data stale](MWX-ISP-audit-backlog-2026-10-05.md#h09) (P2; Selesai 2026-10-27).
+- [x] [H10 — Scope ingestion syslog](MWX-ISP-audit-backlog-2026-10-05.md#h10) (P1; Selesai 2026-10-27).
+- [x] [H11 — WhatsApp tahan putus koneksi dan dedup](MWX-ISP-audit-backlog-2026-10-05.md#h11) (P2; Selesai 2026-10-27).
+- [x] [H12 — State UI, cache tenant dan pagination](MWX-ISP-audit-backlog-2026-10-05.md#h12) (P2; Selesai 2026-10-27).
+- [ ] [H13 — EN/ID, aksesibilitas dan branding konsisten](MWX-ISP-audit-backlog-2026-10-05.md#h13) (P2; Selesai sebagian 2026-10-27; terjemahan ID-ID belum dikirim).
 - [ ] [H14 — Installer/update/release sebagai satu alur](MWX-ISP-audit-backlog-2026-10-05.md#h14) (P1; Perlu verifikasi).
-- [ ] [H15 — Demo, data migration dan fixture sintetis](MWX-ISP-audit-backlog-2026-10-05.md#h15) (P2; Penguatan).
+- [x] [H15 — Demo, data migration dan fixture sintetis](MWX-ISP-audit-backlog-2026-10-05.md#h15) (P2; Selesai 2026-10-27: unit + suite PostgreSQL/OpenLDAP penuh lulus).
 
 ### Brainstorming — belum dijadwalkan
 
 - [ ] [F01 — Halaman kesiapan operasional](MWX-ISP-audit-backlog-2026-10-05.md#f01) (P2; Usulan; belum dijadwalkan).
-- [ ] [F02 — Timeline aktivitas pelanggan](MWX-ISP-audit-backlog-2026-10-05.md#f02) (P2; Usulan; belum dijadwalkan).
+- [x] [F02 — Timeline aktivitas pelanggan](MWX-ISP-audit-backlog-2026-10-05.md#f02) (P2; ditutup #54; lihat [customer-timeline](customer-timeline.md)).
 - [ ] [F03 — Integrasi satu payment gateway sungguhan](MWX-ISP-audit-backlog-2026-10-05.md#f03) (P2; Usulan; keputusan scope/provider diperlukan).
 - [ ] [F04 — Portal pelanggan minimum dengan login](MWX-ISP-audit-backlog-2026-10-05.md#f04) (P2; Usulan; keputusan scope diperlukan).
 - [ ] [F05 — Work order teknisi minimum](MWX-ISP-audit-backlog-2026-10-05.md#f05) (P3; Usulan; keputusan scope diperlukan).
@@ -217,6 +217,7 @@ Urutan: containment A01–A04 → transaksi/nomor/backup/scope → pembuktian op
 - [x] Tampilkan riwayat, threshold, perubahan status, dedupe alert; ICMP failed ditampilkan sebagai probe failure, bukan bukti perangkat mati.
 - [ ] Buat fake SNMP agent end-to-end; pengujian saat ini memakai mock Probe dan belum mensimulasikan paket SNMP.
 - [x] Pastikan tidak ada operasi write/provisioning ke router; batasi 500 target, delapan poll bersamaan, 30–3600 detik interval, timeout maksimal 10 detik, dan 30 hari retensi sample.
+- [x] Sediakan ringkasan dampak read-only per target/ODP/NAS: pelanggan dan langganan terdampak, status sesi live, tiket terbuka, tingkat keyakinan pemetaan (confirmed/inferred/unknown), serta pemisahan freshness monitoring dari status outage; sesi live yang tidak ada tidak pernah diklaim sebagai pelanggan offline.
 - [ ] Uji terhadap router/SNMP agent yang diizinkan saat deployment.
 
 ### E. WhatsApp operator via whatsmeow (TR-F030, opsional/eksperimental)

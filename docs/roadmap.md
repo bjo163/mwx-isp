@@ -9,7 +9,7 @@ This is the canonical planning surface and task source: milestone status, guardr
 1. Milestones use `M<number>` IDs and map to one or more `TR-F` feature IDs.
 2. Each milestone is split into MVP subtasks that are independently deliverable, reversible, and verifiable.
 3. Status flows as `Planned -> In progress -> Delivered`; delivery means merged to `main` with passing CI.
-4. Do not schedule non-goals from `TR-N001` through `TR-N003`, `TR-N005`, or `TR-N006`: generic payment/orders/finance, CRM/ticketing/customer portal, general observability, protocol-stack/framework rewrites, or hosted captive portal products. Tenant work is allowed only within `TR-F033`; `TR-N004` prohibits unbounded expansion beyond that scope.
+4. Do not schedule non-goals from `TR-N001` through `TR-N003`, `TR-N005`, or `TR-N006`: generic payment/orders/finance, CRM/ticketing/customer portal, general observability, protocol-stack/framework rewrites, or hosted captive portal products. Tenant work is allowed only within `TR-F033`; `TR-N004` prohibits unbounded expansion beyond that scope. Surfaces reconciled by the [A20 inventory](feature-checklist.md#existing-surface-scope-inventory-a20-2026-10-27) are containment-only: repair and harden them when defects require it, but do not schedule expansion without first updating the feature checklist.
 5. Agent output must go through pull request, CI, and human review. Direct pushes to `main` are forbidden.
 6. After each delivered subtask, use `.agents/skills/groom-roadmap/SKILL.md` to update status, split or reorder work, and keep the roadmap consistent with the checklist.
 7. Delivered subtasks should keep only outcome, evidence, residual risk, and traceable entry points. Long implementation narratives belong in PRs, commits, or changelogs.
@@ -45,7 +45,7 @@ This is the canonical planning surface and task source: milestone status, guardr
 | M15 | Multi-tenant ISP and RT/RW Net isolation | TR-F033 | P1 | Delivered |
 | M16 | Automated dev-to-main versioning, changelog, and releases | TR-F022 | P2 | Delivered |
 | M17 | Safe VPS installation and first-run onboarding | TR-F020 / TR-F016 | P1 | Delivered |
-| M18 | Existing-feature containment, integrity and operational verification | TR-F012 / TR-F013 / TR-F017 / TR-F018 / TR-F020 / TR-F027 / TR-F028 / TR-F030 / TR-F031 / TR-F033 | P0 first | Planned |
+| M18 | Existing-feature containment, integrity and operational verification | TR-F012 / TR-F013 / TR-F017 / TR-F018 / TR-F020 / TR-F027 / TR-F028 / TR-F030 / TR-F031 / TR-F033 | P0 first | In progress |
 
 ## Cross-Cutting Baseline
 
@@ -55,7 +55,7 @@ This is the canonical planning surface and task source: milestone status, guardr
 
 ## Current Execution Queue
 
-**Priority override, 2026-10-05:** M18 containment precedes optional feature expansion and the historical queue below. The [45-card audit backlog](MWX-ISP-audit-backlog-2026-10-05.md) contains precise entry points, evidence levels, dependencies and acceptance criteria. Cards A/H are follow-up repairs or verification within existing baseline capabilities; proposals F01–F10 are not scheduled. Resolve scope drift through A20 before expanding existing portal/voucher/ticket surfaces.
+**Priority override, 2026-10-05:** M18 containment precedes optional feature expansion and the historical queue below. The [45-card audit backlog](MWX-ISP-audit-backlog-2026-10-05.md) contains precise entry points, evidence levels, dependencies and acceptance criteria. Cards A/H are follow-up repairs or verification within existing baseline capabilities; proposals F01–F10 are not scheduled. Scope drift is reconciled by the [A20 inventory](feature-checklist.md#existing-surface-scope-inventory-a20-2026-10-27): existing portal/voucher/ticket/IPAM/ODP surfaces are containment-only and do not authorize new product expansion.
 
 - [x] M18.1 Contain public payment mutation and protect tenant/customer data (A01–A04; TR-F018/TR-F028/TR-F033); merged PR #31 (`3168bbd`), regression tests verify unauthorized routes and no payment mutation.
 - [ ] M18.2 Repair batch/document numbering and atomic existing mutations (A05/A08–A12; TR-F012/TR-F017/TR-F027); include duplicate, concurrent and rollback cases.
@@ -66,7 +66,7 @@ This is the canonical planning surface and task source: milestone status, guardr
 - [ ] M18.7 Verify billing concurrency, suspend runtime, ODP/IPAM integrity, traffic/syslog scope and notification delivery (H04/H05/H07–H11; TR-F012/TR-F017/TR-F027/TR-F028/TR-F030/TR-F031/TR-F033).
 - [ ] M18.8 Complete frontend error/cache/language checks, deployment matrix and safe fixtures (H12–H15; TR-F013/TR-F020/TR-F022/TR-F023/TR-F029/TR-F032).
 
-M18 is **In progress**. M18.1 is delivered by PR #31; the remaining M18.2–M18.8 work is open. The original 2026-10-05 planning artifacts remain the detailed acceptance baseline. Existing milestone completion below is preserved as historical evidence.
+M18 is **In progress**. M18.1 is delivered by PR #31. The 2026-10-27 audit close-out delivered A10 (atomic registration + idempotency), A15 (full-batch print pagination), A20 (scope inventory), H02–H04 (access matrix, public rate limits, payment concurrency), H07–H12 (ODP/IPAM integrity, traffic/syslog scope, notification durability, UI state/pagination) and H15 (seeding, cleanup and PostgreSQL fixture); H13 is partially delivered because ID-ID translation is not shipped. M18.2–M18.8 remain open for the untouched cards: A05–A09, A11–A14, A16–A19, H01, H05, H06, H14 and the H13 translation. The original 2026-10-05 planning artifacts remain the detailed acceptance baseline. Existing milestone completion below is preserved as historical evidence.
 
 The scheduled **M5 vendor VSA expansion** batch (M5.1 inventory + M5.2/M5.3/M5.4 parsers/enhancers) is delivered — M5.4 shipped the Cisco `cisco-avpair` Access-Accept enhancer (#543) — and the remaining vendor enhancers stay demand-driven. **M10.1** (TLS 1.3 negotiation + RFC 9190 protected success indication, #562), **M10.2** (version-branched MSK derivation → MS-MPPE keys on pure EAP-TLS Accepts, #564), and **M10.3** (tolerate the peer's `close_notify` after the success point, #607) are delivered; M10.4's CI acceptance-test scope is satisfied incrementally by each subtask's `test/integration/` subtests, so the next pickable subtask is **M10.5** (identity protection / anonymous NAI, needs an auth-pipeline reorder). M14.6 now has CI-backed OpenLDAP acceptance coverage; M14.5 remains blocked until load evidence justifies connection pooling / reconnect work.
 

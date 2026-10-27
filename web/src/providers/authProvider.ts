@@ -1,5 +1,6 @@
 import { AuthProvider, UserIdentity } from 'react-admin';
 import { clearAuthStorage } from '../utils/storage';
+import { queryClient } from './queryClient';
 
 type OperatorUser = {
   id?: string | number;
@@ -124,7 +125,6 @@ const fetchIdentityFromApi = async (token: string): Promise<OperatorUser | null>
 };
 
 export const authProvider: AuthProvider = {
-  // 登录
   login: async ({ username, password, tenantSlug }) => {
     const request = new Request('/api/v1/auth/login', {
       method: 'POST',
@@ -144,7 +144,7 @@ export const authProvider: AuthProvider = {
       const auth = result.data || result;
 
       if (!auth.token) {
-        throw new Error('登录响应中缺少 token');
+        throw new Error('Login response is missing a token');
       }
 
       localStorage.setItem('token', auth.token);
@@ -161,32 +161,36 @@ export const authProvider: AuthProvider = {
         localStorage.setItem('activeTenant', JSON.stringify(auth.tenant));
       }
 
+      // Drop every cached query so a new session (possibly a different tenant)
+      // never renders the previous account's data.
+      queryClient.clear();
+
       // Ensure localStorage writes are visible before navigation continues.
       await new Promise(resolve => setTimeout(resolve, 0));
 
       return Promise.resolve();
     } catch (error) {
-      console.error('登录错误:', error);
+      console.error('Login error:', error);
       return Promise.reject(error);
     }
   },
 
-  // 登出
   logout: async () => {
     clearAuthStorage();
+    queryClient.clear();
     return Promise.resolve();
   },
 
-  // 检查错误（如 401、403）
   checkError: async error => {
     const status = error.status;
 
     if (status === 401) {
       clearAuthStorage();
-      return Promise.reject({ message: '认证已过期，请重新登录' });
+      queryClient.clear();
+      return Promise.reject({ message: 'Your session has expired. Please sign in again.' });
     }
 
-    // 403 表示权限不足，但不需要登出
+    // 403 means insufficient permission; the session itself is still valid.
     if (status === 403) {
       return Promise.resolve();
     }
@@ -194,7 +198,6 @@ export const authProvider: AuthProvider = {
     return Promise.resolve();
   },
 
-  // 检查认证Status - 快速同步检查以避免闪烁
   checkAuth: () => {
     const token = localStorage.getItem('token');
     const route = window.location.hash.replace(/^#/, '').split('?')[0].replace(/\/+$/, '');

@@ -354,6 +354,10 @@ func updateOperator(c echo.Context) error {
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to query operators", err.Error())
 	}
 
+	if operator.Level == LevelSuper && currentOpr.Level != LevelSuper {
+		return fail(c, http.StatusForbidden, "PERMISSION_DENIED", "Only super admins can modify another super admin account", nil)
+	}
+
 	// Update fields
 	if payload.Username != "" {
 		username := strings.TrimSpace(payload.Username)
@@ -410,6 +414,9 @@ func updateOperator(c echo.Context) error {
 	}
 	if payload.Level != "" {
 		level := strings.ToLower(strings.TrimSpace(payload.Level))
+		if level == LevelSuper && currentOpr.Level != LevelSuper {
+			return fail(c, http.StatusForbidden, "PERMISSION_DENIED", "Only super admins can grant the super level", nil)
+		}
 		if level == "super" || level == "admin" || level == "operator" {
 			operator.Level = level
 		}

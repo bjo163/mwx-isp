@@ -23,6 +23,7 @@ var Tables = []interface{}{
 	// Radius
 	&RadiusAccounting{},
 	&RadiusOnline{},
+	&RadiusSessionAction{},
 	&RadiusSessionActionAudit{},
 	&RadiusProfile{},
 	&RadiusUser{},

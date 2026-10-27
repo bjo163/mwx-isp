@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	_ "time/tzdata"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/networkmonitor"
 	"github.com/bjo163/mwx-isp/internal/notify"
+	"github.com/bjo163/mwx-isp/internal/sessionqueue"
 	"github.com/bjo163/mwx-isp/internal/syslogd"
 	"github.com/bjo163/mwx-isp/internal/tenancy"
 	"github.com/bjo163/mwx-isp/pkg/common"
@@ -41,6 +43,9 @@ type Application struct {
 	profileCache       *ProfileCache
 	disconnectMu       sync.RWMutex
 	disconnectSession  func(context.Context, domain.RadiusOnline) error
+	sessionActionMu    sync.RWMutex
+	sessionActionSend  sessionqueue.Sender
+	sessionActionBusy  atomic.Bool
 	networkMonitor     *networkmonitor.Monitor
 	notificationOutbox *notify.Dispatcher
 	syslogServer       *syslogd.Server
@@ -89,6 +94,24 @@ func (a *Application) sessionDisconnectHandler() func(context.Context, domain.Ra
 	a.disconnectMu.RLock()
 	defer a.disconnectMu.RUnlock()
 	return a.disconnectSession
+}
+
+// SetSessionActionSender installs the RADIUS Disconnect executor used by the
+// durable session action queue. Unlike the best-effort disconnect handler used
+// by FUP enforcement, the sender reports a structured outcome (ACK, NAK,
+// timeout) that the scheduler persists and audits. The application package
+// accepts this callback instead of importing radiusd, which would create an
+// import cycle.
+func (a *Application) SetSessionActionSender(send sessionqueue.Sender) {
+	a.sessionActionMu.Lock()
+	a.sessionActionSend = send
+	a.sessionActionMu.Unlock()
+}
+
+func (a *Application) sessionActionSender() sessionqueue.Sender {
+	a.sessionActionMu.RLock()
+	defer a.sessionActionMu.RUnlock()
+	return a.sessionActionSend
 }
 
 // OverrideDB replaces the application's database handle (used in tests).
@@ -390,6 +413,7 @@ func (a *Application) MigrateDB(track bool) (err error) {
 		zap.S().Error(migrateErr)
 		return migrateErr
 	}
+	a.ensureCustomerODPPortIndex()
 	if err := a.backfillDefaultTenantRows(); err != nil {
 		return err
 	}
@@ -473,7 +497,7 @@ var tenantOwnedModels = []interface{}{
 	&domain.SysOpr{}, &domain.TenantMembership{}, &domain.SysOprLog{}, &domain.NetNode{}, &domain.NetNas{},
 	&domain.NetMonitorTarget{}, &domain.NetMonitorSample{}, &domain.NetMonitorIncident{},
 	&domain.NotificationSettings{}, &domain.NotificationOutbox{}, &domain.RadiusAccounting{},
-	&domain.RadiusOnline{}, &domain.RadiusSessionActionAudit{}, &domain.RadiusProfile{}, &domain.RadiusUser{},
+	&domain.RadiusOnline{}, &domain.RadiusSessionAction{}, &domain.RadiusSessionActionAudit{}, &domain.RadiusProfile{}, &domain.RadiusUser{},
 	&domain.Customer{}, &domain.InternetPackage{}, &domain.Subscription{}, &domain.Invoice{},
 	&domain.InvoiceItem{}, &domain.Payment{}, &domain.BillingEvent{}, &domain.DocumentSequence{},
 	&domain.RadiusTrafficSample{}, &domain.SyslogEvent{}, &domain.HotspotBatch{},
@@ -529,6 +553,29 @@ func (a *Application) dropLegacyOnlineSessionIndex() {
 	if err := m.DropIndex(&domain.RadiusOnline{}, legacyIdx); err != nil {
 		zap.L().Warn("drop legacy radius_online index failed",
 			zap.String("namespace", "radius"), zap.Error(err))
+	}
+}
+
+// ensureCustomerODPPortIndex enforces one live customer per ODP port at the
+// database level. A partial unique index is portable across SQLite and
+// PostgreSQL updates; terminated customers release their port and port zero is
+// exempt. The API validates the same rule first, so this index only decides the
+// race between two concurrent assignments. Legacy duplicate rows (if any) make
+// index creation fail; enforcement then stays application-level and the
+// warning names the cleanup query.
+func (a *Application) ensureCustomerODPPortIndex() {
+	if a == nil || a.gormDB == nil {
+		return
+	}
+	if !a.gormDB.Migrator().HasTable(&domain.Customer{}) {
+		return
+	}
+	const stmt = `CREATE UNIQUE INDEX IF NOT EXISTS udx_isp_customer_odp_port
+		ON isp_customer (tenant_id, odp_id, odp_port)
+		WHERE odp_port > 0 AND status <> 'terminated'`
+	if err := a.gormDB.Exec(stmt).Error; err != nil {
+		zap.L().Warn("create ODP port unique index failed; resolve duplicate isp_customer (tenant_id, odp_id, odp_port) rows and restart",
+			zap.String("namespace", "isp"), zap.Error(err))
 	}
 }
 

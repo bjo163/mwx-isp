@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotify, usePermissions } from 'react-admin';
 import { apiRequest, extractData } from '../utils/apiClient';
 import { MrtgTrafficGraph } from '../components/MrtgTrafficGraph';
+import { NocImpactPanel } from '../components/NocImpactPanel';
 import { KpiStrip, KpiTile, Mono, PageHeader, Panel } from '../components/Enterprise';
 
 type Heartbeat = { id: string; checked_at: string; reachable: boolean; latency_milliseconds: number; packet_loss_percent: number };
@@ -151,6 +152,7 @@ const OperationsPage: React.FC = () => {
   const [tab, setTab] = useState(0);
   const [form, setForm] = useState({ name: '', kind: 'router', address: '', probe_type: 'icmp', port: 80, interval_seconds: 60, timeout_milliseconds: 1500, failure_threshold: 2, enabled: true, snmp_version: 'v3', snmp_username: '', snmp_auth_protocol: 'SHA256', snmp_privacy_protocol: 'AES', snmp_community: '', snmp_auth_password: '', snmp_privacy_password: '' });
   const [selectedTarget, setSelectedTarget] = useState('');
+  const [impactTarget, setImpactTarget] = useState('');
   const [mrtgTargetId, setMrtgTargetId] = useState('');
   const [syslogSeverity, setSyslogSeverity] = useState('');
   const [syslogTag, setSyslogTag] = useState('');
@@ -417,6 +419,13 @@ const OperationsPage: React.FC = () => {
                       >
                         {selectedTarget === target.id ? 'Hide history' : 'History'}
                       </Button>
+                      <Button
+                        size="small"
+                        color={impactTarget === target.id ? 'primary' : 'inherit'}
+                        onClick={() => setImpactTarget(impactTarget === target.id ? '' : target.id)}
+                      >
+                        {impactTarget === target.id ? 'Hide impact' : 'Impact'}
+                      </Button>
                       <IconButton
                         size="small"
                         color="error"
@@ -446,6 +455,23 @@ const OperationsPage: React.FC = () => {
           </Stack>
 
           {/* Expanded Target Details (History & SNMP Counters) */}
+          {impactTarget && (
+            <Box sx={{ mt: 2.5, p: 2, borderRadius: 1, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Subscriber Impact · {targets.find((target) => target.id === impactTarget)?.name ?? impactTarget}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Read-only mapping of subscribers exposed to this target. Monitoring freshness is reported separately from outage state.
+                  </Typography>
+                </Box>
+                <Button size="small" onClick={() => setImpactTarget('')}>Close</Button>
+              </Stack>
+              <NocImpactPanel targetId={impactTarget} />
+            </Box>
+          )}
+
           {selectedTarget && (
             <Box sx={{ mt: 2.5, p: 2, borderRadius: 1, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="subtitle1" fontWeight={700}>Latency and Reachability History</Typography>
@@ -564,6 +590,11 @@ const OperationsPage: React.FC = () => {
                     sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700 }}
                   />
                   <Typography fontWeight={600}>{String(incident.summary ?? '')}</Typography>
+                  {incident.target_id !== undefined && incident.target_id !== null && (
+                    <Button size="small" sx={{ ml: 'auto' }} onClick={() => setImpactTarget(String(incident.target_id))}>
+                      View impact
+                    </Button>
+                  )}
                 </Stack>
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                   Started: {new Date(String(incident.started_at)).toLocaleString()} · {incident.resolved_at ? `Resolved: ${new Date(String(incident.resolved_at)).toLocaleString()}` : 'Still unresolved'}

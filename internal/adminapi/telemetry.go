@@ -2,7 +2,6 @@ package adminapi
 
 import (
 	"encoding/json"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -21,7 +20,9 @@ type TrafficPointDTO struct {
 	OutBps    int64     `json:"out_bps"` // Outbound / Upload rate (bps)
 }
 
-// TrafficSeriesDTO returns aggregated MRTG telemetry metrics and time-series points.
+// TrafficSeriesDTO returns aggregated MRTG telemetry metrics and time-series
+// points. Counter resets and gaps are counted instead of plotted as zero, so a
+// missing sample is never presented as idle traffic.
 type TrafficSeriesDTO struct {
 	EntityID            string            `json:"entity_id"`
 	Title               string            `json:"title"`
@@ -36,6 +37,16 @@ type TrafficSeriesDTO struct {
 	TotalInBytes        int64             `json:"total_in_bytes"`
 	TotalOutBytes       int64             `json:"total_out_bytes"`
 	Points              []TrafficPointDTO `json:"points"`
+	Scope               string            `json:"scope"`
+	InLabel             string            `json:"in_label"`
+	OutLabel            string            `json:"out_label"`
+	LastUpdated         *time.Time        `json:"last_updated,omitempty"`
+	Stale               bool              `json:"stale"`
+	StaleAfterSeconds   int               `json:"stale_after_seconds,omitempty"`
+	SampleCount         int               `json:"sample_count"`
+	DataAvailable       bool              `json:"data_available"`
+	CounterResets       int               `json:"counter_resets,omitempty"`
+	MissingIntervals    int               `json:"missing_intervals,omitempty"`
 }
 
 func registerTelemetryRoutes() {
@@ -140,6 +151,7 @@ func getMonitorTargetTraffic(c echo.Context) error {
 	points := make([]TrafficPointDTO, 0)
 	var peakIn, peakOut, sumIn, sumOut, totalInBytes, totalOutBytes int64
 	var currentIn, currentOut int64
+	var counterResets, missingIntervals int
 
 	rawSeries := seriesByInterface[reqInterface]
 	if len(rawSeries) >= 2 {
@@ -147,20 +159,31 @@ func getMonitorTargetTraffic(c echo.Context) error {
 			prev := rawSeries[i-1]
 			curr := rawSeries[i]
 			deltaSec := curr.checkedAt.Sub(prev.checkedAt).Seconds()
-			if deltaSec <= 0 || deltaSec > 3600 {
+			if deltaSec <= 0 {
+				missingIntervals++
+				continue
+			}
+			// A long gap means polling was interrupted, not that the link was
+			// idle; averaging across it would invent a low-traffic interval.
+			if deltaSec > 3600 {
+				missingIntervals++
+				continue
+			}
+			// A counter that moves backwards is a reboot or 32/64-bit wrap. Skip
+			// the interval instead of plotting the unsigned difference or zero.
+			if curr.inOctets < prev.inOctets || curr.outOctets < prev.outOctets {
+				counterResets++
 				continue
 			}
 
-			var inDiff, outDiff uint64
-			if curr.inOctets >= prev.inOctets {
-				inDiff = curr.inOctets - prev.inOctets
+			inDiff := curr.inOctets - prev.inOctets
+			outDiff := curr.outOctets - prev.outOctets
+			inBps := int64(float64(inDiff) * 8 / deltaSec)
+			outBps := int64(float64(outDiff) * 8 / deltaSec)
+			if inBps < 0 || outBps < 0 {
+				counterResets++
+				continue
 			}
-			if curr.outOctets >= prev.outOctets {
-				outDiff = curr.outOctets - prev.outOctets
-			}
-
-			inBps := int64(float64(inDiff*8) / deltaSec)
-			outBps := int64(float64(outDiff*8) / deltaSec)
 
 			points = append(points, TrafficPointDTO{
 				Timestamp: curr.checkedAt,
@@ -168,8 +191,10 @@ func getMonitorTargetTraffic(c echo.Context) error {
 				OutBps:    outBps,
 			})
 
-			totalInBytes += int64(inDiff)
-			totalOutBytes += int64(outDiff)
+			// A delta that does not fit int64 converts to a negative rate above
+			// and never reaches this point, so the conversion is bounded.
+			totalInBytes += int64(inDiff)   //nolint:gosec // G115: accepted interval's delta fit a non-negative int64 rate
+			totalOutBytes += int64(outDiff) //nolint:gosec // G115: accepted interval's delta fit a non-negative int64 rate
 			sumIn += inBps
 			sumOut += outBps
 			if inBps > peakIn {
@@ -187,30 +212,10 @@ func getMonitorTargetTraffic(c echo.Context) error {
 	if len(points) > 0 {
 		avgIn = sumIn / int64(len(points))
 		avgOut = sumOut / int64(len(points))
-	} else {
-		// If SNMP samples haven't been polled yet, generate baseline points based on latency/status
-		points = generateBaselineCurve(cutoff, time.Now(), 25000000, 8000000)
-		for _, p := range points {
-			if p.InBps > peakIn {
-				peakIn = p.InBps
-			}
-			if p.OutBps > peakOut {
-				peakOut = p.OutBps
-			}
-			sumIn += p.InBps
-			sumOut += p.OutBps
-		}
-		if len(points) > 0 {
-			avgIn = sumIn / int64(len(points))
-			avgOut = sumOut / int64(len(points))
-			currentIn = points[len(points)-1].InBps
-			currentOut = points[len(points)-1].OutBps
-			totalInBytes = avgIn * 86400 / 8
-			totalOutBytes = avgOut * 86400 / 8
-		}
-		if len(availableInterfaces) == 0 {
-			availableInterfaces = []string{"ether1", "ether2", "sfp-sfpplus1"}
-		}
+	}
+
+	if len(availableInterfaces) == 0 {
+		availableInterfaces = []string{reqInterface}
 	}
 
 	dto := TrafficSeriesDTO{
@@ -227,6 +232,21 @@ func getMonitorTargetTraffic(c echo.Context) error {
 		TotalInBytes:        totalInBytes,
 		TotalOutBytes:       totalOutBytes,
 		Points:              points,
+		Scope:               "nas_interface",
+		InLabel:             "Inbound (SNMP ifInOctets)",
+		OutLabel:            "Outbound (SNMP ifOutOctets)",
+		SampleCount:         len(rawSeries),
+		DataAvailable:       len(points) > 0,
+		CounterResets:       counterResets,
+		MissingIntervals:    missingIntervals,
+	}
+	if len(rawSeries) > 0 {
+		lastUpdated := rawSeries[len(rawSeries)-1].checkedAt
+		dto.LastUpdated = &lastUpdated
+		if target.IntervalSeconds > 0 {
+			dto.StaleAfterSeconds = target.IntervalSeconds * 2
+			dto.Stale = time.Since(lastUpdated) > time.Duration(dto.StaleAfterSeconds)*time.Second
+		}
 	}
 
 	return ok(c, dto)
@@ -284,37 +304,11 @@ func getUserTraffic(c echo.Context) error {
 	if len(points) > 0 {
 		avgIn = sumIn / int64(len(points))
 		avgOut = sumOut / int64(len(points))
-	} else {
-		// Generate smooth baseline usage pattern for preview
-		baseIn := int64(15000000)
-		baseOut := int64(4000000)
-		if isOnline && totalInBytes > 0 {
-			baseIn = totalInBytes * 8 / 86400
-			baseOut = totalOutBytes * 8 / 86400
-		}
-		points = generateBaselineCurve(cutoff, time.Now(), baseIn, baseOut)
-		for _, p := range points {
-			if p.InBps > peakIn {
-				peakIn = p.InBps
-			}
-			if p.OutBps > peakOut {
-				peakOut = p.OutBps
-			}
-			sumIn += p.InBps
-			sumOut += p.OutBps
-		}
-		if len(points) > 0 {
-			avgIn = sumIn / int64(len(points))
-			avgOut = sumOut / int64(len(points))
-			currentIn = points[len(points)-1].InBps
-			currentOut = points[len(points)-1].OutBps
-			if totalInBytes == 0 {
-				totalInBytes = avgIn * 86400 / 8
-				totalOutBytes = avgOut * 86400 / 8
-			}
-		}
 	}
 
+	// RadiusTrafficSample stores the rate between two accounting updates. A
+	// missing sample is reported as missing rather than smoothed into a fake
+	// baseline, so an offline subscriber never looks like idle traffic.
 	dto := TrafficSeriesDTO{
 		EntityID:      username,
 		Title:         "PPPoE Subscriber: " + username,
@@ -327,6 +321,20 @@ func getUserTraffic(c echo.Context) error {
 		TotalInBytes:  totalInBytes,
 		TotalOutBytes: totalOutBytes,
 		Points:        points,
+		Scope:         "subscriber_session",
+		InLabel:       "Upload (Acct-Input-Octets)",
+		OutLabel:      "Download (Acct-Output-Octets)",
+		SampleCount:   len(samples),
+		DataAvailable: len(points) > 0,
+	}
+	if isOnline {
+		dto.InLabel = "Upload (Acct-Input-Octets, session online)"
+	}
+	if len(samples) > 0 {
+		lastUpdated := samples[len(samples)-1].RecordedAt
+		dto.LastUpdated = &lastUpdated
+		dto.StaleAfterSeconds = 300
+		dto.Stale = time.Since(lastUpdated) > 5*time.Minute
 	}
 
 	return ok(c, dto)
@@ -360,6 +368,11 @@ func listSyslogEvents(c echo.Context) error {
 	page, size := parsePagination(c)
 	q := GetDB(c).Model(&domain.SyslogEvent{})
 
+	// Test/injected events are hidden by default so the operational log reflects
+	// what real devices sent; ?include_synthetic=true reveals them.
+	if c.QueryParam("include_synthetic") != "true" {
+		q = q.Where("synthetic = ?", false)
+	}
 	if nasIP := strings.TrimSpace(c.QueryParam("nas_ip")); nasIP != "" {
 		q = q.Where("nas_ip = ?", nasIP)
 	}
@@ -414,50 +427,11 @@ func injectTestSyslog(c echo.Context) error {
 		SeverityName: syslogd.SeverityName(input.Severity),
 		Tag:          input.Tag,
 		Message:      input.Message,
+		Synthetic:    true,
 		CreatedAt:    time.Now(),
 	}
 	if err := GetDB(c).Create(&event).Error; err != nil {
 		return fail(c, 500, "DATABASE_ERROR", "Failed to record test syslog", nil)
 	}
 	return ok(c, event)
-}
-
-func generateBaselineCurve(start, end time.Time, baseIn, baseOut int64) []TrafficPointDTO {
-	step := 15 * time.Minute
-	if end.Sub(start) <= 2*time.Hour {
-		step = 2 * time.Minute
-	} else if end.Sub(start) > 48*time.Hour {
-		step = 1 * time.Hour
-	}
-
-	var points []TrafficPointDTO
-	cur := start
-	idx := 0
-	for cur.Before(end) || cur.Equal(end) {
-		// Daily curve simulation: peak at night (hour 19-23), lower in morning (3-6)
-		hour := cur.Hour()
-		factor := 0.4 + 0.6*math.Sin((float64(hour)-6)*math.Pi/12)
-		if factor < 0.15 {
-			factor = 0.15
-		}
-		jitter := 1.0 + 0.15*math.Sin(float64(idx)*0.7)
-
-		inBps := int64(float64(baseIn) * factor * jitter)
-		outBps := int64(float64(baseOut) * factor * jitter * 0.4)
-		if inBps < 100000 {
-			inBps = 100000
-		}
-		if outBps < 50000 {
-			outBps = 50000
-		}
-
-		points = append(points, TrafficPointDTO{
-			Timestamp: cur,
-			InBps:     inBps,
-			OutBps:    outBps,
-		})
-		cur = cur.Add(step)
-		idx++
-	}
-	return points
 }

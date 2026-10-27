@@ -114,9 +114,11 @@ jobs:
           git tag -a "$RELEASE_TAG" "$RELEASE_SHA" -m "MWX-ISP ${RELEASE_TAG}"
           git push origin "$RELEASE_TAG"
 
+      # Runs here because the release commit only exists locally after the steps
+      # above. Deliberately not continue-on-error: a stalled sync must fail the run
+      # instead of silently leaving dev on stale release metadata.
       - name: Sync release metadata onto the latest dev tip
         if: steps.prepare.outputs.release == 'true'
-        continue-on-error: true
         env:
           RELEASE_COMMIT_SHA: ${{ steps.prepare.outputs.release_sha || steps.release_commit.outputs.release_sha }}
         run: python3 scripts/sync_release_to_dev.py "$RELEASE_COMMIT_SHA"

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo/v4"
 	"github.com/bjo163/mwx-isp/internal/app"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/securestore"
 	"github.com/bjo163/mwx-isp/internal/webserver"
+	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
 
@@ -101,6 +101,7 @@ func registerNetworkMonitorRoutes() {
 	webserver.ApiPOST("/network/monitor-targets/:id/check", checkMonitorTarget, requireAdmin())
 	webserver.ApiGET("/network/monitor-targets/:id/samples", listMonitorSamples)
 	webserver.ApiGET("/network/monitor-incidents", listMonitorIncidents)
+	webserver.ApiGET("/network/impact", getNetworkImpact)
 }
 
 func listMonitorTargets(c echo.Context) error {
