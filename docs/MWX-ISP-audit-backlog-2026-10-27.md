@@ -40,7 +40,7 @@ Done: 2 / 100.
   now asserted by `TestLandingSurfaceEndpointsFailClosedAnonymously`. Scope stayed inside the
   existing `Harden` rows of `docs/feature-checklist.md`.
 
-- `ENG-017` (2026-10-27, `dev` @ `f1a0b2c`): the membership-revocation mechanism already
+- `ENG-017` (2026-10-27, `dev` @ `a3803b1`): the membership-revocation mechanism already
   existed (`membership_version` claim vs live `TenantMembership.TokenVersion` in
   `resolveOperatorFromContext`, bumped by `SysOpr.AfterUpdate`), so this was an audit + regression
   task rather than a missing mechanism. The gap the inventory named was that no test exercised
@@ -63,7 +63,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 ## Wave 0 — 5 item (LOKAL 4 · ASET 1)
 
-- [x] `ENG-017` TR-F033 P1 — Audit penurunan hak anggota tenant saat token lama aktif · LOKAL · PROPOSED_VERIFICATION · commit `f1a0b2c`
+- [x] `ENG-017` TR-F033 P1 — Audit penurunan hak anggota tenant saat token lama aktif · LOKAL · PROPOSED_VERIFICATION · commit `a3803b1`
 - [ ] `ENG-001` TR-F004 P1 — Audit & rancang outer anonymous NAI pada EAP-TLS 1.3 · LOKAL · VERIFIED_GAP
 - [ ] `ENG-018` TR-F033 P1 — Konsistensi tenant untuk NAS ambigu dan username sama · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
 - [x] `ENG-021` TR-F018 P1 — Rekonsiliasi landing/portal publik yang faktanya JWT-only · LOKAL · VERIFIED_GAP
