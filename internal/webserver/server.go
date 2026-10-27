@@ -52,14 +52,20 @@ const trustedProxyEnvVar = "TOUGHRADIUS_TRUSTED_PROXIES"
 // trustedProxyIPExtractor builds the client-IP resolver used by c.RealIP().
 // With no trusted proxies it resolves the direct connection peer. Otherwise it
 // walks X-Forwarded-For from the right and returns the first address that is
-// not in a trusted range; echo additionally trusts loopback by default so a
-// local reverse proxy works without extra configuration.
+// not in a trusted range.
+//
+// Echo trusts loopback, link-local, and private peers implicitly, which would
+// let anyone connecting from a LAN address rotate X-Forwarded-For and change
+// the address the rate limiters bucket on. Only loopback stays implicitly
+// trusted, for a reverse proxy on the same host; every other hop, including
+// private networks, must be listed in TOUGHRADIUS_TRUSTED_PROXIES.
 func trustedProxyIPExtractor(raw string) echo.IPExtractor {
 	ranges := parseTrustedProxyRanges(raw)
 	if len(ranges) == 0 {
 		return echo.ExtractIPDirect()
 	}
-	options := make([]echo.TrustOption, 0, len(ranges))
+	options := make([]echo.TrustOption, 0, len(ranges)+2)
+	options = append(options, echo.TrustLinkLocal(false), echo.TrustPrivateNet(false))
 	for _, network := range ranges {
 		options = append(options, echo.TrustIPRange(network))
 	}
