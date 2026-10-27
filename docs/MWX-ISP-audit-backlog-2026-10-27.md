@@ -31,7 +31,21 @@ the current tree.
 
 ## Progress
 
-Done: 11 / 100.
+Done: 12 / 100.
+
+- `ENG-010` (2026-10-27, `dev` @ `54aee93`): RADIUS retransmission and replay. The server has
+  no completed-response cache, so the audit mapped what a duplicate packet actually does on
+  each transport. Accounting is idempotent on `(tenant_id, acct_session_id)`:
+  `TestRetransmittedAccountingPacketsHaveNoDoubleEffect` builds byte-identical Start, Interim
+  and Stop packets, replays each one, and asserts one online row, one accounting row, final
+  counters equal to the stop packet, and that a second tenant using the same session ID and
+  username keeps its own online row. The auth duplicate window is in-process and keyed by
+  tenant+username; `TestRetransmittedAccessRequestRateLimitIsTenantScoped` shows a replay in
+  tenant 1 cannot throttle the same username in tenant 2. EAP state was already namespaced and
+  serialized per tenant. The full matrix (per transport, cache key, side effects, RadSec
+  in-flight map, the missing RFC 5080 response cache, and the one remaining duplicate effect —
+  a zero-rate traffic sample from a replayed interim update) is in
+  `docs/radius-retransmission.md`. No production code changed.
 
 - `ENG-051` (2026-10-27, `dev` @ `5add7af`): website editor functional coverage. The
   "editor" is the global branding singleton: save is the publish path, reset is the only
@@ -202,7 +216,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-033` TR-F028 P1 — Idempotency pembayaran manual dengan request ulang · LOKAL · PROPOSED_VERIFICATION · commit `c89624d`
 - [ ] `ENG-052` TR-F016 P1 — E2E matriks tombol per role operator/admin/super · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
 - [ ] `ENG-009` TR-F003 P1 — Regression RadSec mTLS sertifikat tidak tepercaya · LOKAL · dep ENG-004 · PROPOSED_VERIFICATION
-- [ ] `ENG-010` TR-F001 P1 — Audit duplikasi RADIUS retransmission dan replay · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-010` TR-F001 P1 — Audit duplikasi RADIUS retransmission dan replay · LOKAL · PROPOSED_VERIFICATION · commit `54aee93`
 - [ ] `ENG-012` TR-F002 P1 — Test accounting Start/Interim/Stop out-of-order · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-022` TR-F016 P1 — Threat-model autentikasi browser dan sesi admin · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-023` TR-F018 P1 — Validasi rate limiting saat reverse proxy multi-hop · LOKAL · PROPOSED_VERIFICATION
@@ -302,8 +316,8 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-010` / `ENG-012` — RADIUS retransmission/replay audit and accounting out-of-order
-   regressions; both feed the later `ENG-013` CoA pilot.
+1. `ENG-012` — accounting Start/Interim/Stop out-of-order regressions; feeds the later
+   `ENG-013` CoA pilot.
 2. `ENG-022` / `ENG-023` — admin browser-session threat model and rate limiting behind a
    multi-hop reverse proxy.
 3. `ENG-024` / `ENG-025` — SNMP secret-rotation runbook and WhatsApp credential protection.
