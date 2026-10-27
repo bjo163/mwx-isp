@@ -4,7 +4,7 @@ Development roadmap: [docs/roadmap.md](roadmap.md)
 
 ## Audit follow-up (2026-10-05)
 
-The [detailed audit backlog](MWX-ISP-audit-backlog-2026-10-05.md) records 20 implementation findings/gaps, 15 verification/hardening tasks and 10 unscheduled proposals at local baseline `8de4dc5`. These are static-review findings, not completed fixes or runtime acceptance evidence. Previously delivered feature labels do not certify subsequently added surfaces.
+The October 2026 static audit at local baseline `8de4dc5` recorded 20 implementation findings/gaps, 15 verification/hardening tasks and 10 unscheduled proposals. Its A/H follow-ups are closed in M18; the F proposals remain unscheduled. These were static-review findings, so previously delivered feature labels do not certify subsequently added surfaces.
 
 M18 maps containment and verification to existing API, UI, storage, billing, deployment and tenant boundaries. Existing public payment mutations, public tenant scoping, voucher consistency and application JSON backup coverage require follow-up. Repairing existing unsafe behavior does not authorize extending a payment, captive-portal or CRM product.
 
