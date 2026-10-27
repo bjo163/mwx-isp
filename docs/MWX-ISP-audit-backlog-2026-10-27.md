@@ -31,7 +31,20 @@ the current tree.
 
 ## Progress
 
-Done: 7 / 100.
+Done: 8 / 100.
+
+- `ENG-032` (2026-10-27, `dev` @ `5c1946a`): manual suspension ownership. The automatic
+  paths already respected the invariant — `SuspendOverdueSubscriptions` only selects
+  subscriptions whose status is still `active`, so it never rewrites a `manual`
+  `suspension_reason` and never emits a duplicate `subscription_suspended` event, and
+  `RecordPayment` reactivates only `billing_overdue` subscriptions after the last overdue
+  invoice is settled. What was missing was evidence across the two transitions together.
+  `TestManualSuspensionSurvivesSchedulerAndPayment` runs the scheduler then a full payment
+  against a manually suspended subscription with an overdue invoice and asserts the status,
+  reason, disabled RADIUS user, and the absence of both events;
+  `TestManualSuspendSurvivesFullPayment` drives the operator `suspend` endpoint followed by
+  the real payment handler and reaches the same state. The ownership invariant is documented
+  under `docs/session-action-queue.md`. No production code changed.
 
 - `ENG-033` (2026-10-27, `dev` @ `c89624d`): idempotent manual payment retries. `RecordPayment`
   had no retry guard, so two identical requests each added to `PaidAmount` as long as balance
@@ -140,7 +153,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 ## Wave 1 — 37 item (LOKAL 30 · ASET 7)
 
-- [ ] `ENG-032` TR-F028 P1 — Invariant suspend manual tidak tertimpa bayar otomatis · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-032` TR-F028 P1 — Invariant suspend manual tidak tertimpa bayar otomatis · LOKAL · PROPOSED_VERIFICATION · commit `5c1946a`
 - [x] `ENG-019` TR-F033 P1 — Ratcheting audit query SQL raw dan joins tenancy · LOKAL · PROPOSED_VERIFICATION · commit `fc7390d`
 - [x] `ENG-028` TR-F022 P1 — Penyamaran PII di logs, traces dan support evidence · LOKAL · PROPOSED_VERIFICATION · commit `59a429d`
 - [ ] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · dep ENG-049 · PROPOSED_VERIFICATION
@@ -252,6 +265,7 @@ Ordered so each step stays executable without new hardware:
 1. `ENG-019` / `ENG-028` — raw-SQL tenancy ratchet and PII redaction in logs; both feed the
    later `ENG-060` support-bundle and `FUT-010` items.
 2. `ENG-051` — website editor functional coverage, currently a `VERIFIED_GAP` and fully local.
-3. `ENG-032` / `ENG-031` — the `TR-F028` billing invariant cluster, fully local.
+3. `ENG-031` — invoice numbering survives a retry after a PostgreSQL crash; the last
+   remaining local item in the `TR-F028` billing cluster.
 4. `ENG-010` / `ENG-012` — RADIUS retransmission/replay audit and accounting out-of-order
    regressions; both feed the later `ENG-013` CoA pilot.
