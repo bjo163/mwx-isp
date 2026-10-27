@@ -600,6 +600,7 @@ const RadiusUserListSkeleton = ({ rows = 10 }: { rows?: number }) => (
 
 const UserEmptyListState = () => {
   const translate = useTranslate();
+  const isAdmin = useIsAdmin();
   return (
     <Box
       sx={{
@@ -613,10 +614,12 @@ const UserEmptyListState = () => {
     >
       <PersonIcon sx={{ fontSize: 64, opacity: 0.3, mb: 2 }} />
       <Typography variant="h6" sx={{ opacity: 0.6, mb: 1 }}>
-        {translate('resources.radius/users.empty.title', { _: 'No User' })}
+        {translate('resources.radius/users.empty.title', { _: 'No RADIUS users yet' })}
       </Typography>
       <Typography variant="body2" sx={{ opacity: 0.5 }}>
-        {translate('resources.radius/users.empty.description', { _: 'Click"Create"buttonAdd the firstRADIUSUser' })}
+        {isAdmin
+          ? translate('resources.radius/users.empty.description', { _: 'Click "Create" to add the first RADIUS user' })
+          : translate('resources.radius/users.empty.restricted', { _: 'No RADIUS users have been provisioned yet.' })}
       </Typography>
     </Box>
   );

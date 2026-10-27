@@ -116,6 +116,11 @@ export const indonesianOverrides: Record<string, unknown> = {
   resources: {
     'radius/users': {
       name: 'Pengguna RADIUS |||| Pengguna RADIUS',
+      empty: {
+        title: 'Belum ada pengguna RADIUS',
+        description: 'Klik "Create" untuk menambahkan pengguna RADIUS pertama',
+        restricted: 'Belum ada pengguna RADIUS yang diprovisioning.',
+      },
       import: {
         button: 'Impor Massal',
         failed: 'Impor gagal',
