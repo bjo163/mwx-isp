@@ -15,20 +15,20 @@ Sumber detail dan kriteria penerimaan: [45 kartu audit, penguatan, dan brainstor
 - [x] [A02 — Tutup webhook pembayaran yang belum terverifikasi](MWX-ISP-audit-backlog-2026-10-05.md#a02) (P0; ditutup PR #31, merge `3168bbd`).
 - [x] [A03 — Scope semua endpoint publik ke tenant terverifikasi](MWX-ISP-audit-backlog-2026-10-05.md#a03) (P0; ditutup PR #31, merge `3168bbd`).
 - [x] [A04 — Batasi pembukaan data pelanggan dari lookup publik](MWX-ISP-audit-backlog-2026-10-05.md#a04) (P0; ditutup PR #31, merge `3168bbd`).
-- [ ] [A05 — Nomor batch voucher benar-benar unik](MWX-ISP-audit-backlog-2026-10-05.md#a05) (P1; Terbukti dari kode).
-- [ ] [A06 — Buktikan dan perbaiki kelayakan akun voucher RADIUS](MWX-ISP-audit-backlog-2026-10-05.md#a06) (P1; Celah integrasi dari kode; perlu reproduksi auth).
-- [ ] [A07 — Hubungkan masa berlaku dan kuota voucher ke runtime](MWX-ISP-audit-backlog-2026-10-05.md#a07) (P1; Celah integrasi dari pencarian kode).
-- [ ] [A08 — Transaksi atomik batch, voucher dan kredensial](MWX-ISP-audit-backlog-2026-10-05.md#a08) (P1; Terbukti dari kode).
-- [ ] [A09 — Penghapusan voucher tidak boleh sukses palsu](MWX-ISP-audit-backlog-2026-10-05.md#a09) (P1; Terbukti dari kode).
+- [x] [A05 — Nomor batch voucher benar-benar unik](MWX-ISP-audit-backlog-2026-10-05.md#a05) (P1; Selesai 2026-10-27, v0.12.0: sequence tenant `isp_document_sequence`).
+- [x] [A06 — Buktikan dan perbaiki kelayakan akun voucher RADIUS](MWX-ISP-audit-backlog-2026-10-05.md#a06) (P1; Selesai 2026-10-27, v0.12.0: aktivasi login pertama + tes auth).
+- [x] [A07 — Hubungkan masa berlaku dan kuota voucher ke runtime](MWX-ISP-audit-backlog-2026-10-05.md#a07) (P1; Selesai 2026-10-27, v0.12.0: masa berlaku runtime; kuota byte ditolak eksplisit).
+- [x] [A08 — Transaksi atomik batch, voucher dan kredensial](MWX-ISP-audit-backlog-2026-10-05.md#a08) (P1; Selesai 2026-10-27, v0.12.0: satu transaksi + rollback teruji).
+- [x] [A09 — Penghapusan voucher tidak boleh sukses palsu](MWX-ISP-audit-backlog-2026-10-05.md#a09) (P1; Selesai 2026-10-27, v0.12.0: transaksi hapus + 404/500 nyata).
 - [x] [A10 — Registrasi pelanggan dan work order atomik](MWX-ISP-audit-backlog-2026-10-05.md#a10) (P1; Selesai 2026-10-27: transaksi + idempotency + tes retry).
-- [ ] [A11 — Tolak paket registrasi yang tidak tersedia](MWX-ISP-audit-backlog-2026-10-05.md#a11) (P1; Terbukti dari kode).
-- [ ] [A12 — Satukan sequence tiket dan work order](MWX-ISP-audit-backlog-2026-10-05.md#a12) (P1; Terbukti dari kode).
-- [ ] [A13 — Lengkapi cakupan backup JSON aplikasi](MWX-ISP-audit-backlog-2026-10-05.md#a13) (P1; Terbukti dari kode).
-- [ ] [A14 — Edit ODP bisa mengosongkan nilai](MWX-ISP-audit-backlog-2026-10-05.md#a14) (P2; Terbukti dari kode).
+- [x] [A11 — Tolak paket registrasi yang tidak tersedia](MWX-ISP-audit-backlog-2026-10-05.md#a11) (P1; Selesai 2026-10-27, v0.12.0: validasi paket + idempotency).
+- [x] [A12 — Satukan sequence tiket dan work order](MWX-ISP-audit-backlog-2026-10-05.md#a12) (P1; Selesai 2026-10-27, v0.12.0: sequence tiket bersama + dedup flapping).
+- [x] [A13 — Lengkapi cakupan backup JSON aplikasi](MWX-ISP-audit-backlog-2026-10-05.md#a13) (P1; Selesai 2026-10-27, v0.12.0: model ISP + manifest + dry-run).
+- [x] [A14 — Edit ODP bisa mengosongkan nilai](MWX-ISP-audit-backlog-2026-10-05.md#a14) (P2; Selesai 2026-10-27, v0.12.0: pointer absent/empty/zero).
 - [x] [A15 — Cetak seluruh voucher batch melalui pagination](MWX-ISP-audit-backlog-2026-10-05.md#a15) (P2; Selesai 2026-10-27: paging server, batas 500, gagal fetch menutup print).
-- [ ] [A16 — Hubungkan pilihan paket pada generator voucher](MWX-ISP-audit-backlog-2026-10-05.md#a16) (P1; Terbukti dari kode).
-- [ ] [A17 — Audit IP menghormati waktu yang diminta](MWX-ISP-audit-backlog-2026-10-05.md#a17) (P2; Terbukti dari kode).
-- [ ] [A18 — Jelaskan jenis probe TCP dan dukung alamat IPv6](MWX-ISP-audit-backlog-2026-10-05.md#a18) (P2; Terbukti dari kode).
+- [x] [A16 — Hubungkan pilihan paket pada generator voucher](MWX-ISP-audit-backlog-2026-10-05.md#a16) (P1; Selesai 2026-10-27, v0.12.0: select paket wajib + backend menolak paket unusable).
+- [x] [A17 — Audit IP menghormati waktu yang diminta](MWX-ISP-audit-backlog-2026-10-05.md#a17) (P2; Selesai 2026-10-27, v0.12.0: RFC3339 wajib + filter interval).
+- [x] [A18 — Jelaskan jenis probe TCP dan dukung alamat IPv6](MWX-ISP-audit-backlog-2026-10-05.md#a18) (P2; Selesai 2026-10-27, v0.12.0: normalisasi IPv4/IPv6 + label TCP).
 - [x] [A19 — Jangan mempublikasikan paket fiktif ketika katalog kosong](MWX-ISP-audit-backlog-2026-10-05.md#a19) (ditutup PR #31, merge `3168bbd`).
 - [x] [A20 — Selaraskan scope dokumen dengan fitur yang telah ada](MWX-ISP-audit-backlog-2026-10-05.md#a20) (P1; Selesai 2026-10-27: inventory 25 surface keep/harden/hide + handbook EN/ID).
 

@@ -186,7 +186,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### A05 — Nomor batch voucher benar-benar unik
 
-- **Prioritas / status:** P1 / Terbukti dari kode.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (v0.12.0; commit `8abeac7`).
 - **Pemetaan scope:** TR-F012 / TR-F017.
 - **Dependensi:** —.
 - **Entry point:** `internal/adminapi/isp_operations.go#generateVouchers`; `internal/domain/isp_operations.go#HotspotBatch`.
@@ -197,16 +197,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Dua batch 20 voucher hari sama berhasil dengan nomor berbeda; concurrent create dan restart tidak menduplikasi nomor.
 
-- [ ] A05.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A05.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A05.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A05.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `BatchNo` sekarang `BATCH-<YYMMDD>-<serial 6 digit>` yang dialokasikan `billing.NextDocumentSerial(tx, "voucher", period)` di transaksi yang sama dengan pembuatan batch (`internal/adminapi/isp_operations.go`). Sequence disimpan di `isp_document_sequence` dengan unique key `(tenant_id, kind, period)` dan dialokasikan atomik lewat upsert `ON CONFLICT … value + 1` + `RETURNING` (`internal/billing/service.go`), sehingga tidak reset saat restart dan tidak berbagi nomor antar-tenant. Nomor batch lama tidak diubah. Tes: `internal/adminapi/isp_operations_test.go` (`TestVoucherBatchNumbersUseAtomicDailySequence`: dua batch pada hari yang sama mendapat `000001` dan `000002`) dan integration PostgreSQL `test/integration/isp_voucher_test.go` (`TestVoucherGenerationUsesPostgresSequenceAndActivatesAfterValidAuth`: tiga request generate paralel, semua `BatchNo` unik).
+
+- [x] A05.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A05.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A05.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A05.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a06"></a>
 
 ### A06 — Buktikan dan perbaiki kelayakan akun voucher RADIUS
 
-- **Prioritas / status:** P1 / Celah integrasi dari kode; perlu reproduksi auth.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (v0.12.0; issue #49).
 - **Pemetaan scope:** TR-F007 / TR-F012.
 - **Dependensi:** A05, A08, A16.
 - **Entry point:** `internal/adminapi/isp_operations.go#generateVouchers`; `internal/radiusd/plugins/auth/checkers/expire_checker.go`; `internal/domain/radius.go`.
@@ -217,16 +219,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Voucher baru dengan paket sah dapat auth; voucher habis masa berlaku ditolak; profil hilang menghasilkan error sebelum ada data parsial.
 
-- [ ] A06.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A06.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A06.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A06.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** Generator menolak paket tanpa profil atau profil non-enabled sebelum record dibuat; kredensial mendapat `ExpireTime` jauh di masa depan hanya agar akun ada. Masa berlaku voucher dimulai pada login sukses pertama lewat `activateHotspotVoucher` (conditional update `status='active' AND first_login_at IS NULL`) yang menulis `expires_at` dan `radius_user.expire_time`; expiry checker global tidak diubah. Tes unit: `TestVoucherGenerationRequiresUsablePackageAndRollsBack`, `TestHotspotVoucherValidityStartsOnceAndIsTenantScoped`, `TestHotspotVoucherConcurrentFirstLoginSharesOneWindow`, `TestMarkExpiredHotspotVoucherIsTenantScoped`; integration: `TestVoucherGenerationUsesPostgresSequenceAndActivatesAfterValidAuth` membuktikan auth sukses, expiry ditolak, dan revoke ditolak. Alur lengkap: `docs/voucher-lifecycle.md`.
+
+- [x] A06.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A06.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A06.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A06.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a07"></a>
 
 ### A07 — Hubungkan masa berlaku dan kuota voucher ke runtime
 
-- **Prioritas / status:** P1 / Celah integrasi dari pencarian kode.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 untuk masa berlaku; kuota byte tidak didukung dan ditolak eksplisit.
 - **Pemetaan scope:** TR-F007 / TR-F008 / TR-F012.
 - **Dependensi:** A06; keputusan scope A20.
 - **Entry point:** `internal/domain/isp_operations.go#HotspotVoucher`; `internal/adminapi/isp_operations.go`; `internal/radiusd/radius_acct.go`.
@@ -237,16 +241,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Pemakaian dan sisa kuota berubah dari accounting nyata; duplikat Interim tidak menggandakan pemakaian; expired/revoked/quota exhausted tidak mendapat akses baru.
 
-- [ ] A07.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A07.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A07.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A07.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** Masa berlaku terhubung ke runtime: first-use window, `Session-Timeout` sisa waktu pada setiap Access-Accept, status `expired`, dan revoke yang men-disable kredensial serta mengirim Disconnect ke sesi live (idempoten, `already_revoked`). Kuota byte sengaja tidak didukung sesuai opsi "sembunyikan klaim kuota": `quota_mb > 0` ditolak `QUOTA_NOT_SUPPORTED`, `quota_enforced=false`, `usage_available=false`, dan UI menandai kuota tersimpan sebagai "Not enforced"; tidak ada klaim pemakaian kuota. Karena kuota tidak pernah diterima, kriteria "quota exhausted" tidak berlaku; expired/revoked terbukti tidak mendapat akses baru. Dokumentasi: `docs/voucher-lifecycle.md` (termasuk batas Phase B). Tes: `TestHotspotVoucherValidityStartsOnceAndIsTenantScoped`, `TestHotspotVoucherConcurrentFirstLoginSharesOneWindow`, `TestRevokeVoucherDisablesCredentialAndDisconnectsLiveSessions`, `TestRevokeVoucherRejectsExpiredVoucher`, dan integration `TestVoucherGenerationUsesPostgresSequenceAndActivatesAfterValidAuth`.
+
+- [x] A07.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A07.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A07.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A07.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a08"></a>
 
 ### A08 — Transaksi atomik batch, voucher dan kredensial
 
-- **Prioritas / status:** P1 / Terbukti dari kode.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (v0.12.0; commit `8abeac7`).
 - **Pemetaan scope:** TR-F012 / TR-F017.
 - **Dependensi:** —.
 - **Entry point:** `internal/adminapi/isp_operations.go#generateVouchers`.
@@ -257,16 +263,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Fault insert akun atau kode collision tidak meninggalkan batch/voucher yatim; sukses hanya bila jumlah seluruh entitas sesuai quantity.
 
-- [ ] A08.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A08.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A08.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A08.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `generateVouchers` memvalidasi paket/profil lalu membuat batch, voucher, dan `RadiusUser` dalam satu `db.Transaction`; setiap error dikembalikan dan response sukses hanya dikirim setelah commit. `CreatedBy` diisi dari operator terautentikasi. Tes `TestVoucherGenerationRequiresUsablePackageAndRollsBack` menginjeksikan kegagalan create kredensial dan memastikan batch, voucher, RADIUS user, dan sequence kembali nol (tidak ada record yatim). Kode voucher acak dengan unique index; bentrok kode menggagalkan seluruh transaksi, sehingga tidak ada batch setengah jadi. Integration test juga memastikan jumlah voucher = `quantity` setelah sukses.
+
+- [x] A08.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A08.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A08.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A08.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a09"></a>
 
 ### A09 — Penghapusan voucher tidak boleh sukses palsu
 
-- **Prioritas / status:** P1 / Terbukti dari kode.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (v0.12.0; commit `8abeac7`).
 - **Pemetaan scope:** TR-F012 / TR-F017 / TR-F033.
 - **Dependensi:** A08.
 - **Entry point:** `internal/adminapi/isp_operations.go#deleteVoucherBatch`.
@@ -277,10 +285,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** DB failure rollback seluruh penghapusan; tenant asing tidak terhapus; username collision tidak menghapus akun yang bukan milik voucher.
 
-- [ ] A09.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A09.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A09.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A09.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `deleteVoucherBatch` mencari batch lewat `GetDB(c)` yang tenant-scoped, memakai satu `db.Transaction` untuk menghapus kredensial (`radius_user_id`), fallback khusus voucher lama yang hanya menghapus akun bila `username AND password` sama, lalu voucher dan batch; error delete dipropagasikan. Not-found dipetakan 404 dan kegagalan DB 500. Tes `TestDeleteVoucherBatchReportsMissingAndRemovesCredentials`: batch hilang → 404, injeksi kegagalan delete kredensial → 500 dengan seluruh record tetap utuh (rollback), lalu delete sukses menghapus batch+voucher+kredensial. Tenant asing tidak ditemukan oleh scope tenant sehingga tidak pernah terhapus; collision username tidak menghapus akun karena pencocokan memakai ID atau pasangan username+password.
+
+- [x] A09.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A09.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A09.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A09.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a10"></a>
 
@@ -308,7 +318,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### A11 — Tolak paket registrasi yang tidak tersedia
 
-- **Prioritas / status:** P1 / Terbukti dari kode.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (v0.12.0; commit `18f7bf5`).
 - **Pemetaan scope:** TR-F027 / TR-F012.
 - **Dependensi:** A03.
 - **Entry point:** `internal/adminapi/isp.go#registerPublicCustomer`.
@@ -319,16 +329,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Paket invalid/inactive/tenant asing ditolak 4xx tanpa customer/tiket baru; paket terpilih tersimpan sebagai relasi yang dapat dilacak.
 
-- [ ] A11.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A11.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A11.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A11.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `registerPublicCustomer` mewajibkan `package_id`, mencari paket `status='active'` dalam scope tenant, mewajibkan `radius_profile_id > 0` dan profil `enabled`, memvalidasi panjang field (nama 150, telepon 32, email 150, alamat 500, kota/identitas 100, catatan 1000), format telepon, serta email; dedup memakai `Idempotency-Key`. Paket/profil tidak valid ditolak 400 sebelum transaksi menulis customer/tiket. Tes `TestPublicRegistrationRequiresActivePackageAndPersistsCustomerAndWorkOrderAtomically` membuktikan paket inactive ditolak dan retry dengan key sama mengembalikan record tersimpan, bukan membuat duplikat. Subscription menyimpan `package_id` pilihan sehingga relasi dapat dilacak.
+
+- [x] A11.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A11.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A11.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A11.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a12"></a>
 
 ### A12 — Satukan sequence tiket dan work order
 
-- **Prioritas / status:** P1 / Terbukti dari kode.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (v0.12.0; commit `18f7bf5`).
 - **Pemetaan scope:** TR-F012 / TR-F017.
 - **Dependensi:** —.
 - **Entry point:** `internal/adminapi/isp_operations.go#createTroubleTicket/createFlappingTicket`; `internal/adminapi/isp.go#registerPublicCustomer`.
@@ -339,16 +351,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Dua kejadian berbeda dalam satu detik mendapat nomor berbeda; event sama yang diulang tidak membuat tiket baru; concurrent create lulus.
 
-- [ ] A12.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A12.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A12.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A12.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** TCK, FLAP, dan WO semuanya memakai `nextISPTicketNumber` yang mengalokasikan `billing.NextDocumentSerial(tx, "ticket", YYMMDD)` — sequence tenant-scoped yang sama dan atomik — lalu membentuk `<PREFIX>-<YYMMDD>-<serial 6 digit>` di dalam transaksi create. Nomor dokumen lama tidak diubah. Idempotency flapping dipisahkan dari penomoran: createFlappingTicket mengunci baris akun RADIUS, mencari tiket aktif dengan subject/kategori sama dan mengembalikannya bila ada, baru mengalokasikan nomor untuk event baru. Tes `TestTicketAndWorkOrderNumbersShareSequenceAndFlappingRequestsDeduplicate` serta integration `TestCustomerRegistrationAndTicketsSharePostgresSequenceConcurrently` (12 request paralel menghasilkan 12 nomor unik).
+
+- [x] A12.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A12.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A12.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A12.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a13"></a>
 
 ### A13 — Lengkapi cakupan backup JSON aplikasi
 
-- **Prioritas / status:** P1 / Terbukti dari kode.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (v0.12.0; issue #50, commit `77f8fde`).
 - **Pemetaan scope:** TR-F017 / TR-F020.
 - **Dependensi:** A20.
 - **Entry point:** `internal/adminapi/system_backup.go#SystemBackup/tenantOwnedBackupRows`; `internal/domain/isp_operations.go`.
@@ -359,16 +373,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Restore ke PostgreSQL kosong mengembalikan entitas dan relasi kedua tenant; backup lama tetap terbaca; coverage missing table gagal jelas.
 
-- [ ] A13.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A13.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A13.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A13.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `SystemBackup` memuat `HotspotBatches`, `Vouchers` (dengan `RadiusUserID`), `IPAMPools`, `TroubleTickets`, dan `ODPs` selain data billing/RADIUS yang sudah ada; manifest mencatat versi skema, waktu, jumlah record, dan hash per tabel; restore memvalidasi versi, checksum, dan referensi sebelum menulis, dengan dry-run tanpa mutasi. Field baru memakai `omitempty` sehingga backup lama tetap terbaca. Tes: `internal/adminapi/system_backup_test.go` dan drill PostgreSQL dua tenant `test/integration/backup_drill_test.go`; prosedur dan batas JSON vs full DB di `docs/backup-and-recovery.md` bukan klaim pg_dump kehilangan tabel. Coverage model didaftarkan eksplisit di `tenantOwnedBackupRows`, sehingga model durable baru tanpa entri akan terlihat saat review.
+
+- [x] A13.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A13.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A13.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A13.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a14"></a>
 
 ### A14 — Edit ODP bisa mengosongkan nilai
 
-- **Prioritas / status:** P2 / Terbukti dari kode.
+- **Prioritas / status:** P2 / Selesai 2026-10-27 (v0.12.0; commit `309c0b4`, PR #40).
 - **Pemetaan scope:** TR-F012 / TR-F013.
 - **Dependensi:** —.
 - **Entry point:** `internal/adminapi/isp_operations.go#updateODP`; `web/src/pages/ODPPage.tsx`.
@@ -379,10 +395,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Clear notes/alamat bertahan setelah reload; latitude/longitude=0 dapat disimpan; field yang tidak dikirim tidak terhapus pada PATCH.
 
-- [ ] A14.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A14.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A14.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A14.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `odpInput` di `internal/adminapi/isp_operations.go` memakai pointer untuk seluruh field yang dapat diedit. `updateODP` hanya menyentuh field yang hadir di payload: `address`/`notes` dikosongkan bila dikirim string kosong, `latitude`/`longitude` menyimpan nilai `0` bila dikirim eksplisit, sedangkan field yang tidak dikirim dipertahankan. Form ODP mengirim seluruh payload field, sehingga editor selalu berupa update lengkap. `TestODPAndFlappingOperations` di `internal/adminapi/isp_operations_test.go` menguji pengosongan notes/alamat, penyimpanan koordinat nol, dan membuktikan `name` yang tidak dikirim tetap utuh.
+
+- [x] A14.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A14.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A14.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A14.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a15"></a>
 
@@ -410,7 +428,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### A16 — Hubungkan pilihan paket pada generator voucher
 
-- **Prioritas / status:** P1 / Terbukti dari kode.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (v0.12.0; issue #49).
 - **Pemetaan scope:** TR-F013 / TR-F007.
 - **Dependensi:** A06.
 - **Entry point:** `web/src/pages/HotspotVouchersPage.tsx#generateMutation`; `internal/adminapi/isp_operations.go#generateVoucherInput`.
@@ -421,16 +439,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Payload memuat ID string valid; paket kosong/disabled tidak dapat submit; voucher menunjuk profile paket yang dipilih.
 
-- [ ] A16.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A16.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A16.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A16.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** Dialog generator di `web/src/pages/HotspotVouchersPage.tsx` memuat `Select` paket hotspot (kode — nama) yang wajib dipilih; tombol generate dinonaktifkan ketika `package_id` kosong, daftar paket masih dimuat, atau daftar kosong, dan empty-state memberi arahan membuat paket lebih dahulu. Mutation mengirim `package_id` string dan backend mewajibkan paket aktif dengan RADIUS profile yang dapat dipakai sebelum transaksi voucher dijalankan; tes `TestVoucherGenerationRequiresUsablePackageAndRollsBack` serta tes integrasi PostgreSQL memakai `package_id` nyata dan memverifikasi voucher menunjuk profile paket tersebut.
+
+- [x] A16.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A16.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A16.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A16.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a17"></a>
 
 ### A17 — Audit IP menghormati waktu yang diminta
 
-- **Prioritas / status:** P2 / Terbukti dari kode.
+- **Prioritas / status:** P2 / Selesai 2026-10-27 (v0.12.0; commit `3ecb715`, PR #42).
 - **Pemetaan scope:** TR-F012 / TR-F008.
 - **Dependensi:** —.
 - **Entry point:** `internal/adminapi/isp_operations.go#auditIPHistory`.
@@ -441,16 +461,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** IP berganti pelanggan menghasilkan pemilik sesuai interval; timestamp invalid 400; sesi hari ini tidak ditampilkan sebagai bukti kepemilikan kemarin.
 
-- [ ] A17.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A17.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A17.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A17.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `auditIPHistory` menolak `at` yang bukan RFC3339 dengan `400 INVALID_TIMESTAMP`, lalu memfilter sesi live dengan `acct_start_time <= targetTime` dan accounting historis dengan irisan interval (`acct_start_time <= targetTime AND (acct_stop_time >= targetTime OR acct_stop_time IS NULL)`). Hasil memakai tipe terpisah `live_online` dan `historical_accounting` beserta `queried_time`, dan error database dipropagasikan sebagai 500. `TestAuditIPHistoryValidationAndTemporalFiltering` di `internal/adminapi/isp_operations_test.go` membuktikan timestamp invalid ditolak, sesi yang dimulai setelah waktu target tidak muncul, dan pemilik IP pada interval yang diminta tetap terpilih.
+
+- [x] A17.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A17.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A17.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A17.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a18"></a>
 
 ### A18 — Jelaskan jenis probe TCP dan dukung alamat IPv6
 
-- **Prioritas / status:** P2 / Terbukti dari kode.
+- **Prioritas / status:** P2 / Selesai 2026-10-27 (v0.12.0; commit `3ecb715`, PR #42).
 - **Pemetaan scope:** TR-F031 / TR-F013.
 - **Dependensi:** —.
 - **Entry point:** `internal/adminapi/isp_operations.go#runLivePing`; `web/src/pages/IPAMPage.tsx`.
@@ -461,10 +483,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** IPv4/IPv6 input benar; refused/reset mengikuti kebijakan reachability yang terdokumentasi; timeout TCP tidak diklaim bukti ICMP down.
 
-- [ ] A18.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A18.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A18.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A18.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `runLivePing` memakai `net.SplitHostPort` untuk input ber-port, membuang bracket IPv6 sebelum `net.JoinHostPort` dengan port default 80, sehingga IPv4, IPv6 polos, IPv6 ber-bracket, dan host:port semuanya menghasilkan alamat dial yang valid. Komentar dan label jalur menegaskan probe adalah TCP reachability (bukan ICMP); hasil mengembalikan metode/port TCP yang dipakai. `TestLivePingProbeIPv4AndIPv6Handling` di `internal/adminapi/isp_operations_test.go` menguji keempat bentuk input dan memastikan target dinormalisasi sebelum dial. Timeout/refused dilaporkan sebagai kegagalan TCP, bukan bukti ICMP down.
+
+- [x] A18.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A18.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A18.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A18.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a19"></a>
 
