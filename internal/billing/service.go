@@ -16,6 +16,12 @@ var (
 	ErrInvalidPayment = errors.New("payment must be positive and no greater than invoice balance")
 	// ErrInvoiceClosed indicates that an invoice is void, paid, or otherwise has no remaining balance.
 	ErrInvoiceClosed = errors.New("invoice cannot accept payment in its current state")
+	// ErrDuplicatePayment indicates that a payment with the same idempotency key
+	// already exists for the tenant. No money state was changed.
+	ErrDuplicatePayment = errors.New("payment with this idempotency key already recorded")
+	// ErrIdempotencyConflict indicates that an existing payment uses the same
+	// idempotency key for different invoice, amount, method, or reference.
+	ErrIdempotencyConflict = errors.New("idempotency key reused with different payment details")
 )
 
 // GenerateMonthlyInvoices creates an invoice for every active subscription
@@ -183,6 +189,14 @@ func SuspendOverdueSubscriptions(db *gorm.DB, now time.Time) error {
 // manual suspensions are never cleared here. payment receives its generated
 // number, customer ID, timestamp, and received status on success. The function
 // returns ErrInvalidPayment, ErrInvoiceClosed, or a wrapped database error.
+//
+// When payment.IdempotencyKey is set, a retry that reuses the key for the same
+// invoice, amount, method, and reference records nothing and returns
+// ErrDuplicatePayment before the invoice state is examined, so replaying a
+// payment that closed the invoice still reports a duplicate instead of a closed
+// invoice. Reusing the key with different details returns ErrIdempotencyConflict.
+// Payments without a key are always recorded as new payments, which keeps two
+// legitimately identical cash payments separate.
 func RecordPayment(db *gorm.DB, payment *domain.Payment, now time.Time, autoReactivate bool) error {
 	if payment.Amount <= 0 {
 		return ErrInvalidPayment
@@ -191,6 +205,20 @@ func RecordPayment(db *gorm.DB, payment *domain.Payment, now time.Time, autoReac
 		var invoice domain.Invoice
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&invoice, payment.InvoiceID).Error; err != nil {
 			return err
+		}
+		if payment.IdempotencyKey != nil {
+			var existing domain.Payment
+			err := tx.Where("tenant_id = ? AND idempotency_key = ?", invoice.TenantID, *payment.IdempotencyKey).First(&existing).Error
+			if err == nil {
+				if existing.InvoiceID != payment.InvoiceID || existing.Amount != payment.Amount ||
+					existing.Method != payment.Method || existing.Reference != payment.Reference {
+					return ErrIdempotencyConflict
+				}
+				return ErrDuplicatePayment
+			}
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
 		}
 		if invoice.Status == domain.InvoiceVoid || invoice.Status == domain.InvoicePaid || invoice.Balance <= 0 {
 			return ErrInvoiceClosed
@@ -207,6 +235,11 @@ func RecordPayment(db *gorm.DB, payment *domain.Payment, now time.Time, autoReac
 		}
 		payment.PaymentNo = fmt.Sprintf("PAY-%s-%06d", now.Format("200601"), serial)
 		if err := tx.Create(payment).Error; err != nil {
+			// A concurrent request with the same key won the unique index race;
+			// the caller can reload it by key.
+			if payment.IdempotencyKey != nil && isUniqueViolation(err) {
+				return ErrDuplicatePayment
+			}
 			return err
 		}
 		invoice.PaidAmount += payment.Amount

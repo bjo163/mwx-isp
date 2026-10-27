@@ -242,6 +242,82 @@ func TestProcessOverdueAndSuspendAfterGrace(t *testing.T) {
 	require.EqualValues(t, 1, suspensions)
 }
 
+func TestRecordPaymentIdempotentRetryDoesNotDoubleBook(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.October, 15, 10, 0, 0, 0, time.UTC)
+	invoice := domain.Invoice{InvoiceNo: "INV-IDEM-1", Total: 100000, Balance: 100000, Status: domain.InvoiceIssued}
+	require.NoError(t, db.Create(&invoice).Error)
+
+	keyOf := func(key string) *string { return &key }
+	first := domain.Payment{InvoiceID: invoice.ID, Amount: 40000, Method: "cash", IdempotencyKey: keyOf("retry-1")}
+	require.NoError(t, RecordPayment(db, &first, now, false))
+
+	retry := domain.Payment{InvoiceID: invoice.ID, Amount: 40000, Method: "cash", IdempotencyKey: keyOf("retry-1")}
+	require.ErrorIs(t, RecordPayment(db, &retry, now.Add(time.Minute), false), ErrDuplicatePayment)
+
+	conflict := domain.Payment{InvoiceID: invoice.ID, Amount: 50000, Method: "cash", IdempotencyKey: keyOf("retry-1")}
+	require.ErrorIs(t, RecordPayment(db, &conflict, now.Add(2*time.Minute), false), ErrIdempotencyConflict)
+
+	var updated domain.Invoice
+	require.NoError(t, db.First(&updated, invoice.ID).Error)
+	require.Equal(t, int64(40000), updated.PaidAmount)
+	require.Equal(t, int64(60000), updated.Balance)
+	require.Equal(t, domain.InvoicePartial, updated.Status)
+
+	var payments, events int64
+	require.NoError(t, db.Model(&domain.Payment{}).Count(&payments).Error)
+	require.EqualValues(t, 1, payments)
+	require.NoError(t, db.Model(&domain.BillingEvent{}).Where("type = ?", "payment_received").Count(&events).Error)
+	require.EqualValues(t, 1, events)
+
+	// A different key is a different payment even with identical details.
+	second := domain.Payment{InvoiceID: invoice.ID, Amount: 40000, Method: "cash", IdempotencyKey: keyOf("retry-2")}
+	require.NoError(t, RecordPayment(db, &second, now.Add(3*time.Minute), false))
+	require.NoError(t, db.First(&updated, invoice.ID).Error)
+	require.Equal(t, int64(80000), updated.PaidAmount)
+	require.Equal(t, int64(20000), updated.Balance)
+}
+
+func TestRecordPaymentRetryAfterInvoicePaidReportsDuplicate(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.October, 15, 10, 0, 0, 0, time.UTC)
+	invoice := domain.Invoice{InvoiceNo: "INV-IDEM-2", Total: 75000, Balance: 75000, Status: domain.InvoiceIssued}
+	require.NoError(t, db.Create(&invoice).Error)
+
+	key := "retry-closed"
+	full := domain.Payment{InvoiceID: invoice.ID, Amount: 75000, Method: "bank_transfer", Reference: "TRX-9", IdempotencyKey: &key}
+	require.NoError(t, RecordPayment(db, &full, now, false))
+
+	retry := domain.Payment{InvoiceID: invoice.ID, Amount: 75000, Method: "bank_transfer", Reference: "TRX-9", IdempotencyKey: &key}
+	err := RecordPayment(db, &retry, now.Add(time.Minute), false)
+	require.ErrorIs(t, err, ErrDuplicatePayment)
+	require.False(t, errors.Is(err, ErrInvoiceClosed), "a replay must not be reported as a closed invoice")
+
+	var updated domain.Invoice
+	require.NoError(t, db.First(&updated, invoice.ID).Error)
+	require.Equal(t, domain.InvoicePaid, updated.Status)
+	require.Equal(t, int64(75000), updated.PaidAmount)
+}
+
+func TestRecordPaymentWithoutKeyRecordsSeparateIdenticalPayments(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.October, 15, 10, 0, 0, 0, time.UTC)
+	invoice := domain.Invoice{InvoiceNo: "INV-IDEM-3", Total: 100000, Balance: 100000, Status: domain.InvoiceIssued}
+	require.NoError(t, db.Create(&invoice).Error)
+
+	for i := 0; i < 2; i++ {
+		payment := domain.Payment{InvoiceID: invoice.ID, Amount: 30000, Method: "cash", Reference: "counter-cash"}
+		require.NoError(t, RecordPayment(db, &payment, now.Add(time.Duration(i)*time.Minute), false))
+	}
+
+	var updated domain.Invoice
+	require.NoError(t, db.First(&updated, invoice.ID).Error)
+	require.Equal(t, int64(60000), updated.PaidAmount)
+	var payments int64
+	require.NoError(t, db.Model(&domain.Payment{}).Count(&payments).Error)
+	require.EqualValues(t, 2, payments)
+}
+
 func TestRecordPaymentRejectsClosedInvoice(t *testing.T) {
 	db := billingTestDB(t)
 	invoice := domain.Invoice{InvoiceNo: "INV-CLOSED", Total: 100, Balance: 0, PaidAmount: 100, Status: domain.InvoicePaid}

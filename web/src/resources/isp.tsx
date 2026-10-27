@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   ArrayField, Create, Datagrid, DateField, Edit, FunctionField, List, NumberField,
@@ -722,12 +722,23 @@ const InvoicePaymentDialog = ({
   const [reference, setReference] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const idempotencyKey = useRef<string>('');
 
   React.useEffect(() => {
     if (invoice) {
       setAmount(invoice.balance ?? 0);
     }
   }, [invoice]);
+
+  // One key per dialog session: resubmitting after a network error replays the
+  // same payment instead of recording it twice.
+  React.useEffect(() => {
+    if (open && !idempotencyKey.current) {
+      idempotencyKey.current = typeof crypto?.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `pay-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -739,6 +750,7 @@ const InvoicePaymentDialog = ({
     try {
       await apiRequest('/isp/payments', {
         method: 'POST',
+        headers: { 'Idempotency-Key': idempotencyKey.current },
         body: JSON.stringify({
           invoice_id: invoice.id,
           amount: Number(amount),
@@ -747,6 +759,7 @@ const InvoicePaymentDialog = ({
           notes: notes.trim(),
         }),
       });
+      idempotencyKey.current = '';
       notify('Payment recorded successfully', { type: 'success' });
       onClose();
       onSuccess();
