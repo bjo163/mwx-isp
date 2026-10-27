@@ -109,3 +109,15 @@ func publicRegistrationRateLimiter() echo.MiddlewareFunc {
 		expiresIn: 10 * time.Minute,
 	}.middleware()
 }
+
+// diagnosticsRateLimiter bounds the administrator reachability probe. The
+// endpoint is admin-only and its targets are already restricted, but a probe
+// interval below a couple of seconds turns it into a sweep tool.
+func diagnosticsRateLimiter() echo.MiddlewareFunc {
+	return publicRateLimit{
+		name:      "network_diagnostics_ping",
+		limit:     rate.Every(2 * time.Second),
+		burst:     5,
+		expiresIn: 3 * time.Minute,
+	}.middleware()
+}

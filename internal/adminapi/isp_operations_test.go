@@ -30,6 +30,8 @@ func TestISPOperations(t *testing.T) {
 		&domain.RadiusProfile{},
 		&domain.DocumentSequence{},
 		&domain.IPAMPool{},
+		&domain.NetNas{},
+		&domain.NetMonitorTarget{},
 		&domain.TroubleTicket{},
 		&domain.RadiusUser{},
 		&domain.Customer{},
@@ -183,8 +185,11 @@ func TestISPOperations(t *testing.T) {
 	assert.Equal(t, "6281234567890", outbox.Recipient)
 	assert.Contains(t, outbox.Body, "Budi Lapangan")
 
-	// 5. Test Live Ping Tool
-	pingPayload := []byte(`{"host": "127.0.0.1", "count": 2}`)
+	// 5. Test Live Ping Tool against a registered diagnostic target.
+	require.NoError(t, db.Create(&domain.IPAMPool{
+		TenantID: domain.DefaultTenantID, Name: "Lab", CIDR: "192.0.2.0/24", IPVersion: 4,
+	}).Error)
+	pingPayload := []byte(`{"host": "192.0.2.10", "count": 1}`)
 	reqPing := httptest.NewRequest(http.MethodPost, "/api/v1/network/diagnostics/ping", bytes.NewReader(pingPayload))
 	reqPing.Header.Set("Content-Type", "application/json")
 	recPing := httptest.NewRecorder()
@@ -546,15 +551,25 @@ func TestAuditIPHistoryValidationAndTemporalFiltering(t *testing.T) {
 
 func TestLivePingProbeIPv4AndIPv6Handling(t *testing.T) {
 	db, e, appCtx := CreateTestAppContext(t)
+	require.NoError(t, db.AutoMigrate(&domain.IPAMPool{}, &domain.NetMonitorTarget{}))
+	require.NoError(t, db.Create(&domain.IPAMPool{
+		TenantID: domain.DefaultTenantID, Name: "Lab", CIDR: "192.0.2.0/24", IPVersion: 4,
+	}).Error)
 
-	// 1. IPv4 loopback with custom port
-	bodyIPv4 := []byte(`{"host": "127.0.0.1:80", "count": 1}`)
-	reqIPv4 := httptest.NewRequest(http.MethodPost, "/api/v1/network/diagnostics/ping", bytes.NewReader(bodyIPv4))
-	reqIPv4.Header.Set("Content-Type", "application/json")
-	recIPv4 := httptest.NewRecorder()
-	ctxIPv4 := CreateTestContext(e, db, reqIPv4, recIPv4, appCtx)
-	require.NoError(t, runLivePing(ctxIPv4))
-	assert.Equal(t, http.StatusOK, recIPv4.Code)
+	probe := func(body string) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/network/diagnostics/ping", bytes.NewReader([]byte(body)))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		ctx := CreateTestContext(e, db, req, rec, appCtx)
+		require.NoError(t, runLivePing(ctx))
+		return rec
+	}
+
+	// 1. Registered IPv4 target with a custom port. The address is TEST-NET-1,
+	// so the probe reports loss but the target is accepted.
+	recIPv4 := probe(`{"host": "192.0.2.10:8080", "count": 1}`)
+	require.Equal(t, http.StatusOK, recIPv4.Code, recIPv4.Body.String())
 
 	var resIPv4 struct {
 		Data struct {
@@ -565,18 +580,13 @@ func TestLivePingProbeIPv4AndIPv6Handling(t *testing.T) {
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(recIPv4.Body.Bytes(), &resIPv4))
-	assert.Equal(t, "127.0.0.1:80", resIPv4.Data.TargetAddr)
+	assert.Equal(t, "192.0.2.10:8080", resIPv4.Data.TargetAddr)
 	assert.Equal(t, "tcp_syn", resIPv4.Data.ProbeMethod)
-	assert.Equal(t, "80", resIPv4.Data.Port)
+	assert.Equal(t, "8080", resIPv4.Data.Port)
 
-	// 2. IPv6 loopback without port
-	bodyIPv6 := []byte(`{"host": "::1", "count": 1}`)
-	reqIPv6 := httptest.NewRequest(http.MethodPost, "/api/v1/network/diagnostics/ping", bytes.NewReader(bodyIPv6))
-	reqIPv6.Header.Set("Content-Type", "application/json")
-	recIPv6 := httptest.NewRecorder()
-	ctxIPv6 := CreateTestContext(e, db, reqIPv6, recIPv6, appCtx)
-	require.NoError(t, runLivePing(ctxIPv6))
-	assert.Equal(t, http.StatusOK, recIPv6.Code)
+	// 2. Public IPv6 without a port gets the default port.
+	recIPv6 := probe(`{"host": "2001:db8::1", "count": 1}`)
+	require.Equal(t, http.StatusOK, recIPv6.Code, recIPv6.Body.String())
 
 	var resIPv6 struct {
 		Data struct {
@@ -586,7 +596,7 @@ func TestLivePingProbeIPv4AndIPv6Handling(t *testing.T) {
 		} `json:"data"`
 	}
 	require.NoError(t, json.Unmarshal(recIPv6.Body.Bytes(), &resIPv6))
-	assert.Equal(t, "[::1]:80", resIPv6.Data.TargetAddr)
+	assert.Equal(t, "[2001:db8::1]:80", resIPv6.Data.TargetAddr)
 	assert.Equal(t, "80", resIPv6.Data.Port)
 }
 
