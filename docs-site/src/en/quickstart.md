@@ -129,6 +129,12 @@ waits for the new app health check, and attempts a source/image rollback if the
 update fails. Review the deployment scripts and backup retention for your own
 operating requirements.
 
+Confirm the running release reports the version you intended to deploy:
+
+```bash
+sudo docker compose exec app mwx-isp -v
+```
+
 ## Next steps
 
 - [Admin UI Manual](./admin-manual.md) — work through each management page.

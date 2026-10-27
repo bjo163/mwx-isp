@@ -14,6 +14,9 @@ FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS builder
 ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
+ARG MWX_ISP_VERSION=develop
+ARG MWX_ISP_COMMIT=unknown
+ARG MWX_ISP_BUILD_TIME=unknown
 
 COPY . /src
 WORKDIR /src
@@ -26,7 +29,7 @@ RUN test -f /src/web/dist/admin/index.html || (echo "ERROR: Frontend not found!"
 
 # Build for target platform
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a -ldflags \
-     '-s -w -extldflags "-static"' -o /mwx-isp main.go
+     "-s -w -X main.Version=${MWX_ISP_VERSION} -X main.BuildTime=${MWX_ISP_BUILD_TIME} -X main.GitCommit=${MWX_ISP_COMMIT} -extldflags \"-static\"" -o /mwx-isp main.go
 
 FROM alpine:3.24
 
@@ -35,10 +38,16 @@ RUN apk add --no-cache curl ca-certificates tzdata && \
     adduser -S -D -H -u 10001 -G mwx mwx && \
     mkdir -p /var/toughradius && \
     chown 10001:10001 /var/toughradius
+ARG MWX_ISP_VERSION=develop
+ARG MWX_ISP_COMMIT=unknown
+ARG MWX_ISP_BUILD_TIME=unknown
 ENV TZ=Asia/Jakarta
 LABEL org.opencontainers.image.title="MWX-ISP" \
       org.opencontainers.image.description="ISP Management, RADIUS, and Billing" \
-      org.opencontainers.image.source="https://github.com/bjo163/mwx-isp"
+      org.opencontainers.image.source="https://github.com/bjo163/mwx-isp" \
+      org.opencontainers.image.version="${MWX_ISP_VERSION}" \
+      org.opencontainers.image.revision="${MWX_ISP_COMMIT}" \
+      org.opencontainers.image.created="${MWX_ISP_BUILD_TIME}"
 
 COPY --from=builder /mwx-isp /usr/local/bin/mwx-isp
 

@@ -513,7 +513,8 @@ if [[ ! -d "${APP_DIR}/.git" && -n "$(find "${APP_DIR}" -mindepth 1 -maxdepth 1 
   fail "${APP_DIR} exists and contains files but is not an MWX-ISP git checkout; move or back up its contents first."
 fi
 chmod 0750 "${APP_DIR}"
-if [[ ! -f "${APP_DIR}/.env" && -f "${ENV_BACKUP}" ]]; then
+restore_preserved_env() {
+  [[ ! -f "${APP_DIR}/.env" && -f "${ENV_BACKUP}" ]] || return 0
   if grep -Eq '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[^#]*CHANGE_ME' "${ENV_BACKUP}"; then
     fail "Preserved configuration ${ENV_BACKUP} contains an unresolved CHANGE_ME value. Review it manually; it was not restored."
   fi
@@ -522,11 +523,15 @@ if [[ ! -f "${APP_DIR}/.env" && -f "${ENV_BACKUP}" ]]; then
   fi
   install -m 0600 -o root -g root -- "${ENV_BACKUP}" "${APP_DIR}/.env"
   echo "Restored the configuration saved by the MWX-ISP uninstaller from ${ENV_BACKUP}."
-fi
+}
 step "3/6" "Preparing the MWX-ISP checkout"
 if [[ ! -d "${APP_DIR}/.git" ]]; then
+  # git clone requires an empty destination, so the uninstaller configuration
+  # is restored only after the checkout has been created.
   git clone --depth 1 --single-branch --branch main https://github.com/bjo163/mwx-isp.git "${APP_DIR}"
+  restore_preserved_env
 else
+  restore_preserved_env
   remote_url="$(git -C "${APP_DIR}" remote get-url origin)"
   case "${remote_url}" in https://github.com/bjo163/mwx-isp.git|git@github.com:bjo163/mwx-isp.git) ;; *) echo "Unexpected origin remote (${remote_url}); refusing to install over another project." >&2; exit 1 ;; esac
   if [[ -n "$(git -C "${APP_DIR}" status --porcelain)" ]]; then

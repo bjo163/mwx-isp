@@ -47,7 +47,7 @@ Sumber detail dan kriteria penerimaan: [45 kartu audit, penguatan, dan brainstor
 - [x] [H11 — WhatsApp tahan putus koneksi dan dedup](MWX-ISP-audit-backlog-2026-10-05.md#h11) (P2; Selesai 2026-10-27).
 - [x] [H12 — State UI, cache tenant dan pagination](MWX-ISP-audit-backlog-2026-10-05.md#h12) (P2; Selesai 2026-10-27).
 - [x] [H13 — EN/ID, aksesibilitas dan branding konsisten](MWX-ISP-audit-backlog-2026-10-05.md#h13) (P2; Selesai 2026-10-27: locale id-ID, seluruh halaman custom, keyboard check browser).
-- [ ] [H14 — Installer/update/release sebagai satu alur](MWX-ISP-audit-backlog-2026-10-05.md#h14) (P1; Perlu verifikasi).
+- [x] [H14 — Installer/update/release sebagai satu alur](MWX-ISP-audit-backlog-2026-10-05.md#h14) (P1; Selesai 2026-10-27: matriks verifikasi lokal, perbaikan reinstall/update/version metadata; instalasi VPS bersih tidak diklaim).
 - [x] [H15 — Demo, data migration dan fixture sintetis](MWX-ISP-audit-backlog-2026-10-05.md#h15) (P2; Selesai 2026-10-27: unit + suite PostgreSQL/OpenLDAP penuh lulus).
 
 ### Brainstorming — belum dijadwalkan

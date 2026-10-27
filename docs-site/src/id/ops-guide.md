@@ -89,19 +89,22 @@ pada perintah remote. Tambahkan `--remove-backups` bersama `--purge` untuk
 menghapus backup lokal juga. Kedua mode meminta konfirmasi dengan mengetik
 `uninstall`; gunakan `--yes` hanya untuk otomasi.
 
-Setelah uninstall yang mempertahankan data, pulihkan konfigurasi sebelum
-install ulang agar Compose tersambung ke database yang sama:
+Setelah uninstall yang mempertahankan data, jalankan ulang installer. Installer
+melakukan clone checkout terlebih dahulu, lalu memulihkan
+`/opt/mwx-isp.env.uninstalled` sebagai `/opt/mwx-isp/.env`, sehingga Compose
+tersambung kembali ke volume PostgreSQL dan data aplikasi yang dipertahankan:
 
 ```bash
-sudo git clone --depth 1 --single-branch --branch main https://github.com/bjo163/mwx-isp.git /opt/mwx-isp
-sudo install -m 0600 -o root -g root /opt/mwx-isp.env.uninstalled /opt/mwx-isp/.env
 curl -fsSL https://raw.githubusercontent.com/bjo163/mwx-isp/main/scripts/vps-install.sh | sudo bash
 ```
+
+Jaga kerahasiaan konfigurasi tersimpan karena berisi kredensial database. Jika
+`.env` yang cocok sudah ada, installer tidak mengubahnya.
 
 ## Backup dan pemulihan
 
 **System Config → Backup** hanya tersedia bagi administrator platform dan
-mengunduh snapshot JSON installation-wide skema 9.2. Snapshot berisi semua
+mengunduh snapshot JSON installation-wide skema 9.3. Snapshot berisi semua
 organisasi beserta metadata kepemilikan tenant tersembunyi, konfigurasi node
 dan NAS, profil/pelanggan RADIUS, accounting dan audit operator, customer,
 paket, subscription, invoice, pembayaran, sequence dokumen, target/sampel/

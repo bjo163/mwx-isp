@@ -111,5 +111,11 @@ sudo scripts/vps-update.sh
 Salin backup ke penyimpanan aman di luar server. Updater membuat backup sebelum
 update, memeriksa health aplikasi, dan mencoba rollback jika update gagal.
 
+Pastikan rilis yang berjalan melaporkan versi yang dimaksud:
+
+```bash
+sudo docker compose exec app mwx-isp -v
+```
+
 Lihat juga [Panduan Admin](./admin-manual.md),
 [Panduan Operasional](./ops-guide.md), dan [FAQ](./faq.md).

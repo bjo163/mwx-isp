@@ -826,7 +826,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### H14 — Installer/update/release sebagai satu alur
 
-- **Prioritas / status:** P1 / Perlu verifikasi.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (verifikasi lokal dan matriks; instalasi VPS bersih tidak dijalankan).
 - **Pemetaan scope:** TR-F020 / TR-F022.
 - **Dependensi:** H06.
 - **Entry point:** `scripts`; `Dockerfile`; `docker-compose.yml`; `.github/workflows`.
@@ -837,10 +837,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Sukses hanya setelah ready; retry preserve secret/data; failure menunjukkan recovery tepat; binary/image/docs menunjuk versi konsisten.
 
-- [ ] H14.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H14.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H14.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H14.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** [installer-update-release-verification-2026-10-27.md](installer-update-release-verification-2026-10-27.md) memuat matriks fresh install, reinstall, deleted cwd, registry/image offline, port conflict, update interrupted, image digest, versi, backup/rollback, dan exit code beserta status verifikasi tiap baris. Tiga defek nyata ditemukan dan diperbaiki. (1) Reinstall setelah uninstall data-preserving selalu gagal karena installer memulihkan `.env` sebelum `git clone`, sehingga clone menolak direktori non-kosong (direproduksi lokal, exit 128); `vps-install.sh` kini memulihkan `.env` lewat `restore_preserved_env` setelah checkout dibuat. (2) Update yang menyelesaikan pull/reset tetapi terputus saat health check dijalankan ulang akan mencetak "already up to date" dan exit 0 meski app unhealthy; `vps-update.sh` kini memverifikasi health sebelum menyatakan current dan memberi perintah inspeksi, retry container, serta restore backup bila tetap gagal. (3) Image `v0.13.0` menjalankan binary dengan `MWX-ISP develop`/`Git Commit: unknown` dan label `org.opencontainers.image.revision` menunjuk merge commit promosi (`733ec04`), bukan commit tag (`225e032`); `Dockerfile` sekarang menyuntikkan version/commit/build time lewat ldflags dan OCI label, `docker-publish.yml` memakai commit hasil checkout, dan `release-publish.yml` menggagalkan rilis bila binary Linux tidak melaporkan tag/commit. Verifikasi lokal yang dieksekusi: `bash -n` seluruh script lulus; 10 unit test release/sync lulus; actionlint v1.7.12 pada 12 workflow exit 0; simulasi ldflags Docker mencetak nilai injeksi; simulasi container reinstall dengan `git clone` nyata dan CLI Docker palsu membuktikan checkout terbentuk lalu `.env` dipulihkan `0600 root:root` dengan kedua secret utuh setelah pull gagal (exit 1), serta marker install-state tertulis untuk retry; simulasi container update dengan git/Docker palsu membuktikan guard health mengembalikan exit 0 saat healthy dan exit 1 berisi perintah inspeksi/retry/restore saat unhealthy; binary Windows rilis `v0.13.0` melaporkan `225e032`; image GHCR `0.13.0` memiliki digest `sha256:0762929a…f9fc` dan label version `0.13.0`; aset rilis lengkap (9 binary + checksums). Dokumentasi pengguna diperbarui untuk alur reinstall, verifikasi versi container, dua jalur publish rilis, dan schema backup `9.3`. Batas eksplisit: instalasi/upgrade pada VPS Ubuntu/Debian bersih, registry outage nyata, port conflict nyata, eksekusi systemd timer, matriks host/browser, upgrade dari setiap versi lama, full VPS restore/RTO, digest pinning, dan rollback schema otomatis tidak dijalankan/diklaim.
+
+- [x] H14.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H14.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H14.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H14.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h15"></a>
 
