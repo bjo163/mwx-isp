@@ -176,8 +176,10 @@ func getMonitorTargetTraffic(c echo.Context) error {
 				continue
 			}
 
-			inBps := int64(float64(curr.inOctets-prev.inOctets) * 8 / deltaSec)
-			outBps := int64(float64(curr.outOctets-prev.outOctets) * 8 / deltaSec)
+			inDiff := curr.inOctets - prev.inOctets
+			outDiff := curr.outOctets - prev.outOctets
+			inBps := int64(float64(inDiff) * 8 / deltaSec)
+			outBps := int64(float64(outDiff) * 8 / deltaSec)
 			if inBps < 0 || outBps < 0 {
 				counterResets++
 				continue
@@ -189,8 +191,10 @@ func getMonitorTargetTraffic(c echo.Context) error {
 				OutBps:    outBps,
 			})
 
-			totalInBytes += int64(curr.inOctets - prev.inOctets)
-			totalOutBytes += int64(curr.outOctets - prev.outOctets)
+			// A delta that does not fit int64 converts to a negative rate above
+			// and never reaches this point, so the conversion is bounded.
+			totalInBytes += int64(inDiff)   //nolint:gosec // G115: accepted interval's delta fit a non-negative int64 rate
+			totalOutBytes += int64(outDiff) //nolint:gosec // G115: accepted interval's delta fit a non-negative int64 rate
 			sumIn += inBps
 			sumOut += outBps
 			if inBps > peakIn {
