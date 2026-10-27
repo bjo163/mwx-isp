@@ -33,7 +33,7 @@ the current tree.
 
 Done: 5 / 100.
 
-- `ENG-019` (2026-10-27, `dev` @ pending): raw-SQL tenancy ratchet. The existing inventory in
+- `ENG-019` (2026-10-27, `dev` @ `fc7390d`): raw-SQL tenancy ratchet. The existing inventory in
   `docs/tenant-isolation.md` already covered all nine production `Table`/`Raw`/`Exec`/`Joins`
   sites, so the gap was enforcement: nothing failed when a new unscoped query appeared.
   `TestRawSQLTenantScopeRatchet` (`internal/tenancy/rawsql_ratchet_test.go`) now parses every
@@ -110,7 +110,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 ## Wave 1 — 37 item (LOKAL 30 · ASET 7)
 
 - [ ] `ENG-032` TR-F028 P1 — Invariant suspend manual tidak tertimpa bayar otomatis · LOKAL · PROPOSED_VERIFICATION
-- [x] `ENG-019` TR-F033 P1 — Ratcheting audit query SQL raw dan joins tenancy · LOKAL · PROPOSED_VERIFICATION · commit `pending`
+- [x] `ENG-019` TR-F033 P1 — Ratcheting audit query SQL raw dan joins tenancy · LOKAL · PROPOSED_VERIFICATION · commit `fc7390d`
 - [ ] `ENG-028` TR-F022 P1 — Penyamaran PII di logs, traces dan support evidence · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · dep ENG-010 · PROPOSED_VERIFICATION
