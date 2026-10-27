@@ -31,7 +31,22 @@ the current tree.
 
 ## Progress
 
-Done: 10 / 100.
+Done: 11 / 100.
+
+- `ENG-051` (2026-10-27, `dev` @ `5add7af`): website editor functional coverage. The
+  "editor" is the global branding singleton: save is the publish path, reset is the only
+  rollback, and the admin read is the read-only preview of the live record (there is no draft
+  table). `TestBrandingRouteGuardAllowsOnlyPlatformAdmin` drives the registered routes through
+  the real JWT/tenant middleware and asserts anonymous `401`, operator/admin/super-without-flag
+  `403` on save, preview and reset, and success only for a super operator with `PlatformAdmin`;
+  it also proves rejected saves persist nothing and reset removes the override.
+  `TestBrandingPublishKeepsMarkupInert` publishes `<script>`/`onerror` payloads in the hero,
+  subtitle and ticker fields and asserts the stored value is plain text, the public JSON body
+  contains no raw `<script`, the decoded text round-trips unchanged, and reset returns the
+  compiled defaults with no hostile text left behind.
+  `TestBrandingEditorSourceRendersTextOnly` ratchets the frontend: no `.tsx` under `web/src`
+  may use `dangerouslySetInnerHTML`, so branding values stay React text children. No production
+  code changed; the TR-F029 coverage row in `docs/feature-checklist.md` was updated.
 
 - `ENG-037` (2026-10-27, `dev` @ `e8da24f`): integer IDR boundaries. The invoice path
   already avoided floating point, so the remaining question was whether the edges hold.
@@ -206,7 +221,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-008` TR-F004 P2 — Pastikan EAP-OTP tak dapat diaktifkan tanpa validator · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-029` TR-F029 P2 — PNG branding parser dan metadata validation · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-039` TR-F032 P2 — Perlindungan marker demo data saat clean-up · LOKAL · PROPOSED_VERIFICATION
-- [ ] `ENG-051` TR-F029 P2 — Test fungsional website editor yang masih kurang coverage · LOKAL · VERIFIED_GAP
+- [x] `ENG-051` TR-F029 P2 — Test fungsional website editor yang masih kurang coverage · LOKAL · VERIFIED_GAP · commit `5add7af`
 - [ ] `ENG-063` TR-F012 P2 — Contract testing respons API, paginasi dan error · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-013` TR-F010 P1 — Pilot RFC 5176 CoA/Disconnect pada NAS nyata · ASET · PROPOSED_VERIFICATION
 - [ ] `ENG-002` TR-F004 P1 — Matriks interoperabilitas EAP-TLS 1.2/1.3 dengan supplicant nyata · ASET · dep ENG-001 · PROPOSED_VERIFICATION
@@ -287,8 +302,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-019` / `ENG-028` — raw-SQL tenancy ratchet and PII redaction in logs; both feed the
-   later `ENG-060` support-bundle and `FUT-010` items.
-2. `ENG-051` — website editor functional coverage, currently a `VERIFIED_GAP` and fully local.
-3. `ENG-010` / `ENG-012` — RADIUS retransmission/replay audit and accounting out-of-order
+1. `ENG-010` / `ENG-012` — RADIUS retransmission/replay audit and accounting out-of-order
    regressions; both feed the later `ENG-013` CoA pilot.
+2. `ENG-022` / `ENG-023` — admin browser-session threat model and rate limiting behind a
+   multi-hop reverse proxy.
+3. `ENG-024` / `ENG-025` — SNMP secret-rotation runbook and WhatsApp credential protection.
+4. `ENG-027` — SSRF hardening for the network diagnostics endpoints.
