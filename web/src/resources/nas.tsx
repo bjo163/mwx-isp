@@ -34,7 +34,8 @@ import {
   useRefresh,
   useNotify,
   RaRecord,
-  FunctionField
+  FunctionField,
+  ShowButton
 } from 'react-admin';
 import {
   Box,
@@ -764,6 +765,11 @@ const NASListContent = () => {
               source="created_at"
               label={translate('resources.network/nas.fields.created_at', { _: 'Created at' })}
               showTime
+            />
+            {/* rowClick only listens for a pointer, so give keyboard users a focusable way in */}
+            <FunctionField
+              label="Open"
+              render={(record: any) => <ShowButton record={record} label={`Open ${record.name}`} />}
             />
           </Datagrid>
         </Box>
