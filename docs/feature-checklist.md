@@ -136,7 +136,7 @@ A20 reconciles the non-goal tables with surfaces that already exist in code at b
 | WhatsApp notifications | `/api/v1/system/notifications/*` | Keep | TR-F030 | Unit/outbox tests; real QR pairing and delivery remain blocked | Allowlisted one-way operator alerts only. |
 | Branding and website content | `/api/v1/system/branding`, `/system/website` | Keep | TR-F029 | Branding tests; website editor has no dedicated test | Presentation fixes; no tenant theming or CMS. |
 | System settings, operators, certificates, logs | `/api/v1/system/*` | Keep | TR-F012 / TR-F014 / TR-F016 / TR-F026 | Unit tests; config schema tests | Security and compatibility fixes. |
-| Backup and restore | `/api/v1/system/backup`, `/api/v1/system/restore` | Keep | TR-F020 / TR-F012 | Envelope, manifest, dry-run, and PG drill tests (#50) | Recovery fixes; no new backup product. |
+| Backup and restore | `/api/v1/system/backup`, `/api/v1/system/restore` | Keep | TR-F020 / TR-F012 | Envelope, manifest, dry-run, PG drill tests (#50) and the isolated 2026-10-27 restore drill report | Recovery fixes; no new backup product. |
 | Platform tenants | `/api/v1/platform/tenants` | Keep | TR-F033 | PG/OpenLDAP tenant acceptance | Isolation and membership fixes. |
 | Demo seed and first-install samples | `internal/demoseed`, `internal/app/initdb.go` | Keep | TR-F032 | Seeding and cleanup tests (H15) | Marker and eligibility fixes only. |
 | In-app user guide | `/guide` | Keep | TR-F023 | Static content | Documentation corrections. |

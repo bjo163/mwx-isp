@@ -646,7 +646,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### H06 — Buktikan disaster recovery dan migrasi
 
-- **Prioritas / status:** P1 / Perlu verifikasi.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (drill restore terisolasi + matriks rollback).
 - **Pemetaan scope:** TR-F017 / TR-F020.
 - **Dependensi:** A13.
 - **Entry point:** `scripts/backup-db.sh`; `scripts/restore-db.sh`; `internal/adminapi/system_backup.go`; `internal/app`.
@@ -657,10 +657,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Ada laporan restore, checksum, waktu pemulihan dan daftar data hilang yang diharapkan; tidak memakai DB produksi untuk eksperimen.
 
-- [ ] H06.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H06.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H06.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H06.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** [backup-restore-drill-2026-10-27.md](backup-restore-drill-2026-10-27.md) mencatat drill yang benar-benar dijalankan pada PostgreSQL 16.15 terisolasi (container `postgres:16-alpine`, database sementara buatan harness, bukan produksi) dengan dua tenant synthetic. Hasil: envelope terenkripsi schema `9.3`, artifact 150.584 byte, payload SHA-256 `add8032e…6373b7`, export 1.727 ms, restore 789 ms, total tes 5.819 ms; restore membangun kembali user/NAS/cert/voucher/subscription/notification settings beserta secret-nya, sedangkan sesi `radius_online` tidak ikut (transient). Dry-run tidak menulis, passphrase salah ditolak tanpa mutasi, dan kegagalan di tengah transaksi rollback penuh (`TestBackupRestoreDrillEncryptedPostgres`, `TestBackupRestoreRejectsCrossTenantAndRollsBackPartialFailure`). Laporan juga memuat daftar data hilang yang diharapkan, status WAL/PITR (tidak aktif, RPO = interval backup), serta matriks rollback: JSON restore kompatibel selama major schema `9.x` dan transaksional; rollback binary setelah migrasi bersifat forward-only sehingga harus memakai VPS backup set yang mengikat `app_image_id` + checksum. Batas eksplisit: drill VPS penuh (root, image pull, data volume, health gate) dan RTO produksi belum diklaim.
+
+- [x] H06.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H06.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H06.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H06.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h07"></a>
 
