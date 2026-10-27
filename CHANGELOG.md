@@ -1,5 +1,28 @@
 # MWX-ISP Changelog
 
+## v0.12.0 — 2026-10-27
+
+Changes since v0.11.0:
+
+### Features
+
+- add tenant-scoped customer 360 timeline (#54)
+- add tenant-scoped NOC impact view for targets, ODPs and NAS (#53)
+- reconcile billing suspension with durable Disconnect retries (#52)
+- add encrypted envelope, manifest, dry-run and PG drill (#50)
+- complete hotspot voucher revoke and lifecycle guarantees
+
+### Fixes and Improvements
+
+- bound SNMP counter deltas for gosec G115
+- harden existing surfaces and close audit gaps
+- isolate FUP scheduler per tenant with idempotent state
+- replay only release metadata when dev diverged
+- prefer fast-forward release sync to avoid divergent dev commits (#51)
+- scope FUP scheduler queries and disconnects by tenant (#46)
+- upgrade golang.org/x/net to v0.60.0 (#45)
+- eliminate ineffassign in TCP reachability diagnostic (#47); fix(test): scope concurrent ticket assertions to test fixtures (#48)
+
 ## v0.11.0 — 2026-10-05
 
 Changes since v0.10.1:
