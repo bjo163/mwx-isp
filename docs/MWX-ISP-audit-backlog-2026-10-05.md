@@ -286,7 +286,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### A10 — Registrasi pelanggan dan work order atomik
 
-- **Prioritas / status:** P1 / Terbukti dari kode.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (transaksi + idempotency).
 - **Pemetaan scope:** TR-F027 / TR-F012 / TR-F017.
 - **Dependensi:** A03, A12.
 - **Entry point:** `internal/adminapi/isp.go#registerPublicCustomer`.
@@ -297,10 +297,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Kegagalan insert tiket tidak meninggalkan registrasi setengah jadi; retry tidak membuat pelanggan/tiket ganda; response sesuai data tersimpan.
 
-- [ ] A10.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A10.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A10.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A10.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `internal/adminapi/isp.go` menyimpan customer, nomor, subscription, dan work order dalam satu transaksi lalu membalas setelah commit. Retry memakai header `Idempotency-Key` (1–64 karakter ASCII) yang dipetakan ke `customers.registration_key` dengan unique index komposit `(tenant_id, registration_key)`; key kosong disimpan NULL sehingga retry tanpa key tidak saling mengunci. Jalur replay mengembalikan nomor customer/subscription/ticket yang tersimpan dengan `idempotent_replay=true`, dan duplikat karena balapan ditangani dengan lookup ulang. `web/src/pages/LandingPage.tsx` membuat key per form dan mengirimkannya. Tes: `internal/adminapi/isp_registration_test.go` (`TestPublicRegistrationRequiresActivePackageAndPersistsCustomerAndWorkOrderAtomically` mencakup retry key sama, key 65 karakter ditolak, dan retry tanpa key tetap membuat pelanggan baru) serta `TestTicketAndWorkOrderNumbersShareSequenceAndFlappingRequestsDeduplicate`. Kolom baru nullable dan dibuat oleh AutoMigrate tanpa backfill; rollback cukup menghapus index/kolom setelah memastikan tidak ada replay yang bergantung padanya. Catatan: tes handler berjalan dengan konteks operator terautentikasi; ketersediaan anonim permukaan publik dicatat di A20, bukan diklaim selesai di sini.
+
+- [x] A10.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A10.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A10.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A10.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a11"></a>
 
@@ -386,7 +388,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### A15 — Cetak seluruh voucher batch melalui pagination
 
-- **Prioritas / status:** P2 / Terbukti dari kode.
+- **Prioritas / status:** P2 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F013 / TR-F012.
 - **Dependensi:** A08.
 - **Entry point:** `web/src/pages/HotspotVouchersPage.tsx#vouchersQuery`; `internal/adminapi/isp_operations.go#listVouchers`.
@@ -397,10 +399,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Batch 250 menghasilkan 250 kartu unik; list tetap paginated; gagal fetch halaman menghentikan print dan memberi retry.
 
-- [ ] A15.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A15.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A15.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A15.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `web/src/pages/HotspotVouchersPage.tsx` memakai `apiRequestPage` dan `TablePagination`: daftar membaca satu halaman server (100 baris, key query menyertakan nomor halaman), sedangkan aksi cetak mengambil `perPage=500`, lalu berjalan halaman demi halaman sampai `all.length === total`. Total 0 atau melebihi batas 500 membatalkan aksi sebelum dialog cetak; kegagalan fetch membersihkan `printVouchers`, menampilkan error, dan tidak membuka dialog, sehingga operator dapat mengulangi aksi cetak. Indikator menampilkan total server untuk filter aktif dan jumlah yang sudah dimuat. `web/src/utils/apiClient.ts` mengekspos `apiRequestPage` agar total meta tidak hilang. Tes backend: `internal/adminapi/isp_operations_test.go` (`TestVoucherBatchPaginationSupportsFullPrint`) membuat 250 voucher, membaca dua halaman `perPage=100` dengan filter batch, dan memastikan 250 kode unik serta `total=250`. Batas: pengecekan tipe frontend lulus, tetapi dialog cetak browser belum diuji end-to-end atau pada matrix host/browser.
+
+- [x] A15.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A15.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A15.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A15.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="a16"></a>
 
@@ -486,7 +490,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### A20 — Selaraskan scope dokumen dengan fitur yang telah ada
 
-- **Prioritas / status:** P1 / Terbukti dari dokumen dan route.
+- **Prioritas / status:** P1 / Selesai 2026-10-27 (inventory + keputusan scope).
 - **Pemetaan scope:** TR-F022 / TR-F023.
 - **Dependensi:** —.
 - **Entry point:** `docs/feature-checklist.md`; `docs/MWX-ISP-blueprint.md`; `internal/adminapi/isp.go`; `internal/adminapi/isp_operations.go`.
@@ -497,10 +501,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Setiap menu terpetakan ke scope/status; tidak ada klaim fitur belum teruji; AI dapat membedakan repair existing dengan usulan baru.
 
-- [ ] A20.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] A20.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] A20.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] A20.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** [feature-checklist.md](feature-checklist.md#existing-surface-scope-inventory-a20-2026-10-27) sekarang memuat inventory 25 surface/menu dengan keputusan Keep, Harden, atau Hide, pemetaan TR-F/TR-N, bukti tes, batas yang diketahui, dan aturan bahwa tidak ada baris yang mengizinkan ekspansi. TR-N002 dan TR-N006 diperjelas: tiket, lookup pelanggan, voucher, IPAM/ODP, dan registrasi publik adalah surface *grandfathered* yang hanya boleh diperbaiki/diperketat. Tidak ada menu yang ditandai Deprecate; penghapusan memerlukan perubahan terpisah. Inventory juga mencatat bahwa self-service publik anonim **belum** didukung: halaman publik menampilkan aksi tagihan/voucher/registrasi, tetapi API-nya memerlukan JWT operator dan endpoint pembayaran online mengembalikan `503`/`410` secara eksplisit; F03/F04 tetap proposal. Blueprint ([baris 11 dan 43](MWX-ISP-blueprint.md)), [roadmap](roadmap.md), serta handbook EN/ID (`docs-site/src/en/portal-hotspot-boundary.md`, `docs-site/src/id/portal-hotspot-boundary.md`) sudah merujuk keputusan yang sama. Ini keputusan dokumen/scope; tidak ada route baru, kode runtime, atau klaim pilot perangkat/browser.
+
+- [x] A20.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] A20.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] A20.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] A20.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h01"></a>
 
@@ -526,7 +532,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### H02 — Matriks izin per aksi dan UI
 
-- **Prioritas / status:** P1 / Perlu verifikasi.
+- **Prioritas / status:** P1 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F016 / TR-F012 / TR-F013.
 - **Dependensi:** A01, A02.
 - **Entry point:** `internal/adminapi/authz.go`; `internal/adminapi/isp_operations.go`; `web/src/components/CustomMenu.tsx`.
@@ -537,16 +543,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Fixture tiap role mendapat 2xx/403 sesuai matriks; operator tidak dapat mencatat pembayaran lewat route alternatif.
 
-- [ ] H02.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H02.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H02.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H02.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** [access-control-matrix.md](access-control-matrix.md); `internal/adminapi/access_control_test.go` (`TestMutationRouteRoleMatrix`); `internal/adminapi/operators_test.go` (`TestUpdateOperatorPrivilegeBoundaries`); UI gating di `isp.tsx`, `radiusUsers.tsx`, `TroubleTicketsPage.tsx`, `HotspotVouchersPage.tsx`, `CustomMenu.tsx`.
+
+- [x] H02.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H02.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H02.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H02.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h03"></a>
 
 ### H03 — Rate limit surface publik dan registrasi
 
-- **Prioritas / status:** P1 / Penguatan.
+- **Prioritas / status:** P1 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F018 / TR-F016.
 - **Dependensi:** A03, A04.
 - **Entry point:** `internal/webserver/server.go`; `internal/adminapi/auth.go`; `internal/adminapi/isp.go`.
@@ -557,16 +565,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Burst menghasilkan 429; proxy header palsu tidak bypass; trafik tenant lain tetap dilayani.
 
-- [ ] H03.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H03.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H03.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H03.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** [public-endpoint-hardening.md](public-endpoint-hardening.md); `internal/adminapi/ratelimit.go`; `internal/adminapi/ratelimit_test.go`; `internal/webserver/server_test.go` (`trustedProxyIPExtractor`).
+
+- [x] H03.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H03.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H03.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H03.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h04"></a>
 
 ### H04 — Concurrency dan replay pembayaran
 
-- **Prioritas / status:** P1 / Perlu verifikasi.
+- **Prioritas / status:** P1 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F028 / TR-F017.
 - **Dependensi:** A02.
 - **Entry point:** `internal/billing`; `internal/adminapi/isp.go`.
@@ -577,10 +587,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Saldo tidak negatif; satu event hanya dibukukan sekali; pembayaran parsial ulang tidak menggandakan pendapatan.
 
-- [ ] H04.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H04.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H04.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H04.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** [payment-concurrency.md](payment-concurrency.md); `internal/billing/service.go` (`RecordPayment` row lock + recheck); `test/integration/payment_concurrency_test.go` (PostgreSQL, lulus 2026-10-27). Catatan: webhook provider belum aktif dan `reference` belum menjadi kunci unik; integrasi provider wajib menambah idempotency key.
+
+- [x] H04.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H04.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H04.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H04.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h05"></a>
 
@@ -626,7 +638,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### H07 — Integritas alokasi port ODP
 
-- **Prioritas / status:** P1 / Perlu verifikasi.
+- **Prioritas / status:** P1 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F027 / TR-F017.
 - **Dependensi:** H01, A20.
 - **Entry point:** `internal/adminapi/isp.go#createCustomer/updateCustomer`; `internal/domain/isp.go`; `internal/adminapi/isp_operations.go`.
@@ -637,16 +649,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Database dan API menjaga satu assignment sah per port; operasi bersamaan tidak overbook; port bebas sesuai definisi.
 
-- [ ] H07.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H07.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H07.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H07.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** Aturan occupancy = customer non-terminated; `resolveODPAssignment` memvalidasi tenant, kapasitas (default 16) dan port bebas, `isODPPortUniqueViolation` memetakan race insert ke 409. Partial unique index `udx_isp_customer_odp_port` dibuat oleh `ensureCustomerODPPortIndex` (`internal/app/app.go`) dengan syarat `odp_port > 0 AND status <> 'terminated'`. Update ODP menolak pengecilan kapasitas di bawah port terpakai. Tes: `internal/adminapi/isp_test.go` (`TestCustomerODPPortValidation` termasuk update konflik/self-update, `TestODPShrinkGuard`); `internal/app/odp_port_index_test.go` (terminated melepas port, port 0 dikecualikan, tenant terpisah).
+
+- [x] H07.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H07.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H07.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H07.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h08"></a>
 
 ### H08 — Validasi pool IPAM dan kapasitas subnet
 
-- **Prioritas / status:** P2 / Perlu verifikasi.
+- **Prioritas / status:** P2 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F012 / TR-F017.
 - **Dependensi:** —.
 - **Entry point:** `internal/adminapi/isp_operations.go#calculateSubnetCapacity/createIPAMPool/updateIPAMPool`.
@@ -657,16 +671,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Invalid CIDR ditolak; capacity IPv6 berlabel/tepat; overlap policy konsisten; update tidak membuat pool salah versi.
 
-- [ ] H08.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H08.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H08.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H08.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `describeSubnet` mewajibkan CIDR canonical, menghitung /31=2 dan /32=1 tanpa reservasi, dan untuk IPv6 di atas 2^62 mengisi `capacity_label` (`2^N addresses`) dengan `total_ips=0`. `validateIPAMPool` menolak gateway di luar CIDR/kelas salah/alamat network-broadcast, overlap antar-pool tenant, dan renumber yang meninggalkan lease aktif. UI IPAM memakai `capacity_label` dan tidak menggambar bar persentase saat total tidak eksak. Tes: `internal/adminapi/ipam_validation_test.go`.
+
+- [x] H08.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H08.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H08.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H08.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h09"></a>
 
 ### H09 — Kebenaran grafik trafik dan data stale
 
-- **Prioritas / status:** P2 / Perlu verifikasi.
+- **Prioritas / status:** P2 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F031 / TR-F015.
 - **Dependensi:** H01.
 - **Entry point:** `internal/adminapi/telemetry.go`; `internal/networkmonitor`; `web/src/pages/OperationsPage.tsx`.
@@ -677,16 +693,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Tidak ada spike palsu saat reset; missing tidak dianggap nol; label arah/unit dan scope benar.
 
-- [ ] H09.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H09.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H09.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H09.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** Kurva baseline buatan dihapus. Repository hanya menyimpan `RadiusTrafficSample` saat interval 0 < Δt ≤ 3600 s dan kedua counter tidak turun; reset/gap tidak menghasilkan titik nol. SNMP menandai `counter_resets`/`missing_intervals`, memakai label `Inbound/Outbound (ifIn/ifOutOctets)`, dan pelanggan memakai `Upload (Acct-Input-Octets)`/`Download (Acct-Output-Octets)` beserta `stale_after_seconds` (2× interval SNMP, 300 s pelanggan) dan `last_updated`. UI menampilkan status sampel terakhir/stale/reset tanpa garis palsu. Tes: `internal/adminapi/telemetry_test.go` (`TestTelemetryRoutes`, `TestMonitorTargetTrafficCountsResetsAndGaps`), `internal/radiusd/repository/gorm/session_repository_test.go` (`TestSessionRepository_Update_OnlyRecordsMeasurableTrafficIntervals`).
+
+- [x] H09.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H09.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H09.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H09.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h10"></a>
 
 ### H10 — Scope ingestion syslog
 
-- **Prioritas / status:** P1 / Perlu verifikasi.
+- **Prioritas / status:** P1 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F031 / TR-F015.
 - **Dependensi:** H01.
 - **Entry point:** `internal/syslogd`; `internal/adminapi/telemetry.go`; `internal/domain`.
@@ -697,16 +715,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Sender unknown ditolak/dikarantina; log A tidak terbaca B; flood bounded; synthetic test tidak dicampur sebagai kejadian real.
 
-- [ ] H10.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H10.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H10.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H10.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** Worker mengabaikan paket yang IP pengirimnya tidak terdaftar sebagai NAS dan mengambil tenant dari baris NAS, bukan dari isi pesan. Payload dibatasi 2048 byte dengan penanda `[truncated]` dan tetap UTF-8 valid; limiter per-IP 120 paket/menit dengan peta sumber dibatasi 1024 entri. Event injeksi tes ditandai `synthetic` dan disembunyikan dari daftar default (`include_synthetic=true` untuk melihat). Retention 7 hari sudah berjalan di job pemeliharaan (`internal/app/jobs.go`). Tes: `internal/syslogd/server_test.go` (`TestServer_DiscardsUnknownSender`, `TestTruncateSyslogPayload`, `TestSourceLimiter`); `internal/adminapi/telemetry_test.go` (`TestListSyslogEventsHidesSyntheticByDefault`).
+
+- [x] H10.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H10.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H10.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H10.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h11"></a>
 
 ### H11 — WhatsApp tahan putus koneksi dan dedup
 
-- **Prioritas / status:** P2 / Perlu verifikasi.
+- **Prioritas / status:** P2 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F030.
 - **Dependensi:** H01, H02.
 - **Entry point:** `internal/notify`; `internal/adminapi/notifications.go`; `internal/adminapi/isp_operations.go#dispatchTicketWhatsApp`.
@@ -717,16 +737,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Retry terbatas; failed/delivered terpisah; pesan tenant benar; tidak mengirim ulang event sama setelah restart.
 
-- [ ] H11.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H11.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H11.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H11.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** Semua notifikasi operasional memakai outbox persisten dengan dedupe `(tenant_id, dedupe_key)`, maksimum 5 percobaan berjeda eksponensial, dan pemeriksaan ulang settings sebelum kirim (baris dibatalkan bila recipient/event dicabut). `EnqueueCount` mengembalikan jumlah baris baru sehingga dispatch tiket hanya mengklaim sukses bila benar-benar ada yang diantrikan (409 `NOTIFICATION_NOT_QUEUED` bila tidak), memakai konteks tenant request dan menyertakan nama/telepon teknisi di badan pesan. Tes: `internal/notify/dispatcher_test.go` (`TestDispatcherIsolatesSettingsAndOutboxByTenant`, `TestDispatcherEnqueueIsOptInAllowlistedAndDeduplicated`, `TestDispatcherEnqueueCountReportsNewRows`, retry/revoke); `internal/adminapi/isp_operations_test.go` (dispatch tiket + baris outbox), `internal/adminapi/access_control_test.go` (dispatch tanpa penerima = 409). Pengujian dengan akun WhatsApp nyata tetap di luar cakupan lokal/CI.
+
+- [x] H11.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H11.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H11.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H11.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h12"></a>
 
 ### H12 — State UI, cache tenant dan pagination
 
-- **Prioritas / status:** P2 / Perlu verifikasi.
+- **Prioritas / status:** P2 / Selesai 2026-10-27.
 - **Pemetaan scope:** TR-F013 / TR-F029.
 - **Dependensi:** H01, H02.
 - **Entry point:** `web/src/providers`; `web/src/pages`; `web/src/components`.
@@ -737,16 +759,18 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Login tenant B setelah A tidak menampilkan data cache A; retry bekerja; error tidak berubah menjadi daftar kosong palsu.
 
-- [ ] H12.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H12.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H12.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H12.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `authProvider` memanggil `queryClient.clear()` pada login sukses, logout, dan respons 401 sehingga cache tenant sebelumnya tidak terbawa. `QueryFeedback` bersama menampilkan loading/error+dicoba ulang/empty dan dipakai di IPAM serta ODP; halaman tiket dan voucher menampilkan error dengan tombol Retry alih-alih daftar kosong. Daftar IPAM memakai `capacity_label` untuk ruang alamat yang tidak bisa dihitung. Verifikasi: inspeksi kode dan build/typecheck frontend; alur browser dua tenant tidak dijalankan otomatis pada audit ini karena tidak ada E2E browser di CI.
+
+- [x] H12.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H12.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H12.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H12.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h13"></a>
 
 ### H13 — EN/ID, aksesibilitas dan branding konsisten
 
-- **Prioritas / status:** P2 / Penguatan.
+- **Prioritas / status:** P2 / Selesai sebagian 2026-10-27; terjemahan ID-ID belum dikirim.
 - **Pemetaan scope:** TR-F013 / TR-F023 / TR-F029.
 - **Dependensi:** H12.
 - **Entry point:** `web/src/i18n`; `web/src/pages`; `web/src/components`; `docs-site/src`.
@@ -757,10 +781,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Pergantian bahasa mencakup custom pages; tanpa teks CJK di surface aplikasi; keyboard dapat menyelesaikan alur utama; warna status tetap jelas.
 
-- [ ] H13.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+**Bukti delivery (inventaris):** `web/src/i18n/index.ts` hanya mendaftarkan locale `en-US`; seluruh 937 pemakaian `translate()`/`useTranslate` berada di shell React Admin dan resource bawaan, sementara halaman custom (`IPAMPage`, `ODPPage`, `TroubleTicketsPage`, `HotspotVouchersPage`, `OperationsPage`, `CustomerTimeline`) masih memakai label Inggris hardcoded. Inventaris CJK menemukan 287 kemunculan di 24 file, semuanya komentar kode/JSX (contoh `web/src/App.tsx:55`, `web/src/utils/storage.ts:2`), tidak ada teks CJK yang tampil ke pengguna. Status runtime sudah eksplisit pada surface yang diaudit: `pending`/`active`/`suspended`/`terminated` di resource ISP, indikator `stale`/`StaleAfterSeconds` pada seri trafik NOC, serta chip status pairing perangkat. **Keterbatasan yang belum selesai:** pergantian bahasa EN/ID beserta terjemahan halaman custom belum diimplementasikan; ini pekerjaan UI besar (ratusan kunci + ekstraksi string halaman custom) dan tidak diklaim selesai pada audit ini. Uji keyboard/focus/contrast end-to-end juga belum dijalankan karena tidak ada E2E browser di CI.
+
+- [x] H13.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
 - [ ] H13.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
 - [ ] H13.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H13.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+- [x] H13.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="h14"></a>
 
@@ -786,7 +812,7 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 ### H15 — Demo, data migration dan fixture sintetis
 
-- **Prioritas / status:** P2 / Penguatan.
+- **Prioritas / status:** P2 / Selesai 2026-10-27 (unit + eksekusi fixture PostgreSQL).
 - **Pemetaan scope:** TR-F032 / TR-F022.
 - **Dependensi:** —.
 - **Entry point:** `internal/demoseed`; `test/integration`; `docs`.
@@ -797,10 +823,12 @@ Entry point di bawah adalah path relatif repository dan nama simbol untuk pencar
 
 **Kriteria selesai / skenario pembuktian:** Tidak reseed produksi; tidak menghapus relasi real; fixture cukup untuk reproduksi A01–A19 tanpa NAS nyata.
 
-- [ ] H15.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
-- [ ] H15.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
-- [ ] H15.3 Acceptance di atas dan skenario tenant/role relevan lulus.
-- [ ] H15.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
+**Bukti delivery:** `internal/app/initdb.go` menulis marker `internal/sample_data_initialized` dan melewati seed bila marker atau record operasional sudah ada; `TestFreshInstallSeedingDoesNotReseedAfterInitializationMarker` menghapus seluruh sample setelah seed pertama dan membuktikan seed kedua tidak mengembalikannya, sementara tes lama membuktikan instalasi berisi data dan record bootstrap tidak dianggap kosong. `internal/demoseed` hanya membersihkan record ber-marker; `TestCleanNeverDeletesRowsWithoutDemoMarker` mempertahankan record look-alike tanpa marker dan `TestCleanPreservesDemoRowsReclassifiedByOperator` mempertahankan sample yang sudah diadopsi operator beserta relasinya. Fixture sintetis `test/integration/synthetic_fixture_test.go` membuat dua tenant dengan customer/package/subscription/batch, 250 voucher tenant A, lima kode duplikat plus satu kode khusus tenant B, serta invoice paid/partial/issued yang nomornya sengaja sama antar-tenant; tes memverifikasi resolusi kode per tenant, saldo/status invoice, dan `demoseed.Clean` tidak menghapus fixture kedua tenant. Marker hanya baris konfigurasi, tanpa perubahan skema, sehingga rollback cukup menghapus marker. `go test` unit dan `go vet -tags=integration ./test/integration` lulus. Gate PostgreSQL/OpenLDAP dijalankan lokal pada 2026-10-27 dengan `docker-compose.test.yml`: suite `go test -tags=integration ./test/integration/...` lulus penuh (197,7 detik), termasuk `TestSyntheticTwoTenantFixtureCoversVouchersAndPartialInvoices` (dua tenant, 250 voucher, invoice parsial, cleanup marker-scoped) dan `TestCustomerRegistrationAndTicketsSharePostgresSequenceConcurrently`. Harness integrasi mendeklarasikan loopback sebagai trusted proxy agar tiap registrasi publik memakai bucket rate limit sendiri melalui `X-Forwarded-For`; default produksi tetap mengabaikan header tersebut.
+
+- [x] H15.1 Reproduksi/inventory dan bukti dicatat; scope/dependensi dipenuhi.
+- [x] H15.2 Perubahan minimal backend/UI/data yang diperlukan selesai.
+- [x] H15.3 Acceptance di atas dan skenario tenant/role relevan lulus.
+- [x] H15.4 Docs, migrasi/rollback bila perlu, dan bukti delivery diperbarui.
 
 <a id="f01"></a>
 

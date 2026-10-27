@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -32,6 +33,8 @@ func TestISPOperations(t *testing.T) {
 		&domain.TroubleTicket{},
 		&domain.RadiusUser{},
 		&domain.Customer{},
+		&domain.NotificationSettings{},
+		&domain.NotificationOutbox{},
 	))
 	profile := domain.RadiusProfile{Name: "Hotspot 10 Mbps", Status: "enabled", UpRate: 10000, DownRate: 10000, ActiveNum: 1}
 	require.NoError(t, db.Create(&profile).Error)
@@ -145,6 +148,17 @@ func TestISPOperations(t *testing.T) {
 	assert.Equal(t, "urgent", ticketRes.Data.Priority)
 	assert.Equal(t, "open", ticketRes.Data.Status)
 
+	// Dispatch only claims success when the outbox actually queued a message,
+	// so enable the event for one allowlisted recipient first.
+	acknowledged := time.Now()
+	require.NoError(t, db.Create(&domain.NotificationSettings{
+		TenantID:           domain.DefaultTenantID,
+		WhatsAppEnabled:    true,
+		RiskAcknowledgedAt: &acknowledged,
+		RecipientsJSON:     `["+6281234567890"]`,
+		EventsJSON:         `["ticket.assigned"]`,
+	}).Error)
+
 	// Dispatch ticket WhatsApp
 	reqDispatch := httptest.NewRequest(http.MethodPost, "/api/v1/isp/tickets/"+strconv.FormatInt(ticketRes.Data.ID, 10)+"/dispatch", nil)
 	recDispatch := httptest.NewRecorder()
@@ -154,7 +168,20 @@ func TestISPOperations(t *testing.T) {
 
 	err = dispatchTicketWhatsApp(cDispatch)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, recDispatch.Code)
+	require.Equal(t, http.StatusOK, recDispatch.Code, recDispatch.Body.String())
+
+	var dispatchRes struct {
+		Data struct {
+			Queued int `json:"queued"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(recDispatch.Body.Bytes(), &dispatchRes))
+	assert.Equal(t, 1, dispatchRes.Data.Queued)
+	var outbox domain.NotificationOutbox
+	require.NoError(t, db.First(&outbox).Error)
+	assert.Equal(t, "ticket.assigned", outbox.EventType)
+	assert.Equal(t, "6281234567890", outbox.Recipient)
+	assert.Contains(t, outbox.Body, "Budi Lapangan")
 
 	// 5. Test Live Ping Tool
 	pingPayload := []byte(`{"host": "127.0.0.1", "count": 2}`)
@@ -243,6 +270,62 @@ func TestVoucherBatchNumbersUseAtomicDailySequence(t *testing.T) {
 	assert.NotEqual(t, batches[0].BatchNo, batches[1].BatchNo)
 	assert.Equal(t, "BATCH-"+time.Now().Format("060102")+"-000001", batches[0].BatchNo)
 	assert.Equal(t, "BATCH-"+time.Now().Format("060102")+"-000002", batches[1].BatchNo)
+}
+
+func TestVoucherBatchPaginationSupportsFullPrint(t *testing.T) {
+	db, e, appCtx := CreateTestAppContext(t)
+	require.NoError(t, db.AutoMigrate(&domain.HotspotBatch{}, &domain.HotspotVoucher{}, &domain.InternetPackage{}, &domain.RadiusProfile{}, &domain.RadiusUser{}, &domain.DocumentSequence{}))
+	profile := domain.RadiusProfile{Name: "Print profile", Status: "enabled"}
+	require.NoError(t, db.Create(&profile).Error)
+	pkg := domain.InternetPackage{Code: "PRINT-250", Name: "Print 250", Status: "active", RadiusProfileID: profile.ID}
+	require.NoError(t, db.Create(&pkg).Error)
+
+	body := []byte(`{"package_id":"` + strconv.FormatInt(pkg.ID, 10) + `","quantity":250,"code_length":8}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/isp/vouchers/generate", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	require.NoError(t, generateVouchers(CreateTestContext(e, db, req, rec, appCtx)))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	var batch domain.HotspotBatch
+	require.NoError(t, db.Order("id DESC").First(&batch).Error)
+	require.EqualValues(t, 250, batch.Quantity)
+
+	// Mirror the print dialog: walk every page of the batch instead of trusting
+	// a single page capped at 100 rows.
+	seen := make(map[string]struct{}, 250)
+	var reportedTotal int64
+	for page := 1; ; page++ {
+		listReq := httptest.NewRequest(http.MethodGet,
+			fmt.Sprintf("/api/v1/isp/vouchers?batch_id=%d&page=%d&perPage=100", batch.ID, page), nil)
+		listRec := httptest.NewRecorder()
+		require.NoError(t, listVouchers(CreateTestContext(e, db, listReq, listRec, appCtx)))
+		require.Equal(t, http.StatusOK, listRec.Code, listRec.Body.String())
+		var payload struct {
+			Data []domain.HotspotVoucher `json:"data"`
+			Meta struct {
+				Total    int64 `json:"total"`
+				Page     int   `json:"page"`
+				PageSize int   `json:"pageSize"`
+			} `json:"meta"`
+		}
+		require.NoError(t, json.Unmarshal(listRec.Body.Bytes(), &payload))
+		assert.Equal(t, page, payload.Meta.Page)
+		assert.Equal(t, 100, payload.Meta.PageSize)
+		reportedTotal = payload.Meta.Total
+		if len(payload.Data) == 0 {
+			break
+		}
+		for _, voucher := range payload.Data {
+			assert.Equal(t, batch.ID, voucher.BatchID)
+			seen[voucher.Code] = struct{}{}
+		}
+		if int64(len(seen)) >= reportedTotal {
+			break
+		}
+	}
+	assert.EqualValues(t, 250, reportedTotal, "server must report the full batch size")
+	assert.Len(t, seen, 250, "printing must see 250 unique voucher codes across pages")
 }
 
 func TestDeleteVoucherBatchReportsMissingAndRemovesCredentials(t *testing.T) {

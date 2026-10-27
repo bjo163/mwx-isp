@@ -221,6 +221,14 @@ func runSuite(env pgEnv, m *testing.M) (code int, err error) {
 		return 1, fmt.Errorf("seed admin operator: %w", err)
 	}
 
+	// Every client of this suite connects from loopback. Declaring loopback as a
+	// trusted proxy lets a test present a distinct X-Forwarded-For address to
+	// exercise per-client rate-limit buckets; production defaults still ignore
+	// the header while the list is unset.
+	if err := os.Setenv("TOUGHRADIUS_TRUSTED_PROXIES", "127.0.0.1"); err != nil {
+		return 1, fmt.Errorf("set trusted proxy env: %w", err)
+	}
+
 	// Boot the real admin HTTP server (full middleware chain: JWT, validator,
 	// appCtx injection, routing) so tests exercise the API as clients do.
 	webserver.Init(appCtx)

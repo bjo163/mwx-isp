@@ -77,6 +77,7 @@ import {
 } from '@mui/icons-material';
 import { ServerPagination, ActiveFilters } from '../components';
 import { StatusChip, Mono } from '../components/Enterprise';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 import { API_BASE } from '../utils/apiClient';
 
 const LARGE_LIST_PER_PAGE = 50;
@@ -478,12 +479,16 @@ const formLayoutSx = {
 };
 
 // 简化后的自定义工具栏（仅展示保存与Delete）
-const UserFormToolbar = (props: ToolbarProps) => (
-  <Toolbar {...props}>
-    <SaveButton />
-    <DeleteButton mutationMode="pessimistic" />
-  </Toolbar>
-);
+const UserFormToolbar = (props: ToolbarProps) => {
+  const isAdmin = useIsAdmin();
+  if (!isAdmin) return null;
+  return (
+    <Toolbar {...props}>
+      <SaveButton />
+      <DeleteButton mutationMode="pessimistic" />
+    </Toolbar>
+  );
+};
 
 // ============ List loading placeholder ============
 
@@ -904,14 +909,15 @@ const ImportUsersButton = () => {
 
 const UserListActions = () => {
   const translate = useTranslate();
+  const isAdmin = useIsAdmin();
   return (
     <TopToolbar>
       <SortButton
         fields={['created_at', 'expire_time', 'username']}
         label={translate('ra.action.sort', { _: 'Sort' })}
       />
-      <CreateButton />
-      <ImportUsersButton />
+      {isAdmin && <CreateButton />}
+      {isAdmin && <ImportUsersButton />}
       <ExportButton />
     </TopToolbar>
   );

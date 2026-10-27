@@ -64,6 +64,9 @@ type IPAMPool struct {
 	TotalIPs     int64     `json:"total_ips,string"`
 	UsedIPs      int64     `json:"used_ips,string"`
 	Description  string    `json:"description" gorm:"size:255"`
+	// CapacityLabel renders the usable address count without overflowing int64;
+	// IPv6 spaces above 2^62 report "2^N addresses" and leave TotalIPs at zero.
+	CapacityLabel string `json:"capacity_label,omitempty" gorm:"-"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

@@ -8,7 +8,7 @@ The [detailed audit backlog](MWX-ISP-audit-backlog-2026-10-05.md) records 20 imp
 
 M18 maps containment and verification to existing API, UI, storage, billing, deployment and tenant boundaries. Existing public payment mutations, public tenant scoping, voucher consistency and application JSON backup coverage require follow-up. Repairing existing unsafe behavior does not authorize extending a payment, captive-portal or CRM product.
 
-Scope drift is explicitly tracked by A20: public portal, vouchers, tickets, IPAM and ODP appear in code while the non-goals below still exclude portions of that product surface. Keep the non-goals until a scope decision reconciles them; do not silently assign a new approved feature ID to brainstorming. F03/F04/F05/F10 are proposals requiring scope review; all F items remain unscheduled. English/Indonesian handbook claims must follow the resulting implementation and evidence.
+Scope drift is reconciled by A20 in [Existing Surface Scope Inventory](#existing-surface-scope-inventory-a20-2026-10-27): portal, vouchers, tickets, IPAM and ODP already exist in code, so each is mapped to a keep/harden/hide decision. Those decisions are containment rules, not approval for expansion. The non-goals below remain in force; no inventory row authorizes a new product capability, and any expansion still needs an approved feature ID. F03/F04/F05/F10 remain proposals requiring scope review; all F items remain unscheduled. English/Indonesian handbook claims must follow the resulting implementation and evidence.
 
 This document is the feature scope baseline for MWX-ISP. Future requirements, issues, pull requests, and code changes must first align with the feature IDs in this checklist. If a request cannot be mapped to an existing feature ID, update this checklist with the scope change before implementation starts.
 
@@ -96,8 +96,51 @@ The following are priority extension directions and their delivery status. Autho
 | ID | Non-Goal Direction | Explanation |
 | --- | --- | --- |
 | TR-N001 | Billing payment / orders / finance system | Except for the explicitly approved minimum operator-facing MWX-ISP subscription billing loop (TR-F028), do not expand into a generic charging system, payment gateway, order platform, or finance ERP. |
-| TR-N002 | CRM / ticketing / customer self-service portal | MWX-ISP's basic operator-facing Customer and Subscription capability is limited to TR-F027; do not expand into CRM, ticketing, or a customer self-service portal. |
+| TR-N002 | CRM / ticketing / customer self-service portal | MWX-ISP's basic operator-facing Customer and Subscription capability is limited to TR-F027; do not expand into CRM, ticketing, or a customer self-service portal. Existing operator trouble-ticket and customer-intake screens are grandfathered by the A20 inventory and may only be repaired or hardened; they are not approval for a CRM, customer login, or self-service account area. |
 | TR-N003 | General-purpose observability platform | TR-F031 permits bounded health checks for registered ISP network devices; it does not authorize a general NMS/BI/observability platform and does not replace Prometheus, Grafana, or similar systems. |
 | TR-N004 | Unscoped multi-tenant expansion | Multi-tenant operations are now an approved scope under TR-F033. Do not implement tenant behavior outside that feature's isolation, authorization, RADIUS-resolution, and migration boundaries. |
 | TR-N005 | Rewriting the protocol stack or replacing the management framework | Unless there is a clear defect and migration plan, rewriting is not a development direction. |
-| TR-N006 | Hosted captive portal / guest portal product | MWX-ISP is only the RADIUS auth/accounting backend. It does not provide, host, or operate portal login pages, guest onboarding, vouchers, SMS/WeChat/payment onboarding, or vendor portal-server state machines; those belong to another product. |
+| TR-N006 | Hosted captive portal / guest portal product | MWX-ISP is only the RADIUS auth/accounting backend. It does not provide, host, or operate portal login pages, guest onboarding, vouchers, SMS/WeChat/payment onboarding, or vendor portal-server state machines; those belong to another product. Existing operator-side hotspot voucher batch management and the voucher code-check endpoint are grandfathered operator tooling under the A20 inventory; they may only be repaired or hardened and do not authorize a hosted portal, guest login, voucher onboarding flow, or public portal state machine. |
+
+## Existing Surface Scope Inventory (A20, 2026-10-27)
+
+A20 reconciles the non-goal tables with surfaces that already exist in code at baseline `8a82c26`. It is a containment decision, not an approval of new product scope:
+
+- **Keep** — existing capability with test coverage; only defect, security, isolation, data-integrity, and documentation fixes are allowed.
+- **Harden** — grandfathered surface that overlaps a non-goal or lacks a dedicated feature ID; containment, correctness, and tests are allowed, but no new capability, menu, public endpoint, or workflow.
+- **Hide** — the route stays registered but fails closed with an explicit refusal; re-enabling requires a new scope decision.
+- **Deprecate** — no new investment; removal requires a separate approved change and migration note.
+- No row authorizes expansion. A new customer-facing workflow, public endpoint, or product module must first add or extend a `TR-F` entry in this checklist.
+- "Tested" means covered by Go unit or integration tests in this repository. It does not mean a browser/host matrix or real-device pilot has passed.
+
+| Menu / surface | Routes / modules | Decision | Scope mapping | Evidence and known limits | Allowed now |
+| --- | --- | --- | --- | --- | --- |
+| Dashboard and operator shell | `web/src/pages/Dashboard*.tsx`, `internal/adminapi/dashboard.go` | Keep | TR-F015 / TR-F029 | Unit tests (`dashboard_test.go`, `branding_test.go`); no browser/host matrix | Fix metrics or layout defects against existing data. |
+| RADIUS users | `/api/v1/users`, `users_import.go`, `web/src/resources/radiusUsers.tsx` | Keep | TR-F007 | Unit tests, import tests, PG/OpenLDAP integration | Field, validation, and tenant fixes. |
+| RADIUS profiles | `/api/v1/radius-profiles`, `profile_cache.go` | Keep | TR-F008 | Unit tests | Cache and inheritance correctness fixes. |
+| NAS devices and network nodes | `/api/v1/network/nas`, `/api/v1/network/nodes` | Keep | TR-F009 | Unit tests; fake-NAS integration | Protocol-compatible fixes. |
+| Online sessions, CoA, Disconnect retry | `/api/v1/sessions`, `/api/v1/session-actions`, `session_action_queue.go` | Keep | TR-F010 | Fake-NAS ACK/NAK/timeout tests and #52 retry/audit tests; a real NAS pilot remains blocked | Correctness and audit fixes. |
+| Accounting records | `/api/v1/accounting` | Keep | TR-F011 | Unit tests; tenant-scoped retention test in PostgreSQL | Query and retention fixes. |
+| ISP customers, packages, subscriptions | `/api/v1/isp/*` | Keep | TR-F027 | Unit and PG integration tests | Isolation and lifecycle fixes. |
+| Customer 360 timeline | `/api/v1/isp/customers/:id/timeline` | Keep | TR-F027 | Unit tests; read-only event merge | Pagination and filter fixes; never fabricate events. |
+| Invoices, payments, enforcement | `/api/v1/isp/invoices`, `/api/v1/isp/payments` | Keep | TR-F028 | Partial/full payment and concurrency tests; financial gateway is disabled | Billing correctness and audit fixes. |
+| Online payment endpoints | `/api/v1/portal/invoices/:id/payment-channel`, `/api/v1/portal/invoices/:id/simulate-pay`, `/api/v1/portal/payments/webhook` | Hide | TR-N001 / TR-F028 | Explicit 503/410 refusal in code; no unit test asserts the refusal yet | Keep fail-closed; re-enable only with provider and scope approval. |
+| Operator customer lookup ("Customer Portal") | `/portal`, `/api/v1/portal/lookup` | Harden | TR-F027 / TR-N002 | API requires operator JWT; the frontend auth whitelist still allows `/portal` without a token, so anonymous use fails at the API; no customer login exists | Operator lookup only; no public self-service. Fixing the public UI claim is a follow-up, not an approved feature. |
+| Public landing, package catalog, registration intake | `/home`, `/api/v1/public/packages`, `/api/v1/public/register` | Harden | TR-F027 / TR-N002 | A10 idempotency test; these API paths are not JWT-skipped, so anonymous calls fail closed | Operator-assisted intake; no customer account area or new public endpoint without approval. |
+| Trouble tickets and auto-ticket | `/api/v1/isp/tickets`, flapping auto-ticket | Harden | TR-N002 / TR-F031 | Operator-only; unit tests | Defect and tenant fixes only; no CRM or workflow expansion. |
+| Hotspot vouchers | `/api/v1/isp/vouchers`, batches and revoke, `/api/v1/public/vouchers/check` | Harden | TR-N006 | PG sequence/concurrency, lifecycle/revoke, and print pagination tests; voucher check requires JWT | Operator voucher tooling only; no captive portal, guest login, or onboarding flow. |
+| IPAM pools and audit | `/api/v1/network/ipam/*` | Harden | TR-N003 boundary | Validation tests | Bounded operator records; no scanner or general IPAM platform. |
+| ODP registry and NOC impact | `/api/v1/network/odp`, `/api/v1/network/impact` | Keep | TR-F031 | Unit tests and #53 impact mapping tests | Read-only impact; keep confidence tiers explicit. |
+| Monitor targets, incidents, syslog, traffic | `/api/v1/network/monitor-*`, `/api/v1/network/syslog`, traffic APIs | Keep | TR-F031 | Unit tests; real SNMP/router validation remains blocked | No scanning, topology discovery, or device writes. |
+| Admin diagnostics | `/api/v1/network/diagnostics/*` | Keep | TR-F031 / TR-F022 | Admin-only; validation tests | Containment and safety fixes. |
+| WhatsApp notifications | `/api/v1/system/notifications/*` | Keep | TR-F030 | Unit/outbox tests; real QR pairing and delivery remain blocked | Allowlisted one-way operator alerts only. |
+| Branding and website content | `/api/v1/system/branding`, `/system/website` | Keep | TR-F029 | Branding tests; website editor has no dedicated test | Presentation fixes; no tenant theming or CMS. |
+| System settings, operators, certificates, logs | `/api/v1/system/*` | Keep | TR-F012 / TR-F014 / TR-F016 / TR-F026 | Unit tests; config schema tests | Security and compatibility fixes. |
+| Backup and restore | `/api/v1/system/backup`, `/api/v1/system/restore` | Keep | TR-F020 / TR-F012 | Envelope, manifest, dry-run, and PG drill tests (#50) | Recovery fixes; no new backup product. |
+| Platform tenants | `/api/v1/platform/tenants` | Keep | TR-F033 | PG/OpenLDAP tenant acceptance | Isolation and membership fixes. |
+| Demo seed and first-install samples | `internal/demoseed`, `internal/app/initdb.go` | Keep | TR-F032 | Seeding and cleanup tests (H15) | Marker and eligibility fixes only. |
+| In-app user guide | `/guide` | Keep | TR-F023 | Static content | Documentation corrections. |
+
+No existing menu is marked Deprecate at this time. Deprecation or removal requires a separate approved change; this inventory does not authorize deleting operator data or routes.
+
+Anonymous public self-service is **not** a delivered capability: the landing page still shows bill-search, voucher, and registration actions whose APIs require an operator JWT. F04 (customer portal with login) and F03 (payment gateway) remain unscheduled proposals. Do not advertise or test those flows as working customer self-service until a scope decision and end-to-end tests exist.

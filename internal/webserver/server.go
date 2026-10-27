@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -41,6 +42,56 @@ const DefaultBodyLimit = "16M"
 // corsEnvVar is the environment variable holding a comma-separated list of
 // origins allowed for cross-origin requests to the admin API.
 const corsEnvVar = "TOUGHRADIUS_WEB_CORS_ORIGINS"
+
+// trustedProxyEnvVar lists the reverse proxies whose forwarding headers are
+// trusted, as a comma-separated list of IPs or CIDR ranges. When it is unset
+// the client IP is read from the connection and X-Forwarded-For is ignored, so
+// a caller cannot spoof an address to escape rate limiting.
+const trustedProxyEnvVar = "TOUGHRADIUS_TRUSTED_PROXIES"
+
+// trustedProxyIPExtractor builds the client-IP resolver used by c.RealIP().
+// With no trusted proxies it resolves the direct connection peer. Otherwise it
+// walks X-Forwarded-For from the right and returns the first address that is
+// not in a trusted range; echo additionally trusts loopback by default so a
+// local reverse proxy works without extra configuration.
+func trustedProxyIPExtractor(raw string) echo.IPExtractor {
+	ranges := parseTrustedProxyRanges(raw)
+	if len(ranges) == 0 {
+		return echo.ExtractIPDirect()
+	}
+	options := make([]echo.TrustOption, 0, len(ranges))
+	for _, network := range ranges {
+		options = append(options, echo.TrustIPRange(network))
+	}
+	return echo.ExtractIPFromXFFHeader(options...)
+}
+
+func parseTrustedProxyRanges(raw string) []*net.IPNet {
+	var ranges []*net.IPNet
+	for _, entry := range strings.Split(raw, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		cidr := entry
+		if !strings.Contains(cidr, "/") {
+			if ip := net.ParseIP(cidr); ip != nil {
+				if ip.To4() != nil {
+					cidr += "/32"
+				} else {
+					cidr += "/128"
+				}
+			}
+		}
+		_, network, err := net.ParseCIDR(cidr)
+		if err != nil {
+			zap.S().Warnf("Ignoring invalid %s entry %q: %v", trustedProxyEnvVar, entry, err)
+			continue
+		}
+		ranges = append(ranges, network)
+	}
+	return ranges
+}
 
 // securityHeaders returns middleware that sets baseline security response
 // headers: X-Frame-Options (clickjacking), X-Content-Type-Options (MIME
@@ -98,11 +149,21 @@ func Listen(appCtx app.AppContext) error {
 	return server.Start()
 }
 
+// Handler returns the root HTTP handler of the management server, including the
+// full middleware chain. It is primarily for tests that exercise routes
+// in-process without opening a port; it must be called after [Init].
+func Handler() http.Handler {
+	return server.root
+}
+
 // NewAdminServer creates the admin system server
 func NewAdminServer(appCtx app.AppContext) *AdminServer {
 	appconfig := appCtx.Config()
 	s := &AdminServer{appCtx: appCtx}
 	s.root = echo.New()
+	// Resolve the client IP from the connection unless the deployment declares
+	// the reverse proxies allowed to supply X-Forwarded-For.
+	s.root.IPExtractor = trustedProxyIPExtractor(os.Getenv(trustedProxyEnvVar))
 	s.root.Pre(middleware.RemoveTrailingSlash())
 	// Bound request body size globally to mitigate memory-exhaustion via oversized
 	// payloads (e.g. the system restore upload).

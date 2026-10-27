@@ -20,11 +20,15 @@ import {
   WhatsApp as WhatsAppIcon,
 } from '@mui/icons-material';
 import { apiRequest } from '../utils/apiClient';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 import { CustomerTimeline } from '../components/CustomerTimeline';
 import { MrtgTrafficGraph } from '../components/MrtgTrafficGraph';
 import { Mono, StatusChip, PageHeader, KpiStrip, KpiTile, Panel } from '../components/Enterprise';
 
-const listActions = <TopToolbar><CreateButton /></TopToolbar>;
+const AdminListActions = () => {
+  const isAdmin = useIsAdmin();
+  return <TopToolbar>{isAdmin && <CreateButton />}</TopToolbar>;
+};
 const idrOptions: Intl.NumberFormatOptions = { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 };
 const formatIDR = (val?: number | null) =>
   new Intl.NumberFormat('id-ID', idrOptions).format(val || 0);
@@ -162,7 +166,7 @@ const CustomerListHeader = () => {
 
 const customerFilters = [<SearchInput source="q" alwaysOn key="q" />, <SelectInput source="status" choices={customerStatusChoices} key="status" />];
 export const CustomerList = () => (
-  <List actions={listActions} filters={customerFilters} perPage={25} title="Customers">
+  <List actions={<AdminListActions />} filters={customerFilters} perPage={25} title="Customers">
     <CustomerListHeader />
     <Datagrid
       rowClick="show"
@@ -206,20 +210,23 @@ export const CustomerEdit = () => <Edit title="Edit customer"><CustomerForm /></
 
 const CustomerShowActions = () => {
   const record = useRecordContext();
+  const isAdmin = useIsAdmin();
   if (!record) return null;
   return (
     <TopToolbar>
-      <EditButton />
-      <Button
-        component={RouterLink}
-        to={`/isp/subscriptions/create?source=${encodeURIComponent(JSON.stringify({ customer_id: record.id }))}`}
-        variant="contained"
-        size="small"
-        startIcon={<AddIcon />}
-        sx={{ ml: 1 }}
-      >
-        Add Subscription
-      </Button>
+      {isAdmin && <EditButton />}
+      {isAdmin && (
+        <Button
+          component={RouterLink}
+          to={`/isp/subscriptions/create?source=${encodeURIComponent(JSON.stringify({ customer_id: record.id }))}`}
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon />}
+          sx={{ ml: 1 }}
+        >
+          Add Subscription
+        </Button>
+      )}
       <Button
         component="a"
         href={`/portal?q=${encodeURIComponent(record.customer_no)}`}
@@ -392,11 +399,13 @@ const PackageListHeader = () => {
 };
 
 const packageFilters = [<SelectInput source="status" choices={[{ id: 'active', name: 'Active' }, { id: 'inactive', name: 'Inactive' }]} alwaysOn key="status" />];
-export const PackageList = () => (
-  <List actions={listActions} filters={packageFilters} perPage={25} title="Internet packages">
+export const PackageList = () => {
+  const isAdmin = useIsAdmin();
+  return (
+  <List actions={<AdminListActions />} filters={packageFilters} perPage={25} title="Internet packages">
     <PackageListHeader />
     <Datagrid
-      rowClick="edit"
+      rowClick={isAdmin ? 'edit' : false}
       sx={{
         border: '1.5px solid #000',
         boxShadow: '3px 3px 0px #000',
@@ -418,7 +427,8 @@ export const PackageList = () => (
       <StatusField />
     </Datagrid>
   </List>
-);
+  );
+};
 const PackageForm = () => <SimpleForm>
   <TextInput source="name" isRequired />
   <NumberInput source="price" min={0} isRequired />
@@ -437,6 +447,7 @@ const SubscriptionActions = () => {
   const record = useRecordContext();
   const notify = useNotify();
   const refresh = useRefresh();
+  const isAdmin = useIsAdmin();
   if (!record) return null;
   const actions = record.status === 'pending' ? ['activate', 'terminate']
     : record.status === 'active' ? ['suspend', 'terminate', ...(record.online ? ['disconnect'] : [])]
@@ -447,8 +458,8 @@ const SubscriptionActions = () => {
     catch (error) { notify(error instanceof Error ? error.message : 'Action failed', { type: 'error' }); }
   };
   return <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ my: 1 }}>
-    {actions.map(action => <Button key={action} size="small" color={action === 'terminate' ? 'error' : 'primary'} variant={action === 'activate' || action === 'reactivate' ? 'contained' : 'outlined'} onClick={() => void doAction(action)}>{action.replace(/_/g, ' ')}</Button>)}
-    {record.status === 'active' && (
+    {isAdmin && actions.map(action => <Button key={action} size="small" color={action === 'terminate' ? 'error' : 'primary'} variant={action === 'activate' || action === 'reactivate' ? 'contained' : 'outlined'} onClick={() => void doAction(action)}>{action.replace(/_/g, ' ')}</Button>)}
+    {isAdmin && record.status === 'active' && (
       record.fup_triggered ? (
         <Button
           size="small"
@@ -546,7 +557,7 @@ const subscriptionFilters = [
   <ReferenceInput source="customer_id" reference="isp/customers" key="customer_id"><SelectInput optionText="name" /></ReferenceInput>,
 ];
 export const SubscriptionList = () => (
-  <List actions={listActions} filters={subscriptionFilters} perPage={25} title="Subscriptions">
+  <List actions={<AdminListActions />} filters={subscriptionFilters} perPage={25} title="Subscriptions">
     <SubscriptionListHeader />
     <Datagrid
       rowClick="show"
@@ -830,6 +841,7 @@ const InvoiceDetailView = () => {
   const refresh = useRefresh();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [sendingWa, setSendingWa] = useState(false);
+  const isAdmin = useIsAdmin();
 
   if (!record) return null;
 
@@ -868,16 +880,18 @@ const InvoiceDetailView = () => {
           Back to Invoices
         </Button>
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          <Button
-            variant="contained"
-            size="small"
-            color="success"
-            startIcon={<WhatsAppIcon />}
-            disabled={sendingWa}
-            onClick={handleServerSendWhatsApp}
-          >
-            {sendingWa ? 'Sending...' : 'Direct Send WA'}
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="contained"
+              size="small"
+              color="success"
+              startIcon={<WhatsAppIcon />}
+              disabled={sendingWa}
+              onClick={handleServerSendWhatsApp}
+            >
+              {sendingWa ? 'Sending...' : 'Direct Send WA'}
+            </Button>
+          )}
           <Button
             variant="outlined"
             size="small"
@@ -898,7 +912,7 @@ const InvoiceDetailView = () => {
           >
             Print Invoice
           </Button>
-          {canPay && (
+          {canPay && isAdmin && (
             <Button
               variant="contained"
               size="small"
@@ -1220,7 +1234,7 @@ const paymentFilters = [
   <ReferenceInput source="invoice_id" reference="isp/invoices" key="invoice_id"><SelectInput optionText="invoice_no" /></ReferenceInput>,
 ];
 export const PaymentList = () => (
-  <List actions={listActions} filters={paymentFilters} perPage={25} title="Payments">
+  <List actions={<AdminListActions />} filters={paymentFilters} perPage={25} title="Payments">
     <PaymentListHeader />
     <Datagrid
       rowClick="show"
@@ -1255,6 +1269,7 @@ const PaymentShowActions = () => {
   const record = useRecordContext();
   const notify = useNotify();
   const [sendingWa, setSendingWa] = useState(false);
+  const isAdmin = useIsAdmin();
   if (!record) return null;
 
   const handleServerSendWhatsApp = async () => {
@@ -1271,17 +1286,19 @@ const PaymentShowActions = () => {
 
   return (
     <TopToolbar>
-      <Button
-        variant="contained"
-        size="small"
-        color="success"
-        startIcon={<WhatsAppIcon />}
-        disabled={sendingWa}
-        onClick={handleServerSendWhatsApp}
-        sx={{ mr: 1 }}
-      >
-        {sendingWa ? 'Sending...' : 'Direct Send WA'}
-      </Button>
+      {isAdmin && (
+        <Button
+          variant="contained"
+          size="small"
+          color="success"
+          startIcon={<WhatsAppIcon />}
+          disabled={sendingWa}
+          onClick={handleServerSendWhatsApp}
+          sx={{ mr: 1 }}
+        >
+          {sendingWa ? 'Sending...' : 'Direct Send WA'}
+        </Button>
+      )}
       <Button
         variant="outlined"
         size="small"

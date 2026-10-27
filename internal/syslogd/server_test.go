@@ -3,8 +3,10 @@ package syslogd
 import (
 	"context"
 	"net"
+	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/glebarez/sqlite"
@@ -130,4 +132,55 @@ func TestServer_IngestManual(t *testing.T) {
 	var count int64
 	require.NoError(t, db.Model(&domain.SyslogEvent{}).Count(&count).Error)
 	assert.Equal(t, int64(1), count)
+}
+
+func TestServer_DiscardsUnknownSender(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&domain.SyslogEvent{}, &domain.NetNas{}))
+
+	srv := NewServer(db, "127.0.0.1:0")
+	require.NoError(t, srv.Start())
+	defer srv.Stop()
+
+	conn, err := net.Dial("udp", srv.conn.LocalAddr().String())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+	_, err = conn.Write([]byte("<134>Oct 04 11:20:00 router pppoe: packet from unknown NAS"))
+	require.NoError(t, err)
+
+	time.Sleep(700 * time.Millisecond)
+
+	var count int64
+	require.NoError(t, db.Model(&domain.SyslogEvent{}).Count(&count).Error)
+	require.Zero(t, count, "a packet from an unregistered NAS must not be stored")
+}
+
+func TestTruncateSyslogPayload(t *testing.T) {
+	short := "system: link down"
+	require.Equal(t, short, truncateSyslogPayload("  "+short+"  "))
+
+	long := strings.Repeat("a", maxSyslogPayloadBytes*3)
+	trimmed := truncateSyslogPayload(long)
+	require.LessOrEqual(t, len(trimmed), maxSyslogPayloadBytes)
+	require.True(t, strings.HasSuffix(trimmed, " [truncated]"))
+	require.True(t, utf8.ValidString(trimmed))
+
+	// Cutting a multi-byte payload must not leave a torn rune.
+	multibyte := strings.Repeat("é", maxSyslogPayloadBytes)
+	trimmed = truncateSyslogPayload(multibyte)
+	require.LessOrEqual(t, len(trimmed), maxSyslogPayloadBytes)
+	require.True(t, utf8.ValidString(trimmed), "truncation must not split a UTF-8 rune")
+}
+
+func TestSourceLimiter(t *testing.T) {
+	limiter := newSourceLimiter()
+	start := time.Now()
+	for i := 0; i < sourceRateLimit; i++ {
+		require.Truef(t, limiter.allow("10.0.0.1", start), "packet %d should pass", i+1)
+	}
+	require.False(t, limiter.allow("10.0.0.1", start), "packet over the budget must be dropped")
+	require.True(t, limiter.allow("10.0.0.2", start), "another source has its own budget")
+	require.True(t, limiter.allow("10.0.0.1", start.Add(sourceRateWindow)), "a new window resets the budget")
+	require.True(t, limiter.allow("", start), "unknown sources are not rate limited")
 }

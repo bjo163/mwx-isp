@@ -26,11 +26,17 @@ func TestPublicRegistrationRequiresActivePackageAndPersistsCustomerAndWorkOrderA
 	inactivePackage := domain.InternetPackage{Code: "FIBER-OLD", Name: "Old package", RadiusProfileID: profile.ID, Status: "inactive"}
 	require.NoError(t, db.Create(&inactivePackage).Error)
 
-	call := func(payload string) (*httptest.ResponseRecorder, error) {
+	callWithKey := func(payload, key string) (*httptest.ResponseRecorder, error) {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/public/register", strings.NewReader(payload))
 		req.Header.Set("Content-Type", "application/json")
+		if key != "" {
+			req.Header.Set("Idempotency-Key", key)
+		}
 		rec := httptest.NewRecorder()
 		return rec, registerPublicCustomer(CreateTestContext(e, db, req, rec, appCtx))
+	}
+	call := func(payload string) (*httptest.ResponseRecorder, error) {
+		return callWithKey(payload, "")
 	}
 
 	for _, payload := range []string{
@@ -113,6 +119,55 @@ func TestPublicRegistrationRequiresActivePackageAndPersistsCustomerAndWorkOrderA
 	var registrationEvent domain.BillingEvent
 	require.NoError(t, db.Where("subscription_id = ?", subscription.ID).First(&registrationEvent).Error)
 	assert.Equal(t, "registration_submitted", registrationEvent.Type)
+
+	type registrationResponse struct {
+		Data struct {
+			CustomerNo       string `json:"customer_no"`
+			SubscriptionNo   string `json:"subscription_no"`
+			TicketNo         string `json:"ticket_no"`
+			IdempotentReplay bool   `json:"idempotent_replay"`
+		} `json:"data"`
+	}
+	const registrationKey = "retry-key-0001"
+	retryPayload := fmt.Sprintf(`{"name":"Budi Retry","phone":"081298765432","address":"Jl. Idempoten 7","package_id":"%d"}`, activePackage.ID)
+	rec, err = callWithKey(retryPayload, registrationKey)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var first registrationResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &first))
+	assert.False(t, first.Data.IdempotentReplay)
+
+	rec, err = callWithKey(retryPayload, registrationKey)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var replay registrationResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &replay))
+	assert.True(t, replay.Data.IdempotentReplay)
+	assert.Equal(t, first.Data.CustomerNo, replay.Data.CustomerNo)
+	assert.Equal(t, first.Data.SubscriptionNo, replay.Data.SubscriptionNo)
+	assert.Equal(t, first.Data.TicketNo, replay.Data.TicketNo)
+
+	require.NoError(t, db.Model(&domain.Customer{}).Count(&customers).Error)
+	require.NoError(t, db.Model(&domain.TroubleTicket{}).Count(&tickets).Error)
+	require.NoError(t, db.Model(&domain.Subscription{}).Count(&subscriptions).Error)
+	assert.EqualValues(t, 2, customers, "idempotent retry must not create a second customer")
+	assert.EqualValues(t, 2, tickets)
+	assert.EqualValues(t, 2, subscriptions)
+
+	longKey := strings.Repeat("k", 65)
+	rec, err = callWithKey(retryPayload, longKey)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Contains(t, rec.Body.String(), "INVALID_IDEMPOTENCY_KEY")
+	require.NoError(t, db.Model(&domain.Customer{}).Count(&customers).Error)
+	assert.EqualValues(t, 2, customers)
+
+	// A distinct form submission without the retry key still registers normally.
+	rec, err = call(fmt.Sprintf(`{"name":"Siti Baru","phone":"081377788899","address":"Jl. Baru 2","package_id":"%d"}`, activePackage.ID))
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	require.NoError(t, db.Model(&domain.Customer{}).Count(&customers).Error)
+	assert.EqualValues(t, 3, customers)
 }
 
 func TestTicketAndWorkOrderNumbersShareSequenceAndFlappingRequestsDeduplicate(t *testing.T) {

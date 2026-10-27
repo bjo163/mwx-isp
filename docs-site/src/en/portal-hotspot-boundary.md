@@ -77,6 +77,28 @@ Do not add these to MWX-ISP:
 If a deployment needs those functions, use a dedicated portal product in front
 of the NAS / controller and integrate it with MWX-ISP through RADIUS.
 
+## Existing surfaces (scope reconciliation, 2026-10-27)
+
+Some operator tooling was already present before this boundary statement:
+hotspot voucher batch generation and printing, an operator customer lookup
+page (`/portal`), trouble tickets, IPAM/ODP records, and a public landing page
+with package catalog and registration intake. They are recorded in the
+canonical A20 inventory in the repository feature checklist and are
+**grandfathered operator tooling**:
+
+- they may receive containment, correctness, tenant-isolation, and test fixes;
+- they are not approval for a hosted portal, customer login, guest onboarding,
+  voucher onboarding, CRM, ticketing expansion, or a payment gateway;
+- the public bill-search, registration, and voucher actions are not a supported
+  anonymous self-service capability: their APIs require an operator JWT, so an
+  anonymous visitor receives an authentication error;
+- online payment channels remain disabled with explicit `503`/`410` refusals
+  until a verified provider and scope decision exist.
+
+MWX-ISP remains a RADIUS AAA backend. Any new customer-facing workflow or
+public endpoint must first update the feature checklist; it cannot be added
+just because a route or menu already exists.
+
 ## Allowed narrow extensions
 
 Portal-related work is acceptable only when it stays inside the existing RADIUS

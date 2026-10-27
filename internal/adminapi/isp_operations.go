@@ -16,6 +16,7 @@ import (
 	"github.com/bjo163/mwx-isp/internal/billing"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/radiusd"
+	"github.com/bjo163/mwx-isp/internal/tenancy"
 	"github.com/bjo163/mwx-isp/internal/webserver"
 	"github.com/bjo163/mwx-isp/pkg/common"
 	"github.com/labstack/echo/v4"
@@ -31,7 +32,7 @@ func registerISPOperationsRoutes() {
 	webserver.ApiPOST("/isp/vouchers/:id/revoke", revokeVoucher, requireAdmin())
 	webserver.ApiGET("/isp/vouchers/batches", listVoucherBatches)
 	webserver.ApiDELETE("/isp/vouchers/batches/:id", deleteVoucherBatch, requireAdmin())
-	webserver.ApiGET("/public/vouchers/check", checkPublicVoucher)
+	webserver.ApiGET("/public/vouchers/check", checkPublicVoucher, voucherCheckRateLimiter())
 
 	// IPAM Subnet Pools and Reverse IP Audit
 	webserver.ApiGET("/network/ipam/pools", listIPAMPools)
@@ -43,12 +44,14 @@ func registerISPOperationsRoutes() {
 	// Live Network Diagnostic Probe (Ping)
 	webserver.ApiPOST("/network/diagnostics/ping", runLivePing, requireAdmin())
 
-	// Trouble Tickets & Work Orders
+	// Trouble Tickets & Work Orders. Operators create and update tickets as part
+	// of the support workflow; dispatching an external WhatsApp notification is
+	// an admin action, matching the other customer-facing send routes.
 	webserver.ApiGET("/isp/tickets", listTroubleTickets)
 	webserver.ApiGET("/isp/tickets/:id", getTroubleTicket)
-	webserver.ApiPOST("/isp/tickets", createTroubleTicket)
-	webserver.ApiPUT("/isp/tickets/:id", updateTroubleTicket)
-	webserver.ApiPOST("/isp/tickets/:id/dispatch", dispatchTicketWhatsApp)
+	webserver.ApiPOST("/isp/tickets", createTroubleTicket, RequireLevel(LevelSuper, LevelAdmin, LevelOperator))
+	webserver.ApiPUT("/isp/tickets/:id", updateTroubleTicket, RequireLevel(LevelSuper, LevelAdmin, LevelOperator))
+	webserver.ApiPOST("/isp/tickets/:id/dispatch", dispatchTicketWhatsApp, requireAdmin())
 
 	// FTTH ODP (Optical Distribution Point) Splitter Enclosures
 	webserver.ApiGET("/network/odp", listODPs)
@@ -470,25 +473,160 @@ type ipamPoolInput struct {
 	Description  string `json:"description"`
 }
 
-func calculateSubnetCapacity(cidrStr string) (int64, int) {
-	_, ipNet, err := net.ParseCIDR(cidrStr)
+// subnetCapacity describes the usable address count for one CIDR. IPv6 spaces
+// larger than int64 report Exact=false and a Label instead of a fabricated
+// number; TotalIPs stays zero so callers cannot mistake it for a real count.
+type subnetCapacity struct {
+	TotalIPs  int64
+	IPVersion int
+	Exact     bool
+	Label     string
+}
+
+func describeSubnet(cidrStr string) (subnetCapacity, error) {
+	trimmed := strings.TrimSpace(cidrStr)
+	if trimmed == "" {
+		return subnetCapacity{}, errors.New("CIDR is required")
+	}
+	ip, ipNet, err := net.ParseCIDR(trimmed)
 	if err != nil {
-		return 0, 4
+		return subnetCapacity{}, errors.New("invalid CIDR notation (e.g. 100.64.0.0/22 or 2001:db8::/48)")
+	}
+	if !ipNet.IP.Equal(ip) {
+		return subnetCapacity{}, fmt.Errorf("CIDR must start at its network address; use %s", ipNet.String())
 	}
 	ones, bits := ipNet.Mask.Size()
-	if bits == 128 { // IPv6
-		return int64(1) << 16, 6 // e.g. representation
-	}
-	// IPv4
 	hostBits := bits - ones
-	if hostBits <= 0 {
-		return 1, 4
+	if bits == 128 {
+		if hostBits <= 62 {
+			total := int64(1) << hostBits
+			return subnetCapacity{TotalIPs: total, IPVersion: 6, Exact: true, Label: formatAddressCount(total)}, nil
+		}
+		return subnetCapacity{IPVersion: 6, Label: fmt.Sprintf("2^%d addresses", hostBits)}, nil
 	}
 	total := int64(1) << hostBits
-	if total > 2 {
-		total -= 2 // minus network and broadcast
+	if hostBits >= 2 {
+		total -= 2 // network and broadcast; /31 and /32 have no reservation (RFC 3021)
 	}
-	return total, 4
+	return subnetCapacity{TotalIPs: total, IPVersion: 4, Exact: true, Label: formatAddressCount(total)}, nil
+}
+
+func formatAddressCount(total int64) string {
+	return strconv.FormatInt(total, 10) + " addresses"
+}
+
+type ipamValidationError struct {
+	status  int
+	code    string
+	message string
+}
+
+func (e *ipamValidationError) Error() string { return e.message }
+
+func failIPAMValidation(c echo.Context, err error) error {
+	var validationErr *ipamValidationError
+	if errors.As(err, &validationErr) {
+		return fail(c, validationErr.status, validationErr.code, validationErr.message, nil)
+	}
+	return fail(c, 500, "DATABASE_ERROR", "Failed to validate IPAM pool", err.Error())
+}
+
+func cidrsOverlap(a, b *net.IPNet) bool {
+	return a.Contains(b.IP) || b.Contains(a.IP)
+}
+
+func lastAddress(n *net.IPNet) net.IP {
+	last := make(net.IP, len(n.IP))
+	for i := range n.IP {
+		last[i] = n.IP[i] | ^n.Mask[i]
+	}
+	return last
+}
+
+// validateIPAMPool normalizes input and enforces one consistent policy:
+// canonical CIDR, a matching address family, a gateway inside the subnet, no
+// overlap with another pool of the same tenant, and no active lease left
+// outside when an existing pool is renumbered.
+func validateIPAMPool(db *gorm.DB, in *ipamPoolInput, excludeID int64, previousCIDR string) (subnetCapacity, error) {
+	in.CIDR = strings.TrimSpace(in.CIDR)
+	in.Gateway = strings.TrimSpace(in.Gateway)
+	capacity, err := describeSubnet(in.CIDR)
+	if err != nil {
+		return capacity, &ipamValidationError{http.StatusBadRequest, "INVALID_CIDR", err.Error()}
+	}
+	_, ipNet, _ := net.ParseCIDR(in.CIDR)
+	in.CIDR = ipNet.String()
+	if in.IPVersion != 0 && in.IPVersion != capacity.IPVersion {
+		return capacity, &ipamValidationError{http.StatusBadRequest, "IP_VERSION_MISMATCH",
+			fmt.Sprintf("CIDR is IPv%d but ip_version is %d", capacity.IPVersion, in.IPVersion)}
+	}
+	if in.Gateway != "" {
+		gateway := net.ParseIP(in.Gateway)
+		if gateway == nil {
+			return capacity, &ipamValidationError{http.StatusBadRequest, "INVALID_GATEWAY", "Gateway must be a valid IP address"}
+		}
+		if (gateway.To4() != nil) != (capacity.IPVersion == 4) {
+			return capacity, &ipamValidationError{http.StatusBadRequest, "INVALID_GATEWAY",
+				fmt.Sprintf("Gateway family does not match the IPv%d CIDR", capacity.IPVersion)}
+		}
+		if !ipNet.Contains(gateway) {
+			return capacity, &ipamValidationError{http.StatusBadRequest, "INVALID_GATEWAY", "Gateway must belong to the CIDR"}
+		}
+		if capacity.IPVersion == 4 {
+			ones, bits := ipNet.Mask.Size()
+			if bits-ones >= 2 && (gateway.Equal(ipNet.IP) || gateway.Equal(lastAddress(ipNet))) {
+				return capacity, &ipamValidationError{http.StatusBadRequest, "INVALID_GATEWAY",
+					"Gateway cannot be the network or broadcast address"}
+			}
+		}
+	}
+
+	var others []domain.IPAMPool
+	if err := db.Find(&others).Error; err != nil {
+		return capacity, err
+	}
+	for _, other := range others {
+		if other.ID == excludeID {
+			continue
+		}
+		_, otherNet, err := net.ParseCIDR(other.CIDR)
+		if err != nil {
+			continue
+		}
+		if cidrsOverlap(ipNet, otherNet) {
+			return capacity, &ipamValidationError{http.StatusConflict, "CIDR_OVERLAP",
+				fmt.Sprintf("CIDR %s overlaps pool %q (%s)", in.CIDR, other.Name, other.CIDR)}
+		}
+	}
+
+	if excludeID > 0 && previousCIDR != "" && previousCIDR != in.CIDR {
+		if err := ensureActiveLeasesInside(db, previousCIDR, ipNet); err != nil {
+			return capacity, err
+		}
+	}
+	return capacity, nil
+}
+
+func ensureActiveLeasesInside(db *gorm.DB, previousCIDR string, next *net.IPNet) error {
+	_, previous, err := net.ParseCIDR(previousCIDR)
+	if err != nil {
+		return nil
+	}
+	var leases []string
+	if err := db.Model(&domain.RadiusOnline{}).
+		Where("framed_ipaddr != '' AND framed_ipaddr != '0.0.0.0'").
+		Pluck("framed_ipaddr", &leases).Error; err != nil {
+		return err
+	}
+	for _, raw := range leases {
+		ip := net.ParseIP(strings.TrimSpace(raw))
+		if ip == nil || !previous.Contains(ip) || next.Contains(ip) {
+			continue
+		}
+		return &ipamValidationError{http.StatusConflict, "POOL_HAS_ACTIVE_LEASES",
+			fmt.Sprintf("Active lease %s is outside the new CIDR; disconnect or move that subscriber first", ip)}
+	}
+	return nil
 }
 
 func listIPAMPools(c echo.Context) error {
@@ -497,15 +635,30 @@ func listIPAMPools(c echo.Context) error {
 	if err := db.Order("id ASC").Find(&pools).Error; err != nil {
 		return fail(c, 500, "DATABASE_ERROR", "Failed to load IPAM pools", nil)
 	}
+	var leases []string
+	if err := db.Model(&domain.RadiusOnline{}).
+		Where("framed_ipaddr != '' AND framed_ipaddr != '0.0.0.0'").
+		Pluck("framed_ipaddr", &leases).Error; err != nil {
+		return fail(c, 500, "DATABASE_ERROR", "Failed to load active leases", nil)
+	}
 
-	// Calculate live used IPs from RadiusOnline and Subscription
 	for i := range pools {
-		var activeSessionsCount int64
-		// Count online sessions in this CIDR or pool
-		db.Model(&domain.RadiusOnline{}).
-			Where("framed_ipaddr != '' AND framed_ipaddr != '0.0.0.0'").
-			Count(&activeSessionsCount)
-		pools[i].UsedIPs = activeSessionsCount
+		if capacity, err := describeSubnet(pools[i].CIDR); err == nil {
+			pools[i].TotalIPs = capacity.TotalIPs
+			pools[i].IPVersion = capacity.IPVersion
+			pools[i].CapacityLabel = capacity.Label
+		}
+		_, ipNet, err := net.ParseCIDR(pools[i].CIDR)
+		if err != nil {
+			continue
+		}
+		var used int64
+		for _, raw := range leases {
+			if ip := net.ParseIP(strings.TrimSpace(raw)); ip != nil && ipNet.Contains(ip) {
+				used++
+			}
+		}
+		pools[i].UsedIPs = used
 	}
 
 	return ok(c, pools)
@@ -516,26 +669,32 @@ func createIPAMPool(c echo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return fail(c, 400, "INVALID_INPUT", "Invalid IPAM configuration", nil)
 	}
-	totalIPs, ipVer := calculateSubnetCapacity(in.CIDR)
-	if totalIPs <= 0 {
-		return fail(c, 400, "INVALID_CIDR", "Invalid CIDR notation (e.g. 100.64.0.0/22)", nil)
+	in.Name = strings.TrimSpace(in.Name)
+	if in.Name == "" {
+		return fail(c, 400, "VALIDATION_FAILED", "Pool name is required", nil)
+	}
+	db := GetDB(c)
+	capacity, err := validateIPAMPool(db, &in, 0, "")
+	if err != nil {
+		return failIPAMValidation(c, err)
 	}
 
 	pool := domain.IPAMPool{
-		Name:         in.Name,
-		CIDR:         in.CIDR,
-		IPVersion:    ipVer,
-		PoolType:     in.PoolType,
-		Gateway:      in.Gateway,
-		DNSPrimary:   in.DNSPrimary,
-		DNSSecondary: in.DNSSecondary,
-		TotalIPs:     totalIPs,
-		UsedIPs:      0,
-		Description:  in.Description,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		Name:          in.Name,
+		CIDR:          in.CIDR,
+		IPVersion:     capacity.IPVersion,
+		PoolType:      in.PoolType,
+		Gateway:       in.Gateway,
+		DNSPrimary:    in.DNSPrimary,
+		DNSSecondary:  in.DNSSecondary,
+		TotalIPs:      capacity.TotalIPs,
+		UsedIPs:       0,
+		Description:   in.Description,
+		CapacityLabel: capacity.Label,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
-	if err := GetDB(c).Create(&pool).Error; err != nil {
+	if err := db.Create(&pool).Error; err != nil {
 		return fail(c, 400, "SAVE_FAILED", "Could not save IPAM pool; CIDR may already exist", nil)
 	}
 	return ok(c, pool)
@@ -555,16 +714,24 @@ func updateIPAMPool(c echo.Context) error {
 	if err := db.First(&pool, id).Error; err != nil {
 		return fail(c, 404, "NOT_FOUND", "IPAM pool not found", nil)
 	}
-	totalIPs, ipVer := calculateSubnetCapacity(in.CIDR)
+	in.Name = strings.TrimSpace(in.Name)
+	if in.Name == "" {
+		return fail(c, 400, "VALIDATION_FAILED", "Pool name is required", nil)
+	}
+	capacity, err := validateIPAMPool(db, &in, pool.ID, pool.CIDR)
+	if err != nil {
+		return failIPAMValidation(c, err)
+	}
 	pool.Name = in.Name
 	pool.CIDR = in.CIDR
-	pool.IPVersion = ipVer
+	pool.IPVersion = capacity.IPVersion
 	pool.PoolType = in.PoolType
 	pool.Gateway = in.Gateway
 	pool.DNSPrimary = in.DNSPrimary
 	pool.DNSSecondary = in.DNSSecondary
-	pool.TotalIPs = totalIPs
+	pool.TotalIPs = capacity.TotalIPs
 	pool.Description = in.Description
+	pool.CapacityLabel = capacity.Label
 	pool.UpdatedAt = time.Now()
 	if err := db.Save(&pool).Error; err != nil {
 		return fail(c, 500, "DATABASE_ERROR", "Failed to update IPAM pool", nil)
@@ -944,6 +1111,7 @@ func dispatchTicketWhatsApp(c echo.Context) error {
 			"Kategori: *%s*\n"+
 			"Pelanggan: *%s*\n"+
 			"Alamat: %s\n"+
+			"Teknisi: *%s* (%s)\n"+
 			"Kendala: %s\n"+
 			"------------------------------------\n"+
 			"Mohon segera kunjungi lokasi & perbarui status di sistem.",
@@ -952,20 +1120,44 @@ func dispatchTicketWhatsApp(c echo.Context) error {
 		strings.ToUpper(ticket.Category),
 		customerName,
 		customerAddress,
+		ticket.AssignedTechnician,
+		ticket.TechnicianPhone,
 		ticket.Subject,
 	)
 
-	// Dispatch via application notification outbox if configured
-	if appProvider, ok := GetAppContext(c).(app.NotificationProvider); ok && appProvider.NotificationDispatcher() != nil {
-		_ = appProvider.NotificationDispatcher().Enqueue(
-			"ticket.assigned",
-			fmt.Sprintf("ticket:%d", ticket.ID),
-			msgBody,
-		)
+	appProvider, supported := GetAppContext(c).(app.NotificationProvider)
+	if !supported || appProvider.NotificationDispatcher() == nil {
+		return fail(c, http.StatusServiceUnavailable, "NOTIFICATION_UNAVAILABLE",
+			"Notification dispatch is not configured", nil)
+	}
+
+	// The outbox delivers to the operator allowlist, not to the technician's
+	// phone, so the technician details are part of the message body. The
+	// per-minute dedupe bucket tolerates a double click without suppressing a
+	// deliberate re-dispatch later.
+	ctx := c.Request().Context()
+	if tenantID, okTenant := c.Get("tenant_id").(int64); okTenant && tenantID > 0 {
+		ctx = tenancy.WithTenantID(ctx, tenantID)
+	}
+	queued, err := appProvider.NotificationDispatcher().EnqueueCount(
+		ctx,
+		"ticket.assigned",
+		fmt.Sprintf("ticket:%d:%d", ticket.ID, time.Now().Unix()/60),
+		msgBody,
+	)
+	if err != nil {
+		return fail(c, http.StatusInternalServerError, "NOTIFICATION_FAILED",
+			"Failed to queue ticket notification", nil)
+	}
+	if queued == 0 {
+		return fail(c, http.StatusConflict, "NOTIFICATION_NOT_QUEUED",
+			"Nothing was queued: enable ticket.assigned for at least one allowlisted recipient in notification settings",
+			map[string]any{"message": msgBody})
 	}
 
 	return ok(c, map[string]any{
 		"dispatched": true,
+		"queued":     queued,
 		"recipient":  ticket.TechnicianPhone,
 		"message":    msgBody,
 	})
@@ -1022,8 +1214,13 @@ func listODPs(c echo.Context) error {
 
 	result := make([]odpItem, len(rows))
 	for i, odp := range rows {
+		// Occupancy is one non-terminated customer per numbered port; terminated
+		// customers release their port, and ODP-only assignments do not consume
+		// splitter capacity.
 		var usedCount int64
-		_ = db.Model(&domain.Customer{}).Where("odp_id = ?", odp.ID).Count(&usedCount)
+		_ = db.Model(&domain.Customer{}).
+			Where("odp_id = ? AND odp_port > 0 AND status != ?", odp.ID, domain.CustomerTerminated).
+			Distinct("odp_port").Count(&usedCount)
 		used := int(usedCount)
 		if odp.TotalPorts <= 0 {
 			odp.TotalPorts = 16
@@ -1180,7 +1377,17 @@ func updateODP(c echo.Context) error {
 	if input.PONPort != nil {
 		odp.PONPort = strings.TrimSpace(*input.PONPort)
 	}
-	if input.TotalPorts != nil && *input.TotalPorts > 0 {
+	if input.TotalPorts != nil && *input.TotalPorts > 0 && *input.TotalPorts != odp.TotalPorts {
+		var highestPort int
+		if err := GetDB(c).Model(&domain.Customer{}).
+			Where("odp_id = ? AND odp_port > 0 AND status != ?", odp.ID, domain.CustomerTerminated).
+			Select("COALESCE(MAX(odp_port), 0)").Scan(&highestPort).Error; err != nil {
+			return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to check active ODP ports", nil)
+		}
+		if *input.TotalPorts < highestPort {
+			return fail(c, http.StatusConflict, "ODP_CAPACITY_IN_USE",
+				fmt.Sprintf("Cannot shrink ODP to %d ports: port %d is still in use", *input.TotalPorts, highestPort), nil)
+		}
 		odp.TotalPorts = *input.TotalPorts
 	}
 	if input.OpticalLoss != nil {

@@ -18,6 +18,7 @@ import (
 	"github.com/bjo163/mwx-isp/internal/webserver"
 	"github.com/bjo163/mwx-isp/pkg/common"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/gorm"
 	"layeh.com/radius"
 )
@@ -98,12 +99,13 @@ func registerISPRoutes() {
 	webserver.ApiPOST("/isp/payments/:id/send-whatsapp", sendPaymentWhatsApp, admin)
 	webserver.ApiPOST("/isp/subscriptions/:id/apply-fup", applySubscriptionFUP, admin)
 	webserver.ApiPOST("/isp/subscriptions/:id/reset-fup", resetSubscriptionFUP, admin)
-	webserver.ApiGET("/portal/lookup", lookupCustomerPortal)
-	webserver.ApiGET("/portal/invoices/:id/payment-channel", getInvoicePaymentChannel)
+	webserver.ApiGET("/portal/lookup", lookupCustomerPortal, portalLookupRateLimiter())
+	webserver.ApiGET("/portal/invoices/:id/payment-channel", getInvoicePaymentChannel, portalPaymentChannelRateLimiter())
 	webserver.ApiPOST("/portal/invoices/:id/simulate-pay", simulateInvoicePayment)
 	webserver.ApiPOST("/portal/payments/webhook", handlePaymentWebhook)
 	webserver.ApiGET("/public/packages", listPublicPackages)
-	webserver.ApiPOST("/public/register", registerPublicCustomer)
+	webserver.ApiPOST("/public/register", registerPublicCustomer,
+		publicRegistrationRateLimiter(), middleware.BodyLimit(publicRegistrationBodyLimit))
 	webserver.ApiGET("/dashboard/isp-stats", getISPDashboardStats)
 }
 
@@ -283,6 +285,68 @@ func getCustomer(c echo.Context) error {
 	}{Customer: row, Subscriptions: views, Invoices: invoices, Payments: payments, Outstanding: outstanding})
 }
 
+// odpAssignmentError carries the HTTP status and stable error code for an
+// invalid ODP/port assignment so create and update share one response shape.
+type odpAssignmentError struct {
+	status  int
+	code    string
+	message string
+}
+
+func (e *odpAssignmentError) Error() string { return e.message }
+
+// resolveODPAssignment validates that odpID belongs to the caller's tenant,
+// that the port fits the splitter capacity, and that no other non-terminated
+// customer already holds it. Terminated customers release their port, and port
+// zero means "connected to the ODP without a numbered port". excludeCustomerID
+// lets an update ignore the customer being edited.
+func resolveODPAssignment(db *gorm.DB, odpID int64, port int, excludeCustomerID int64) (string, error) {
+	if odpID <= 0 {
+		if port != 0 {
+			return "", &odpAssignmentError{http.StatusBadRequest, "INVALID_ODP_PORT", "A port can only be set together with an ODP"}
+		}
+		return "", nil
+	}
+	var odp domain.ODP
+	if err := db.First(&odp, odpID).Error; err != nil {
+		return "", &odpAssignmentError{http.StatusBadRequest, "INVALID_ODP", "ODP box not found"}
+	}
+	capacity := odp.TotalPorts
+	if capacity <= 0 {
+		capacity = 16
+	}
+	if port < 0 || port > capacity {
+		return "", &odpAssignmentError{http.StatusBadRequest, "INVALID_ODP_PORT", fmt.Sprintf("ODP port must be between 1 and %d", capacity)}
+	}
+	if port == 0 {
+		return odp.Code, nil
+	}
+	q := db.Where("odp_id = ? AND odp_port = ? AND status != ?", odpID, port, domain.CustomerTerminated)
+	if excludeCustomerID > 0 {
+		q = q.Where("id <> ?", excludeCustomerID)
+	}
+	var conflict domain.Customer
+	switch err := q.First(&conflict).Error; {
+	case err == nil:
+		return "", &odpAssignmentError{http.StatusConflict, "ODP_PORT_OCCUPIED", fmt.Sprintf("Port %d on ODP %s is already occupied by customer %s", port, odp.Code, conflict.CustomerNo)}
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return odp.Code, nil
+	default:
+		return "", err
+	}
+}
+
+// isODPPortUniqueViolation detects the partial unique index that closes the
+// check-then-insert race between two concurrent port assignments.
+func isODPPortUniqueViolation(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "udx_isp_customer_odp_port") ||
+		(strings.Contains(message, "odp_port") && (strings.Contains(message, "unique") || strings.Contains(message, "duplicate")))
+}
+
 func createCustomer(c echo.Context) error {
 	var in customerInput
 	if err := c.Bind(&in); err != nil {
@@ -294,6 +358,20 @@ func createCustomer(c echo.Context) error {
 	status := in.Status
 	if status == "" {
 		status = domain.CustomerActive
+	}
+	odpCode, err := resolveODPAssignment(GetDB(c), in.ODPID, in.ODPPort, 0)
+	if err != nil {
+		var assignmentErr *odpAssignmentError
+		if errors.As(err, &assignmentErr) {
+			return fail(c, assignmentErr.status, assignmentErr.code, assignmentErr.message, nil)
+		}
+		return fail(c, 500, "DATABASE_ERROR", "Failed to validate ODP assignment", err.Error())
+	}
+	if in.ODPID == 0 {
+		in.ODPPort = 0
+	}
+	if in.ODPCode != "" {
+		odpCode = in.ODPCode
 	}
 	row := domain.Customer{
 		CustomerNo: fmt.Sprintf("TMP-%d", common.UUIDint64()),
@@ -307,30 +385,12 @@ func createCustomer(c echo.Context) error {
 		Status:     status,
 		Notes:      in.Notes,
 		ODPID:      in.ODPID,
-		ODPCode:    in.ODPCode,
+		ODPCode:    odpCode,
 		ODPPort:    in.ODPPort,
 		Latitude:   in.Latitude,
 		Longitude:  in.Longitude,
 	}
-	if row.ODPID > 0 {
-		var odp domain.ODP
-		if err := GetDB(c).First(&odp, row.ODPID).Error; err != nil {
-			return fail(c, 400, "INVALID_ODP", "ODP box not found", err.Error())
-		}
-		if row.ODPCode == "" {
-			row.ODPCode = odp.Code
-		}
-		if row.ODPPort < 0 || (odp.TotalPorts > 0 && row.ODPPort > odp.TotalPorts) {
-			return fail(c, 400, "INVALID_ODP_PORT", fmt.Sprintf("ODP port must be between 1 and %d", odp.TotalPorts), nil)
-		}
-		if row.ODPPort > 0 {
-			var conflict domain.Customer
-			if err := GetDB(c).Where("odp_id = ? AND odp_port = ? AND status != ?", row.ODPID, row.ODPPort, domain.CustomerTerminated).First(&conflict).Error; err == nil {
-				return fail(c, 409, "ODP_PORT_OCCUPIED", fmt.Sprintf("Port %d on ODP %s is already occupied by customer %s", row.ODPPort, odp.Code, conflict.CustomerNo), nil)
-			}
-		}
-	}
-	err := GetDB(c).Transaction(func(tx *gorm.DB) error {
+	err = GetDB(c).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&row).Error; err != nil {
 			return err
 		}
@@ -338,6 +398,9 @@ func createCustomer(c echo.Context) error {
 		return tx.Model(&row).Update("customer_no", row.CustomerNo).Error
 	})
 	if err != nil {
+		if isODPPortUniqueViolation(err) {
+			return fail(c, 409, "ODP_PORT_OCCUPIED", "The selected ODP port was assigned concurrently; refresh and choose another port", nil)
+		}
 		return fail(c, 500, "DATABASE_ERROR", "Failed to create customer", err.Error())
 	}
 	return c.JSON(http.StatusCreated, Response{Data: row})
@@ -359,27 +422,19 @@ func updateCustomer(c echo.Context) error {
 	if err := GetDB(c).First(&row, id).Error; err != nil {
 		return fail(c, 404, "NOT_FOUND", "Customer not found", nil)
 	}
-	odpCode := in.ODPCode
-	if in.ODPID > 0 {
-		var odp domain.ODP
-		if err := GetDB(c).First(&odp, in.ODPID).Error; err != nil {
-			return fail(c, 400, "INVALID_ODP", "ODP box not found", err.Error())
+	odpCode, err := resolveODPAssignment(GetDB(c), in.ODPID, in.ODPPort, id)
+	if err != nil {
+		var assignmentErr *odpAssignmentError
+		if errors.As(err, &assignmentErr) {
+			return fail(c, assignmentErr.status, assignmentErr.code, assignmentErr.message, nil)
 		}
-		if odpCode == "" {
-			odpCode = odp.Code
-		}
-		if in.ODPPort < 0 || (odp.TotalPorts > 0 && in.ODPPort > odp.TotalPorts) {
-			return fail(c, 400, "INVALID_ODP_PORT", fmt.Sprintf("ODP port must be between 1 and %d", odp.TotalPorts), nil)
-		}
-		if in.ODPPort > 0 {
-			var conflict domain.Customer
-			if err := GetDB(c).Where("odp_id = ? AND odp_port = ? AND id != ? AND status != ?", in.ODPID, in.ODPPort, id, domain.CustomerTerminated).First(&conflict).Error; err == nil {
-				return fail(c, 409, "ODP_PORT_OCCUPIED", fmt.Sprintf("Port %d on ODP %s is already occupied by customer %s", in.ODPPort, odp.Code, conflict.CustomerNo), nil)
-			}
-		}
-	} else if in.ODPID == 0 {
-		odpCode = ""
+		return fail(c, 500, "DATABASE_ERROR", "Failed to validate ODP assignment", err.Error())
+	}
+	if in.ODPID == 0 {
 		in.ODPPort = 0
+	}
+	if in.ODPCode != "" {
+		odpCode = in.ODPCode
 	}
 	updates := map[string]interface{}{
 		"name":        strings.TrimSpace(in.Name),
@@ -399,6 +454,9 @@ func updateCustomer(c echo.Context) error {
 		"updated_at":  time.Now(),
 	}
 	if err := GetDB(c).Model(&row).Updates(updates).Error; err != nil {
+		if isODPPortUniqueViolation(err) {
+			return fail(c, 409, "ODP_PORT_OCCUPIED", "The selected ODP port was assigned concurrently; refresh and choose another port", nil)
+		}
 		return fail(c, 500, "DATABASE_ERROR", "Failed to update customer", err.Error())
 	}
 	GetDB(c).First(&row, id)
@@ -589,8 +647,23 @@ func registerPublicCustomer(c echo.Context) error {
 		return fail(c, 400, "PACKAGE_REQUIRED", "Pilih paket internet yang tersedia", nil)
 	}
 
+	idempotencyKey := strings.TrimSpace(c.Request().Header.Get("Idempotency-Key"))
+	if idempotencyKey != "" && !validIdempotencyKey(idempotencyKey) {
+		return fail(c, 400, "INVALID_IDEMPOTENCY_KEY", "Idempotency-Key tidak valid", nil)
+	}
+
 	db := GetDB(c)
 	now := time.Now()
+
+	if idempotencyKey != "" {
+		var existing domain.Customer
+		switch err := db.Where("registration_key = ?", idempotencyKey).First(&existing).Error; {
+		case err == nil:
+			return replayPublicRegistration(c, db, existing)
+		case !errors.Is(err, gorm.ErrRecordNotFound):
+			return fail(c, 500, "DATABASE_ERROR", "Gagal memeriksa pendaftaran sebelumnya", nil)
+		}
+	}
 
 	var pkg domain.InternetPackage
 	if err := db.Where("id = ? AND status = ?", in.PackageID, "active").First(&pkg).Error; errors.Is(err, gorm.ErrRecordNotFound) {
@@ -624,17 +697,18 @@ func registerPublicCustomer(c echo.Context) error {
 	var ticket domain.TroubleTicket
 	err := db.Transaction(func(tx *gorm.DB) error {
 		customer = domain.Customer{
-			CustomerNo: fmt.Sprintf("TMP-%d", common.UUIDint64()),
-			Name:       name,
-			Phone:      phone,
-			Email:      email,
-			IdentityNo: strings.TrimSpace(in.IdentityNo),
-			Address:    address,
-			City:       strings.TrimSpace(in.City),
-			Status:     domain.CustomerPending,
-			Notes:      notes,
-			CreatedAt:  now,
-			UpdatedAt:  now,
+			CustomerNo:      fmt.Sprintf("TMP-%d", common.UUIDint64()),
+			Name:            name,
+			Phone:           phone,
+			Email:           email,
+			IdentityNo:      strings.TrimSpace(in.IdentityNo),
+			Address:         address,
+			City:            strings.TrimSpace(in.City),
+			Status:          domain.CustomerPending,
+			Notes:           notes,
+			RegistrationKey: registrationKeyPtr(idempotencyKey),
+			CreatedAt:       now,
+			UpdatedAt:       now,
 		}
 		if err := tx.Create(&customer).Error; err != nil {
 			return err
@@ -687,9 +761,40 @@ func registerPublicCustomer(c echo.Context) error {
 		return tx.Create(&ticket).Error
 	})
 	if err != nil {
+		// A concurrent retry may have committed the same key first; replay it
+		// instead of surfacing the unique-index violation as a server error.
+		if idempotencyKey != "" && isDuplicateKeyError(err) {
+			var existing domain.Customer
+			if lookupErr := db.Where("registration_key = ?", idempotencyKey).First(&existing).Error; lookupErr == nil {
+				return replayPublicRegistration(c, db, existing)
+			}
+		}
 		return fail(c, 500, "DATABASE_ERROR", "Gagal menyimpan pendaftaran dan work order", nil)
 	}
 
+	return publicRegistrationResult(c, customer, subscription, ticket, pkgName, false)
+}
+
+// replayPublicRegistration returns the stored outcome of an idempotent retry
+// so a resubmitted form never creates a second customer or work order.
+func replayPublicRegistration(c echo.Context, db *gorm.DB, customer domain.Customer) error {
+	var subscription domain.Subscription
+	if err := db.Where("customer_id = ?", customer.ID).Order("id DESC").First(&subscription).Error; err != nil {
+		return fail(c, 500, "DATABASE_ERROR", "Gagal memuat ulang pendaftaran", nil)
+	}
+	var ticket domain.TroubleTicket
+	if err := db.Where("customer_id = ? AND category = ?", customer.ID, "installation").Order("id DESC").First(&ticket).Error; err != nil {
+		return fail(c, 500, "DATABASE_ERROR", "Gagal memuat ulang work order", nil)
+	}
+	var pkg domain.InternetPackage
+	pkgName := ""
+	if err := db.First(&pkg, subscription.PackageID).Error; err == nil {
+		pkgName = pkg.Name
+	}
+	return publicRegistrationResult(c, customer, subscription, ticket, pkgName, true)
+}
+
+func publicRegistrationResult(c echo.Context, customer domain.Customer, subscription domain.Subscription, ticket domain.TroubleTicket, pkgName string, replay bool) error {
 	return ok(c, map[string]any{
 		"success":             true,
 		"customer_no":         customer.CustomerNo,
@@ -697,8 +802,36 @@ func registerPublicCustomer(c echo.Context) error {
 		"subscription_status": subscription.Status,
 		"ticket_no":           ticket.TicketNo,
 		"package":             pkgName,
+		"idempotent_replay":   replay,
 		"message":             "Pendaftaran berhasil diterima! Tim teknisi kami akan segera menghubungi Anda untuk jadwal survei dan instalasi.",
 	})
+}
+
+func validIdempotencyKey(key string) bool {
+	if len(key) == 0 || len(key) > 64 {
+		return false
+	}
+	for _, r := range key {
+		if r < 0x21 || r > 0x7e {
+			return false
+		}
+	}
+	return true
+}
+
+func registrationKeyPtr(key string) *string {
+	if key == "" {
+		return nil
+	}
+	return &key
+}
+
+func isDuplicateKeyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "unique constraint") || strings.Contains(message, "duplicate key")
 }
 
 func validPublicPhone(phone string) bool {

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, Card, Chip, Stack, Typography, alpha, useTheme } from '@mui/material';
+import { Box, Button, Card, Chip, LinearProgress, Stack, Typography, alpha, useTheme } from '@mui/material';
 import type { ChipProps } from '@mui/material';
 import { fontStacks } from '../theme';
 
@@ -82,8 +82,7 @@ export const Mono = ({ children, sx }: { children: ReactNode; sx?: object }) => 
 );
 
 /** ConsoleBox provides a standard NOC terminal box for live logs, ping diagnostics, and command streams. */
-export const ConsoleBox = ({ children, maxHeight = 320 }: { children: ReactNode; maxHeight?: number | string }) => {
-  const theme = useTheme();
+export const ConsoleBox = ({ children, maxHeight = 320 }: { children: ReactNode; maxHeight?: number | string }) => {  const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   return (
     <Box
@@ -105,4 +104,53 @@ export const ConsoleBox = ({ children, maxHeight = 320 }: { children: ReactNode;
       {children}
     </Box>
   );
+};
+
+type QueryFeedbackProps = {
+  loading: boolean;
+  error?: unknown;
+  isEmpty: boolean;
+  emptyTitle: string;
+  emptyHint?: string;
+  emptyIcon?: ReactNode;
+  emptyAction?: ReactNode;
+  onRetry?: () => void;
+  children: ReactNode;
+};
+
+/**
+ * QueryFeedback is the shared server-query wrapper: it distinguishes loading,
+ * failed, and empty states so a failed request is never rendered as an empty
+ * list, and offers a retry path without reloading the page.
+ */
+export const QueryFeedback = ({ loading, error, isEmpty, emptyTitle, emptyHint, emptyIcon, emptyAction, onRetry, children }: QueryFeedbackProps) => {
+  if (loading) {
+    return (
+      <Box sx={{ py: 6, textAlign: 'center' }}>
+        <LinearProgress sx={{ mb: 2 }} />
+        <Typography variant="body2" color="text.secondary">Loading…</Typography>
+      </Box>
+    );
+  }
+  if (error) {
+    const message = error instanceof Error && error.message ? error.message : 'The server did not return a valid response.';
+    return (
+      <Box sx={{ py: 6, textAlign: 'center' }}>
+        <Typography variant="h6" fontWeight={700} color="error.main">Could not load this data</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{message}</Typography>
+        {onRetry && <Button variant="outlined" onClick={onRetry}>Retry</Button>}
+      </Box>
+    );
+  }
+  if (isEmpty) {
+    return (
+      <Box sx={{ py: 8, textAlign: 'center' }}>
+        {emptyIcon && <Box sx={{ color: 'text.disabled', mb: 1 }}>{emptyIcon}</Box>}
+        <Typography variant="h6" fontWeight={700}>{emptyTitle}</Typography>
+        {emptyHint && <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{emptyHint}</Typography>}
+        {emptyAction}
+      </Box>
+    );
+  }
+  return <>{children}</>;
 };

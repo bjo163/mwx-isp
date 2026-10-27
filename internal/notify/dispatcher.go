@@ -59,31 +59,41 @@ func (d *Dispatcher) Enqueue(eventType, dedupeKey, body string) error {
 
 // EnqueueContext queues an event using the caller's tenant-scoped context.
 func (d *Dispatcher) EnqueueContext(ctx context.Context, eventType, dedupeKey, body string) error {
+	_, err := d.EnqueueCount(ctx, eventType, dedupeKey, body)
+	return err
+}
+
+// EnqueueCount is EnqueueContext that also reports how many outbox rows were
+// newly created, so callers can tell an operator that nothing was queued
+// (integration disabled, no allowlisted recipient, or duplicate dedupe key)
+// instead of claiming a delivery that never happened.
+func (d *Dispatcher) EnqueueCount(ctx context.Context, eventType, dedupeKey, body string) (int, error) {
 	db := d.db.WithContext(ctx)
 	var settings domain.NotificationSettings
 	if err := db.First(&settings).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
+		return 0, nil
 	} else if err != nil {
-		return fmt.Errorf("load notification settings: %w", err)
+		return 0, fmt.Errorf("load notification settings: %w", err)
 	}
 	if !settings.WhatsAppEnabled || settings.RiskAcknowledgedAt == nil {
-		return nil
+		return 0, nil
 	}
 	var events []string
 	if err := json.Unmarshal([]byte(settings.EventsJSON), &events); err != nil {
-		return fmt.Errorf("decode enabled notification events: %w", err)
+		return 0, fmt.Errorf("decode enabled notification events: %w", err)
 	}
 	if !contains(events, eventType) {
-		return nil
+		return 0, nil
 	}
 	var recipients []string
 	if err := json.Unmarshal([]byte(settings.RecipientsJSON), &recipients); err != nil {
-		return fmt.Errorf("decode notification recipients: %w", err)
+		return 0, fmt.Errorf("decode notification recipients: %w", err)
 	}
 	body = strings.TrimSpace(body)
 	if len(body) == 0 || len(body) > 1000 {
-		return errors.New("notification body must contain 1 to 1000 characters")
+		return 0, errors.New("notification body must contain 1 to 1000 characters")
 	}
+	queued := 0
 	for _, recipient := range recipients {
 		normalized, err := normalizePhone(recipient)
 		if err != nil {
@@ -98,11 +108,15 @@ func (d *Dispatcher) EnqueueContext(ctx context.Context, eventType, dedupeKey, b
 			NextAttemptAt: time.Now(),
 			CreatedAt:     time.Now(),
 		}
-		if err := db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenant_id"}, {Name: "dedupe_key"}}, DoNothing: true}).Create(&row).Error; err != nil {
-			return fmt.Errorf("enqueue notification: %w", err)
+		result := db.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tenant_id"}, {Name: "dedupe_key"}}, DoNothing: true}).Create(&row)
+		if result.Error != nil {
+			return queued, fmt.Errorf("enqueue notification: %w", result.Error)
+		}
+		if result.RowsAffected > 0 {
+			queued++
 		}
 	}
-	return nil
+	return queued, nil
 }
 
 // EnqueueBillingEvents queues recent billing lifecycle events with stable IDs.

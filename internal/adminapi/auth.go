@@ -34,12 +34,18 @@ type loginTenant struct {
 	Kind string `json:"kind"`
 }
 
+// loginRate is the sustained refill rate for authentication attempts. The
+// matching limiter allows a short burst on top of it.
+var loginRate = rate.Every(3 * time.Second)
+
 // loginRateLimiter throttles authentication attempts per client IP to slow down
 // brute-force / credential-stuffing attacks. It allows a short burst of attempts
-// and then refills slowly; exhausting the budget yields HTTP 429.
+// and then refills slowly; exhausting the budget yields HTTP 429 with a
+// Retry-After hint. The client IP is the address resolved by echo's
+// IPExtractor, which honors X-Forwarded-For only from trusted proxies.
 func loginRateLimiter() echo.MiddlewareFunc {
 	store := middleware.NewRateLimiterMemoryStoreWithConfig(middleware.RateLimiterMemoryStoreConfig{
-		Rate:      rate.Every(3 * time.Second),
+		Rate:      loginRate,
 		Burst:     5,
 		ExpiresIn: 3 * time.Minute,
 	})
@@ -52,6 +58,7 @@ func loginRateLimiter() echo.MiddlewareFunc {
 			return fail(c, http.StatusForbidden, "RATE_LIMIT_ERROR", "Unable to evaluate rate limit", nil)
 		},
 		DenyHandler: func(c echo.Context, identifier string, err error) error {
+			setRetryAfter(c, loginRate)
 			return fail(c, http.StatusTooManyRequests, "RATE_LIMITED",
 				"Too many login attempts, please try again later", nil)
 		},

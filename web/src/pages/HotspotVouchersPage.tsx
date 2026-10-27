@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -21,6 +21,7 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
@@ -35,7 +36,8 @@ import {
 } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotify } from 'react-admin';
-import { apiRequest, extractData } from '../utils/apiClient';
+import { useIsAdmin } from '../hooks/useIsAdmin';
+import { apiRequest, apiRequestPage, extractData } from '../utils/apiClient';
 import { useBranding } from '../branding/BrandingContext';
 import { KpiStrip, KpiTile, Mono, PageHeader, Panel, StatusChip } from '../components/Enterprise';
 
@@ -71,10 +73,14 @@ interface InternetPackage {
   radius_profile_id: string;
 }
 
+const VOUCHER_PAGE_SIZE = 100;
+const VOUCHER_PRINT_LIMIT = 500;
+
 export const HotspotVouchersPage: React.FC = () => {
   const { branding } = useBranding();
   const notify = useNotify();
   const queryClient = useQueryClient();
+  const isAdmin = useIsAdmin();
 
   const [genOpen, setGenOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
@@ -84,6 +90,7 @@ export const HotspotVouchersPage: React.FC = () => {
   const [search, setSearch] = useState<string>('');
   const [printVouchers, setPrintVouchers] = useState<Voucher[]>([]);
   const [isLoadingPrint, setIsLoadingPrint] = useState<boolean>(false);
+  const [page, setPage] = useState(1);
 
   // Form state for generating vouchers
   const [genForm, setGenForm] = useState({
@@ -104,14 +111,35 @@ export const HotspotVouchersPage: React.FC = () => {
       if (selectedBatch) params.set('batch_id', selectedBatch);
       if (statusFilter) params.set('status', statusFilter);
       if (search.trim()) params.set('q', search.trim());
-      params.set('perPage', '500');
-      const res = await apiRequest<unknown>(`/isp/vouchers?${params.toString()}`);
-      const fetched = extractData<Voucher[]>(res) ?? [];
-      setPrintVouchers(fetched.length > 0 ? fetched : (vouchersQuery.data ?? []));
+      params.set('perPage', String(VOUCHER_PRINT_LIMIT));
+      params.set('page', '1');
+
+      const first = await apiRequestPage<Voucher[]>(`/isp/vouchers?${params.toString()}`);
+      const total = first.total;
+      if (total === 0) {
+        throw new Error('No vouchers match the current filters.');
+      }
+      if (total > VOUCHER_PRINT_LIMIT) {
+        throw new Error(`This filter matches ${total} vouchers; printing is capped at ${VOUCHER_PRINT_LIMIT}. Select a single batch first.`);
+      }
+      const all = [...(first.data ?? [])];
+      let nextPage = 2;
+      while (all.length < total) {
+        params.set('page', String(nextPage));
+        const next = await apiRequestPage<Voucher[]>(`/isp/vouchers?${params.toString()}`);
+        const rows = next.data ?? [];
+        if (rows.length === 0) break;
+        all.push(...rows);
+        nextPage += 1;
+      }
+      if (all.length !== total) {
+        throw new Error(`Only ${all.length} of ${total} vouchers could be loaded. Print cancelled; retry or narrow the filters.`);
+      }
+      setPrintVouchers(all);
       setPrintOpen(true);
-    } catch {
-      setPrintVouchers(vouchersQuery.data ?? []);
-      setPrintOpen(true);
+    } catch (err: any) {
+      setPrintVouchers([]);
+      notify(err?.message || 'Failed to load vouchers for printing', { type: 'error' });
     } finally {
       setIsLoadingPrint(false);
     }
@@ -134,17 +162,21 @@ export const HotspotVouchersPage: React.FC = () => {
   });
 
   const vouchersQuery = useQuery({
-    queryKey: ['isp', 'vouchers', selectedBatch, statusFilter, search],
+    queryKey: ['isp', 'vouchers', selectedBatch, statusFilter, search, page],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedBatch) params.set('batch_id', selectedBatch);
       if (statusFilter) params.set('status', statusFilter);
       if (search.trim()) params.set('q', search.trim());
-      params.set('perPage', '100');
-      const res = await apiRequest<unknown>(`/isp/vouchers?${params.toString()}`);
-      return extractData<Voucher[]>(res) ?? [];
+      params.set('page', String(page));
+      params.set('perPage', String(VOUCHER_PAGE_SIZE));
+      return apiRequestPage<Voucher[]>(`/isp/vouchers?${params.toString()}`);
     },
   });
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedBatch, statusFilter, search]);
 
   const generateMutation = useMutation({
     mutationFn: () =>
@@ -191,7 +223,8 @@ export const HotspotVouchersPage: React.FC = () => {
   });
 
   const batches = batchesQuery.data ?? [];
-  const vouchers = vouchersQuery.data ?? [];
+  const vouchers = vouchersQuery.data?.data ?? [];
+  const vouchersTotal = vouchersQuery.data?.total ?? 0;
 
   const formatValidity = (seconds: number) => {
     if (seconds >= 86400) return `${Math.round(seconds / 86400)} Hari`;
@@ -219,28 +252,30 @@ export const HotspotVouchersPage: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<Print />}
-            disabled={vouchers.length === 0 || isLoadingPrint}
+            disabled={vouchersTotal === 0 || isLoadingPrint}
             onClick={handleOpenPrint}
           >
-            {isLoadingPrint ? 'Loading Print...' : `Print Vouchers (${vouchers.length})`}
+            {isLoadingPrint ? 'Loading Print...' : `Print Vouchers (${vouchersTotal})`}
           </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Add />}
-            onClick={() => setGenOpen(true)}
-          >
-            Generate Batch
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+              onClick={() => setGenOpen(true)}
+            >
+              Generate Batch
+            </Button>
+          )}
         </>}
       />
 
       <KpiStrip>
-        <KpiTile label="Total Vouchers" value={vouchers.length} icon={<ConfirmationNumber fontSize="small" />} />
-        <KpiTile label="Active / Unused" value={countStatus('active')} tone="success" hint="Ready for customers" />
-        <KpiTile label="Used / Online" value={countStatus('used')} tone="info" hint="Logged in" />
-        <KpiTile label="Expired" value={countStatus('expired')} tone="error" hint="Validity window ended" />
-        <KpiTile label="Revoked" value={countStatus('revoked')} tone="error" hint="Disabled by operator" />
+        <KpiTile label="Total Vouchers" value={vouchersTotal} icon={<ConfirmationNumber fontSize="small" />} hint="Server total for current filters" />
+        <KpiTile label="Active / Unused" value={countStatus('active')} tone="success" hint="On this page" />
+        <KpiTile label="Used / Online" value={countStatus('used')} tone="info" hint="On this page" />
+        <KpiTile label="Expired" value={countStatus('expired')} tone="error" hint="On this page" />
+        <KpiTile label="Revoked" value={countStatus('revoked')} tone="error" hint="On this page" />
         <KpiTile label="Total Batches" value={batches.length} tone="warning" hint="Created batches" />
         <KpiTile
           label="Total Face Value"
@@ -252,7 +287,7 @@ export const HotspotVouchersPage: React.FC = () => {
 
       <Panel
         title="Voucher Inventory"
-        subtitle={`${vouchers.length} vouchers visible`}
+        subtitle={`${vouchers.length} of ${vouchersTotal} vouchers loaded`}
         dense
         actions={
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems="center">
@@ -296,7 +331,7 @@ export const HotspotVouchersPage: React.FC = () => {
               sx={{ width: 140 }}
             />
 
-            {selectedBatch && (
+            {isAdmin && selectedBatch && (
               <Button
                 size="small"
                 color="error"
@@ -326,6 +361,14 @@ export const HotspotVouchersPage: React.FC = () => {
       >
           {vouchersQuery.isLoading ? (
             <LinearProgress />
+          ) : vouchersQuery.isError ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="h6" color="error.main">Could not load vouchers</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                {(vouchersQuery.error as Error)?.message || 'The server did not return a valid response.'}
+              </Typography>
+              <Button variant="outlined" onClick={() => void vouchersQuery.refetch()}>Retry</Button>
+            </Box>
           ) : vouchers.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
               <ConfirmationNumber sx={{ fontSize: 48, opacity: 0.4, mb: 1 }} />
@@ -335,6 +378,7 @@ export const HotspotVouchersPage: React.FC = () => {
               </Typography>
             </Box>
           ) : (
+            <>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -367,7 +411,7 @@ export const HotspotVouchersPage: React.FC = () => {
                       {new Date(v.created_at).toLocaleDateString()} {new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </TableCell>
                     <TableCell align="right">
-                      {(v.status === 'active' || v.status === 'used') && (
+                      {isAdmin && (v.status === 'active' || v.status === 'used') && (
                         <Button
                           size="small"
                           color="error"
@@ -387,6 +431,16 @@ export const HotspotVouchersPage: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              component="div"
+              count={vouchersTotal}
+              page={Math.max(0, page - 1)}
+              onPageChange={(_, next) => setPage(next + 1)}
+              rowsPerPage={VOUCHER_PAGE_SIZE}
+              rowsPerPageOptions={[VOUCHER_PAGE_SIZE]}
+              labelDisplayedRows={({ from, to, count }) => `${from}–${to} of ${count}`}
+            />
+            </>
           )}
       </Panel>
 
@@ -525,11 +579,9 @@ export const HotspotVouchersPage: React.FC = () => {
         <DialogContent dividers>
           <Alert severity="info" sx={{ mb: 2 }} className="no-print">
             Use system print dialog (Ctrl+P). Choose destination printer: Thermal Receipt for rolls, or standard printer for A4 paper.
-            {printVouchers.length > vouchers.length && (
-              <Box component="span" sx={{ ml: 1, fontWeight: 700 }}>
-                Loaded full batch of {printVouchers.length} cards for printing.
-              </Box>
-            )}
+            <Box component="span" sx={{ ml: 1, fontWeight: 700 }}>
+              Loaded all {printVouchers.length} vouchers matching the current filters.
+            </Box>
           </Alert>
 
           {/* Printable Container */}

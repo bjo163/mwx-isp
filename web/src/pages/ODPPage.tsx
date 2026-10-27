@@ -44,7 +44,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotify } from 'react-admin';
 import { apiRequest, extractData } from '../utils/apiClient';
 import { NocImpactPanel } from '../components/NocImpactPanel';
-import { KpiStrip, KpiTile, Mono, PageHeader, Panel, StatusChip } from '../components/Enterprise';
+import { KpiStrip, KpiTile, Mono, PageHeader, Panel, QueryFeedback, StatusChip } from '../components/Enterprise';
 
 interface CustomerInfo {
   id: number;
@@ -115,7 +115,7 @@ export const ODPPage: React.FC = () => {
   });
 
   // Query ODP List
-  const { data: odpData, isLoading, refetch } = useQuery<{ data: ODPRecord[]; total: number }>({
+  const { data: odpData, isLoading, error: odpError, refetch } = useQuery<{ data: ODPRecord[]; total: number }>({
     queryKey: ['network-odps', search, zoneFilter, statusFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -357,27 +357,20 @@ export const ODPPage: React.FC = () => {
           </Stack>
         }
       >
-        {isLoading ? (
-          <Box sx={{ py: 6, textAlign: 'center' }}>
-            <LinearProgress sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary">
-              Querying ODP network assets...
-            </Typography>
-          </Box>
-        ) : odps.length === 0 ? (
-          <Box sx={{ py: 8, textAlign: 'center' }}>
-            <Hub sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-            <Typography variant="h6" fontWeight={700}>
-              No ODP Enclosures Found
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Start by registering your optical distribution points or splitters along fiber routes.
-            </Typography>
+        <QueryFeedback
+          loading={isLoading}
+          error={odpError}
+          isEmpty={odps.length === 0}
+          onRetry={() => void refetch()}
+          emptyIcon={<Hub sx={{ fontSize: 48 }} />}
+          emptyTitle="No ODP Enclosures Found"
+          emptyHint="Start by registering your optical distribution points or splitters along fiber routes."
+          emptyAction={
             <Button variant="contained" startIcon={<Add />} onClick={handleOpenCreate}>
               Create First ODP
             </Button>
-          </Box>
-        ) : (
+          }
+        >
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -538,7 +531,7 @@ export const ODPPage: React.FC = () => {
               })}
             </TableBody>
           </Table>
-        )}
+        </QueryFeedback>
       </Panel>
 
       {/* CREATE / EDIT DIALOG */}

@@ -205,6 +205,11 @@ func TestCustomerRegistrationAndTicketsSharePostgresSequenceConcurrently(t *test
 			}
 			req.Header.Set("Authorization", "Bearer "+client.token)
 			req.Header.Set("Content-Type", "application/json")
+			if index%2 != 0 {
+				// Each public registration represents a distinct caller; sharing
+				// the loopback address would exhaust the burst-3 rate limit.
+				req.Header.Set("X-Forwarded-For", fmt.Sprintf("198.51.100.%d", index+1))
+			}
 			resp, err := client.http.Do(req)
 			if err != nil {
 				results <- result{body: []byte(err.Error()), expected: expectedStatus}
