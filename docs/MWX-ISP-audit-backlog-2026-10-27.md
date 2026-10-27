@@ -31,7 +31,22 @@ the current tree.
 
 ## Progress
 
-Done: 12 / 100.
+Done: 13 / 100.
+
+- `ENG-012` (2026-10-27, `dev` @ `9be97f3`): accounting Start/Interim/Stop out-of-order. The
+  handlers already converged for duplicates and a delayed interim, but `UpdateStop` matched
+  every accounting row with the `Acct-Session-Id`, so a NAS that reused an ID for a later
+  session had the earlier session's finalized counters overwritten by the second stop. The
+  repository now selects the newest row and updates it by primary key. The new
+  `internal/radiusd/accounting_order_test.go` fixture drives the real handlers on GORM:
+  `TestAccountingOutOfOrderStartInterimStopConverge` permutes duplicate Start/Interim/Stop plus
+  a delayed interim and ends with no online row and one row holding the stop counters;
+  `TestAccountingSessionIDReuseKeepsFinalizedHistory` keeps both reused sessions' rows intact
+  (it fails against the previous update-every-match code); `TestAccountingSessionIDReuseIsTenantScoped`
+  repeats the reuse on two tenants; `TestAccountingEventsWithoutStartDoNotInventHistory` proves
+  Interim/Stop before Start create nothing. Documented in `docs/radius-retransmission.md`,
+  including the limit that a Start processed after its own Stop is indistinguishable from a
+  reused ID without a session-instance token.
 
 - `ENG-010` (2026-10-27, `dev` @ `54aee93`): RADIUS retransmission and replay. The server has
   no completed-response cache, so the audit mapped what a duplicate packet actually does on
@@ -217,7 +232,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-052` TR-F016 P1 — E2E matriks tombol per role operator/admin/super · LOKAL · dep ENG-017 · PROPOSED_VERIFICATION
 - [ ] `ENG-009` TR-F003 P1 — Regression RadSec mTLS sertifikat tidak tepercaya · LOKAL · dep ENG-004 · PROPOSED_VERIFICATION
 - [x] `ENG-010` TR-F001 P1 — Audit duplikasi RADIUS retransmission dan replay · LOKAL · PROPOSED_VERIFICATION · commit `54aee93`
-- [ ] `ENG-012` TR-F002 P1 — Test accounting Start/Interim/Stop out-of-order · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-012` TR-F002 P1 — Test accounting Start/Interim/Stop out-of-order · LOKAL · PROPOSED_VERIFICATION · commit `9be97f3`
 - [ ] `ENG-022` TR-F016 P1 — Threat-model autentikasi browser dan sesi admin · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-023` TR-F018 P1 — Validasi rate limiting saat reverse proxy multi-hop · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-024` TR-F031 P1 — Runbook rotasi secret SNMP dan encrypted community · LOKAL · PROPOSED_VERIFICATION
@@ -316,9 +331,8 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-012` — accounting Start/Interim/Stop out-of-order regressions; feeds the later
-   `ENG-013` CoA pilot.
-2. `ENG-022` / `ENG-023` — admin browser-session threat model and rate limiting behind a
+1. `ENG-022` / `ENG-023` — admin browser-session threat model and rate limiting behind a
    multi-hop reverse proxy.
-3. `ENG-024` / `ENG-025` — SNMP secret-rotation runbook and WhatsApp credential protection.
-4. `ENG-027` — SSRF hardening for the network diagnostics endpoints.
+2. `ENG-024` / `ENG-025` — SNMP secret-rotation runbook and WhatsApp credential protection.
+3. `ENG-027` — SSRF hardening for the network diagnostics endpoints.
+4. `ENG-011` — malformed/oversized RADIUS packet fuzz harness (follows `ENG-010`).
