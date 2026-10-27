@@ -992,6 +992,28 @@ func createTroubleTicket(c echo.Context) error {
 		return fail(c, 400, "SUBJECT_REQUIRED", "Ticket subject is required", nil)
 	}
 
+	db := GetDB(c)
+	if in.CustomerID > 0 {
+		if err := db.First(&domain.Customer{}, in.CustomerID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fail(c, 400, "CUSTOMER_NOT_FOUND", "Customer not found", nil)
+			}
+			return fail(c, 500, "DATABASE_ERROR", "Failed to validate customer", nil)
+		}
+	}
+	if in.SubscriptionID > 0 {
+		var subscription domain.Subscription
+		if err := db.First(&subscription, in.SubscriptionID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fail(c, 400, "SUBSCRIPTION_NOT_FOUND", "Subscription not found", nil)
+			}
+			return fail(c, 500, "DATABASE_ERROR", "Failed to validate subscription", nil)
+		}
+		if in.CustomerID > 0 && subscription.CustomerID != in.CustomerID {
+			return fail(c, 400, "SUBSCRIPTION_MISMATCH", "Subscription does not belong to the selected customer", nil)
+		}
+	}
+
 	now := time.Now()
 	ticket := domain.TroubleTicket{
 		CustomerID:         in.CustomerID,

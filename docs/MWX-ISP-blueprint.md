@@ -4,7 +4,7 @@
 
 ## Addendum audit 2026-10-05 — prioritas pematangan
 
-[Backlog terperinci 45 kartu](MWX-ISP-audit-backlog-2026-10-05.md) dan [todo aktif](MWX-ISP-todo.md) memperbarui prioritas pekerjaan. Ini hasil audit statis baseline `8de4dc5`; belum ada perbaikan produk atau uji runtime dalam pekerjaan dokumentasi ini. Delivery historis di bawah tidak berarti tambahan fitur terbaru sudah terverifikasi.
+Audit statis 2026-10-05 pada baseline `8de4dc5` menjadi dasar pematangan M18; hasil dan prioritasnya kini tercatat di [roadmap](roadmap.md) dan [feature checklist](feature-checklist.md). Delivery historis di bawah tidak berarti tambahan fitur terbaru sudah terverifikasi.
 
 Prioritas pertama adalah menutup pelunasan publik tanpa verifikasi, menetapkan tenant context pada public API, serta melindungi lookup data pelanggan. Berikutnya: transaksi voucher/registrasi, sequence nomor, backup model operasional, pembuktian kuota/expiry voucher, dan akurasi diagnostik. M18 pada roadmap menampung containment dan penguatan; ekspansi produk tetap proposal.
 

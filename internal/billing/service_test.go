@@ -132,6 +132,83 @@ func TestRecordPaymentDoesNotReactivateManualSuspension(t *testing.T) {
 	require.Equal(t, "disabled", user.Status)
 }
 
+// TestRecordPaymentKeepsSuspensionUntilEveryOverdueInvoiceIsPaid covers the
+// multi-invoice policy: settling one overdue invoice must not restore access
+// while another overdue invoice for the same subscription still has a balance.
+func TestRecordPaymentKeepsSuspensionUntilEveryOverdueInvoiceIsPaid(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.October, 15, 10, 0, 0, 0, time.UTC)
+	customer := domain.Customer{Name: "Multiple Invoices", Status: domain.CustomerActive}
+	require.NoError(t, db.Create(&customer).Error)
+	user := domain.RadiusUser{Username: "multi-invoice", Password: "secret", Status: "disabled"}
+	require.NoError(t, db.Create(&user).Error)
+	sub := domain.Subscription{SubscriptionNo: "SUB-MULTI", CustomerID: customer.ID, RadiusUserID: user.ID,
+		Status: domain.SubscriptionSuspended, SuspensionReason: domain.SuspensionBillingOverdue,
+		StartDate: now.AddDate(0, -2, 0), BillingDay: 1, GraceDays: 3}
+	require.NoError(t, db.Create(&sub).Error)
+	first := domain.Invoice{InvoiceNo: "INV-MULTI-1", CustomerID: customer.ID, SubscriptionID: sub.ID,
+		InvoiceDate: now.AddDate(0, -2, 0), DueDate: now.AddDate(0, -10, 0),
+		PeriodStart: now.AddDate(0, -2, 0), PeriodEnd: now.AddDate(0, -1, 0),
+		Total: 300000, Balance: 300000, Status: domain.InvoiceOverdue}
+	second := domain.Invoice{InvoiceNo: "INV-MULTI-2", CustomerID: customer.ID, SubscriptionID: sub.ID,
+		InvoiceDate: now.AddDate(0, -1, 0), DueDate: now.AddDate(0, -4, 0),
+		PeriodStart: now.AddDate(0, -1, 0), PeriodEnd: now,
+		Total: 300000, Balance: 300000, Status: domain.InvoiceOverdue}
+	require.NoError(t, db.Create(&first).Error)
+	require.NoError(t, db.Create(&second).Error)
+
+	firstPayment := domain.Payment{InvoiceID: first.ID, Amount: 300000, Method: "cash"}
+	require.NoError(t, RecordPayment(db, &firstPayment, now, true))
+	require.NoError(t, db.First(&sub, sub.ID).Error)
+	require.Equal(t, domain.SubscriptionSuspended, sub.Status, "another overdue invoice still blocks reactivation")
+	require.Equal(t, domain.SuspensionBillingOverdue, sub.SuspensionReason)
+	require.NoError(t, db.First(&user, user.ID).Error)
+	require.Equal(t, "disabled", user.Status)
+	var reactivated int64
+	require.NoError(t, db.Model(&domain.BillingEvent{}).
+		Where("subscription_id = ? AND type = ?", sub.ID, "subscription_reactivated").Count(&reactivated).Error)
+	require.Zero(t, reactivated)
+
+	secondPayment := domain.Payment{InvoiceID: second.ID, Amount: 300000, Method: "cash"}
+	require.NoError(t, RecordPayment(db, &secondPayment, now.Add(time.Minute), true))
+	require.NoError(t, db.First(&sub, sub.ID).Error)
+	require.Equal(t, domain.SubscriptionActive, sub.Status)
+	require.Empty(t, sub.SuspensionReason)
+	require.NoError(t, db.First(&user, user.ID).Error)
+	require.Equal(t, "enabled", user.Status)
+	require.NoError(t, db.Model(&domain.BillingEvent{}).
+		Where("subscription_id = ? AND type = ?", sub.ID, "subscription_reactivated").Count(&reactivated).Error)
+	require.EqualValues(t, 1, reactivated)
+}
+
+// TestSuspendOverdueSkipsManualSuspension proves the automatic billing pass never
+// rewrites an operator's manual suspension reason or duplicates its event.
+func TestSuspendOverdueSkipsManualSuspension(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.October, 15, 10, 0, 0, 0, time.UTC)
+	customer := domain.Customer{Name: "Manual And Overdue", Status: domain.CustomerActive}
+	require.NoError(t, db.Create(&customer).Error)
+	user := domain.RadiusUser{Username: "manual-overdue", Password: "secret", Status: "disabled"}
+	require.NoError(t, db.Create(&user).Error)
+	sub := domain.Subscription{SubscriptionNo: "SUB-MANUAL-OVERDUE", CustomerID: customer.ID, RadiusUserID: user.ID,
+		Status: domain.SubscriptionSuspended, SuspensionReason: "manual", StartDate: now, BillingDay: 1, GraceDays: 3}
+	require.NoError(t, db.Create(&sub).Error)
+	invoice := domain.Invoice{InvoiceNo: "INV-MANUAL-OVERDUE", CustomerID: customer.ID, SubscriptionID: sub.ID,
+		InvoiceDate: now.AddDate(0, 0, -14), DueDate: now.AddDate(0, 0, -10),
+		PeriodStart: now.AddDate(0, 0, -14), PeriodEnd: now.AddDate(0, 0, 16),
+		Total: 2000, Balance: 2000, Status: domain.InvoiceOverdue}
+	require.NoError(t, db.Create(&invoice).Error)
+
+	require.NoError(t, SuspendOverdueSubscriptions(db, now))
+	require.NoError(t, db.First(&sub, sub.ID).Error)
+	require.Equal(t, domain.SubscriptionSuspended, sub.Status)
+	require.Equal(t, "manual", sub.SuspensionReason)
+	var suspensions int64
+	require.NoError(t, db.Model(&domain.BillingEvent{}).
+		Where("subscription_id = ? AND type = ?", sub.ID, "subscription_suspended").Count(&suspensions).Error)
+	require.Zero(t, suspensions)
+}
+
 func TestProcessOverdueAndSuspendAfterGrace(t *testing.T) {
 	db := billingTestDB(t)
 	now := time.Date(2026, time.October, 15, 12, 0, 0, 0, time.UTC)

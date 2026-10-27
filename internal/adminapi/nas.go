@@ -1,6 +1,7 @@
 package adminapi
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -225,6 +226,15 @@ func CreateNAS(c echo.Context) error {
 		return handleValidationError(c, err)
 	}
 
+	if payload.NodeId > 0 {
+		if err := GetDB(c).First(&domain.NetNode{}, payload.NodeId).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fail(c, http.StatusBadRequest, "NODE_NOT_FOUND", "Network node not found", nil)
+			}
+			return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to validate network node", nil)
+		}
+	}
+
 	// Check whether the IP address already exists
 	var count int64
 	GetDB(c).Model(&domain.NetNas{}).Where("ipaddr = ?", payload.Ipaddr).Count(&count)
@@ -309,6 +319,15 @@ func UpdateNAS(c echo.Context) error {
 	}
 
 	// Update fields
+	if payload.NodeId > 0 {
+		if err := GetDB(c).First(&domain.NetNode{}, payload.NodeId).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return fail(c, http.StatusBadRequest, "NODE_NOT_FOUND", "Network node not found", nil)
+			}
+			return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to validate network node", nil)
+		}
+		device.NodeId = payload.NodeId
+	}
 	if payload.Name != "" {
 		device.Name = payload.Name
 	}
@@ -338,9 +357,6 @@ func UpdateNAS(c echo.Context) error {
 	}
 	if payload.Remark != "" {
 		device.Remark = payload.Remark
-	}
-	if payload.NodeId > 0 {
-		device.NodeId = payload.NodeId
 	}
 
 	if err := GetDB(c).Save(&device).Error; err != nil {

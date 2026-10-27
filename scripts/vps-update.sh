@@ -52,7 +52,25 @@ if [[ "${old_revision}" == "${new_revision}" ]]; then
   current_db_id="$(docker compose ps -q db | head -n 1 | xargs -r docker inspect --format='{{.Image}}' 2>/dev/null || true)"
   configured_db_image="$(configured_image_for db)"
   pulled_db_id="$(docker image inspect "${configured_db_image}" --format='{{.Id}}' 2>/dev/null || true)"
-  if [[ -n "${current_id}" && "${current_id}" == "${pulled_id}" && -n "${current_db_id}" && "${current_db_id}" == "${pulled_db_id}" ]]; then echo "MWX-ISP and PostgreSQL are already up to date (${old_revision:0:12})."; exit 0; fi
+  if [[ -n "${current_id}" && "${current_id}" == "${pulled_id}" && -n "${current_db_id}" && "${current_db_id}" == "${pulled_db_id}" ]]; then
+    # An update interrupted after the new image started can leave the app
+    # unhealthy while source and images already match the registry.
+    current_container="$(docker compose ps -q app | head -n 1 || true)"
+    current_state=""
+    for attempt in $(seq 1 60); do
+      current_state="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${current_container}" 2>/dev/null || true)"
+      case "${current_state}" in
+        healthy|running) echo "MWX-ISP and PostgreSQL are already up to date (${old_revision:0:12}) and the app is healthy."; exit 0 ;;
+        starting) sleep 2 ;;
+        *) break ;;
+      esac
+    done
+    echo "Source and images are up to date, but the app container is ${current_state:-not running}." >&2
+    echo "Inspect: cd ${APP_DIR} && docker compose ps && docker compose logs --tail=100 app" >&2
+    echo "Retry the app container: cd ${APP_DIR} && docker compose up -d --pull never --no-build --no-deps app" >&2
+    echo "If the current release is unusable, restore the newest backup set from ${MWX_ISP_BACKUP_DIR:-/var/backups/mwx-isp} with ${APP_DIR}/scripts/restore-db.sh <backup-directory>." >&2
+    exit 1
+  fi
 fi
 
 old_container="$(docker compose ps -q app | head -n 1 || true)"

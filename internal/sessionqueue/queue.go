@@ -33,6 +33,9 @@ const (
 	ActionDisconnect = "disconnect"
 	// ReasonBillingSuspension marks actions created by the billing scheduler.
 	ReasonBillingSuspension = "billing_suspension"
+	// ReasonManualSuspension marks actions created when an operator suspends or
+	// terminates a subscription from the admin API.
+	ReasonManualSuspension = "manual_suspension"
 
 	// StatusPending is a claimed-but-not-finished action awaiting its next
 	// attempt; StatusRunning is held by one worker; StatusSucceeded,

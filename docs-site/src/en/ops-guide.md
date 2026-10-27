@@ -248,19 +248,21 @@ data volumes, add `-s -- --purge` to the remote command. To delete local backups
 as well, pass both `--purge` and `--remove-backups`. Both modes ask for the
 literal confirmation `uninstall`; add `--yes` only for automation.
 
-After a data-preserving uninstall, restore the saved configuration before
-reinstalling so Compose reconnects to the existing database:
+After a data-preserving uninstall, rerun the installer. It clones the checkout
+first and then restores `/opt/mwx-isp.env.uninstalled` as `/opt/mwx-isp/.env`,
+so Compose reconnects to the preserved PostgreSQL and application data volumes:
 
 ```bash
-sudo git clone --depth 1 --single-branch --branch main https://github.com/bjo163/mwx-isp.git /opt/mwx-isp
-sudo install -m 0600 -o root -g root /opt/mwx-isp.env.uninstalled /opt/mwx-isp/.env
 curl -fsSL https://raw.githubusercontent.com/bjo163/mwx-isp/main/scripts/vps-install.sh | sudo bash
 ```
+
+Keep the saved configuration private because it contains database credentials.
+If a matching `.env` already exists, the installer leaves it unchanged.
 
 ## Backup and restore
 
 **System Config → Backup** is restricted to a platform administrator and
-downloads an installation-wide JSON snapshot (schema version 9.2). It includes
+downloads an installation-wide JSON snapshot (schema version 9.3). It includes
 all organizations and hidden tenant-ownership metadata, plus nodes, NAS,
 profiles, subscribers, accounting history, operator audit logs, ISP customers,
 packages, subscriptions, invoices, payments, document sequences, monitor

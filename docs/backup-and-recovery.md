@@ -159,7 +159,11 @@ application data volume, so a complete recovery needs both paths.
 No production RTO is claimed yet. CI exercises the JSON export/restore path,
 including encrypted export, tamper rejection, dry-run zero mutation, transaction
 rollback on failure, and a PostgreSQL round-trip with relationships and secrets
-intact. These checks do not certify the full VPS disaster-recovery procedure.
-The production restore script, off-host copy, image provenance, recovery time,
-and migration/rollback matrix still need a scheduled isolated VPS drill before a
-recovery-time objective can be claimed.
+intact. An isolated PostgreSQL drill executed on 2026-10-27 recorded the
+artifact checksum, manifest counts, export/restore duration, expected data loss
+and the rollback matrix in
+[backup-restore-drill-2026-10-27.md](backup-restore-drill-2026-10-27.md). That
+drill does not certify the full VPS disaster-recovery procedure: WAL/PITR is
+not configured, and the production restore script, off-host copy, image
+provenance and data-volume restore still need a scheduled isolated VPS exercise
+before a recovery-time objective can be claimed.

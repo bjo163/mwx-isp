@@ -43,6 +43,8 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "build_time=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
           git fetch --force --tags origin
           latest_tag=$(git describe --tags --match 'v*' --abbrev=0 origin/main)
           if [ "$release_ref" = "$latest_tag" ]; then
@@ -73,11 +75,16 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/mwx-isp:${{ steps.version.outputs.version }}
             ${{ steps.version.outputs.latest == 'true' && format('ghcr.io/{0}/mwx-isp:latest', github.repository_owner) || '' }}
+          build-args: |
+            MWX_ISP_VERSION=v${{ steps.version.outputs.version }}
+            MWX_ISP_COMMIT=${{ steps.version.outputs.commit }}
+            MWX_ISP_BUILD_TIME=${{ steps.version.outputs.build_time }}
           labels: |
             org.opencontainers.image.title=MWX-ISP
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.version.outputs.commit }}
+            org.opencontainers.image.created=${{ steps.version.outputs.build_time }}
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max

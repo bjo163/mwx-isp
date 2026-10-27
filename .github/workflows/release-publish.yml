@@ -196,6 +196,16 @@ jobs:
           echo "Build completed!"
           ls -lah ./release/
 
+      - name: Verify released binary version
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_COMMIT: ${{ steps.version.outputs.commit }}
+        run: |
+          report="$(./release/mwx-isp_linux_amd64 -v)"
+          printf '%s\n' "${report}"
+          grep -Fx "MWX-ISP ${RELEASE_VERSION}" <<<"${report}"
+          grep -Fx "Git Commit: ${RELEASE_COMMIT}" <<<"${report}"
+
       - name: Generate release notes from closed issues
         id: release_notes
         env:

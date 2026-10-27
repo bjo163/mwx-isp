@@ -1,10 +1,10 @@
-# Session action queue (billing suspension convergence)
+# Session action queue (suspend convergence)
 
-This document describes how a billing-suspended subscriber's live session is
-converged with the NAS, and how failed RFC 5176 Disconnect-Requests are retried
-instead of being logged and forgotten. It is the reference for issue #52
-(AUDIT-08, historical H05/H04) and must be updated when suspension, disconnect,
-or retry behavior changes.
+This document describes how a suspended subscriber's live session is converged
+with the NAS, and how failed RFC 5176 Disconnect-Requests are retried instead of
+being logged and forgotten. It is the reference for issue #52 (AUDIT-08,
+historical H05/H04) and the H05 close-out, and must be updated when suspension,
+disconnect, or retry behavior changes.
 
 ## Why a queue
 
@@ -40,17 +40,31 @@ which is how a re-suspension after reactivation is queued.
 
 ## Enqueue path
 
-1. The billing run suspends the subscription and disables the RADIUS user.
-2. For every online session of that user it calls
+There are two producers, distinguished by the action reason:
+
+| Reason | Producer |
+| --- | --- |
+| `billing_suspension` | `internal/app/jobs.go` (`runBillingForTenant`) after the automatic billing pass suspends overdue subscriptions. |
+| `manual_suspension` | `subscriptionAction` in `internal/adminapi/isp.go` when an operator suspends or terminates a subscription. |
+
+Both paths commit the subscription/user state first, then queue a `pending`
+action per online session and call `ProcessDue` once for the tenant:
+
+1. The subscription is suspended (or terminated) and the RADIUS user is disabled
+   in one transaction. Manual suspension stores `suspension_reason = manual`;
+   billing enforcement stores `billing_overdue`.
+2. For every online session of that user the producer calls
    `sessionqueue.EnqueueDisconnect`, which inserts a `pending` row with
    `next_retry_at = now`. No secrets are stored — only the session identity
    (username, `acct_session_id`, NAS address) and the action reason.
-3. The same billing run immediately calls `ProcessDue` for the tenant, so a
-   reachable NAS is converged in the same pass.
+3. The same request/run immediately calls `ProcessDue` for the tenant, so a
+   reachable NAS is converged without a second scheduler tick.
 
-Enqueueing happens even when the scheduler has no sender configured (for
-example in a deployment that has not wired the CoA client). The rows stay
-visible and actionable instead of silently dropping the requirement.
+Enqueueing happens even when the process has no sender configured (for example
+in a deployment that has not wired the CoA client). The rows stay visible and
+actionable instead of silently dropping the requirement. A NAS failure no longer
+turns an already-committed manual suspension into an API error: the operator
+gets a successful response and the pending action appears in the session queue.
 
 ## Scheduler, backoff and recovery
 
@@ -75,7 +89,8 @@ incremented at claim time, so crash recovery cannot loop forever.
 
 `GET /api/v1/session-actions` lists the tenant's queue, filterable by
 `status` (comma separated), `username`, and `reason`. The online sessions page
-shows `pending`/`failed` actions in a panel above the session list.
+shows `pending`/`failed` actions from both producers in a panel above the
+session list, including the action reason.
 
 `POST /api/v1/session-actions/:id/retry` (admin only) force-claims a `pending`
 or `failed` action, resets the automatic attempt budget, increments
@@ -105,7 +120,10 @@ depend on the restored queue contents.
 
 - Unit: `go test ./internal/sessionqueue/`
 - Unit: `go test ./internal/app/ -run 'Billing|SessionAction'`
-- Unit: `go test ./internal/adminapi/ -run 'SessionAction'`
+- Unit: `go test ./internal/adminapi/ -run 'SessionAction|SuspendQueuesDurableDisconnect'`
+  (manual suspend with fake-NAS ACK and timeout, duplicate-free queueing)
+- Unit: `go test ./internal/billing/ -run 'RecordPayment|SuspendOverdue'`
+  (manual suspension preserved, multiple overdue invoices block reactivation)
 - PostgreSQL + fake NAS: `go test -tags=integration ./test/integration/ -run TestPostgresSessionActionQueue`
   (ACK + audit, NAK, timeout then NAS recovery, concurrent retry claim,
   cancellation after reactivation, cross-tenant isolation)

@@ -3,14 +3,20 @@ package adminapi
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"github.com/bjo163/mwx-isp/internal/radiusd"
+	"github.com/bjo163/mwx-isp/internal/sessionqueue"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/require"
+	"layeh.com/radius"
 )
 
 func TestPackageCodeIsGeneratedAndStableOnEdit(t *testing.T) {
@@ -176,6 +182,98 @@ func TestSubscriptionDisconnectAction(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 	require.Equal(t, 0, resp.Data.DisconnectedSessions)
+}
+
+// TestSubscriptionSuspendQueuesDurableDisconnect proves an operator suspension
+// no longer fails with a NAS error after the database state has already changed:
+// the Disconnect-Request is recorded in the durable queue and either converged
+// immediately (ACK) or retried later (timeout). Repeating the suspension must not
+// create a second action for the same online session.
+func TestSubscriptionSuspendQueuesDurableDisconnect(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		replyCode  radius.Code // 0 drops the request, forcing a client timeout
+		wantStatus string
+	}{
+		{"nas acknowledges", radius.CodeDisconnectACK, sessionqueue.StatusSucceeded},
+		{"nas timeout stays pending", 0, sessionqueue.StatusPending},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, e, appCtx := CreateTestAppContext(t)
+			require.NoError(t, db.AutoMigrate(&domain.Customer{}, &domain.Subscription{}, &domain.BillingEvent{}))
+
+			restore := sessionCoAService
+			sessionCoAService = func() *radiusd.CoAService {
+				return radiusd.NewCoAService(nil,
+					radiusd.WithCoATimeout(120*time.Millisecond),
+					radiusd.WithCoARetries(0))
+			}
+			t.Cleanup(func() { sessionCoAService = restore })
+
+			nas := newFakeCoANAS(t, coaTestSecret, tc.replyCode, 0)
+			host, portText, err := net.SplitHostPort(nas.addr)
+			require.NoError(t, err)
+			port, err := strconv.Atoi(portText)
+			require.NoError(t, err)
+			require.NoError(t, db.Create(&domain.NetNas{
+				Name: "manual-nas", Identifier: "manual-nas", Ipaddr: host,
+				Secret: coaTestSecret, CoaPort: port, Status: "enabled",
+			}).Error)
+
+			user := domain.RadiusUser{Username: "manual-suspend-user", Password: "secret", Status: "enabled"}
+			require.NoError(t, db.Create(&user).Error)
+			customer := domain.Customer{Name: "Manual Suspend", Status: domain.CustomerActive}
+			require.NoError(t, db.Create(&customer).Error)
+			sub := domain.Subscription{
+				CustomerID: customer.ID, PackageID: 1, RadiusUserID: user.ID,
+				Status: domain.SubscriptionActive, StartDate: time.Now(),
+			}
+			require.NoError(t, db.Create(&sub).Error)
+			session := domain.RadiusOnline{
+				Username: user.Username, NasId: "manual-nas", NasAddr: host,
+				AcctSessionId: "manual-suspend-session", AcctStartTime: time.Now(), LastUpdate: time.Now(),
+			}
+			require.NoError(t, db.Create(&session).Error)
+
+			suspend := func() *httptest.ResponseRecorder {
+				req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/isp/subscriptions/%d/suspend", sub.ID), nil)
+				rec := httptest.NewRecorder()
+				c := CreateTestContext(e, db, req, rec, appCtx)
+				c.SetParamNames("id", "action")
+				c.SetParamValues(fmt.Sprintf("%d", sub.ID), "suspend")
+				require.NoError(t, subscriptionAction(c))
+				return rec
+			}
+
+			rec := suspend()
+			require.Equalf(t, http.StatusOK, rec.Code,
+				"a failed NAS exchange must not fail an already-committed suspension: %s", rec.Body.String())
+
+			require.NoError(t, db.First(&sub, sub.ID).Error)
+			require.Equal(t, domain.SubscriptionSuspended, sub.Status)
+			require.Equal(t, "manual", sub.SuspensionReason)
+			require.NoError(t, db.First(&user, user.ID).Error)
+			require.Equal(t, "disabled", user.Status)
+
+			var action domain.RadiusSessionAction
+			require.NoError(t, db.Where("session_id = ?", session.ID).First(&action).Error)
+			require.Equal(t, sessionqueue.ReasonManualSuspension, action.Reason)
+			require.Equal(t, tc.wantStatus, action.Status)
+			require.EqualValues(t, 1, action.Attempts)
+
+			var audits int64
+			require.NoError(t, db.Model(&domain.RadiusSessionActionAudit{}).
+				Where("session_id = ?", session.ID).Count(&audits).Error)
+			require.EqualValues(t, 1, audits, "every attempt is audited exactly once")
+
+			rec = suspend()
+			require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+			var actions int64
+			require.NoError(t, db.Model(&domain.RadiusSessionAction{}).
+				Where("session_id = ?", session.ID).Count(&actions).Error)
+			require.EqualValues(t, 1, actions, "repeating the suspension must not queue a duplicate action")
+		})
+	}
 }
 
 func TestSendInvoiceWhatsAppValidation(t *testing.T) {
