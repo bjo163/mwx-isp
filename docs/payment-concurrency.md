@@ -18,6 +18,26 @@ Money state is written only by `billing.RecordPayment`
 
 All amounts are integer IDR; no floating point is introduced.
 
+## Integer money invariants
+
+Money is stored and compared as `int64` (`domain.InternetPackage.Price`,
+`Invoice.Subtotal/Total/Balance/PaidAmount`, `Payment.Amount`), so totals never
+drift through rounding. The boundaries are enforced in three places:
+
+| Boundary | Behaviour |
+| --- | --- |
+| Package price input | Negative prices are rejected by validation; a JSON number outside `int64` (for example `9223372036854775808`) fails decoding with `400`. `0` is accepted for free packages, `9223372036854775807` is stored exactly. |
+| Invoice creation | `Subtotal = Total = Balance = unit price` with a single `Quantity 1` item, so no multiplication can overflow. |
+| `RecordPayment` | Rejects `amount <= 0` and `amount > balance` (`ErrInvalidPayment`). Because `balance <= total` at every step, `PaidAmount + Balance <= Total` and `Balance` never goes negative. |
+
+Unit coverage lives in `internal/billing/service_test.go`
+(`TestInvoiceTotalsStayExactAtInt64Boundary`,
+`TestRecordPaymentRejectsNonPositiveAmount`) and
+`internal/adminapi/isp_invoice_math_test.go`
+(`TestSavePackagePriceBoundaries`). The API is the only input surface: there is
+no manual invoice endpoint, so an invoice total can only come from a stored
+package price.
+
 ## Manual payment idempotency
 
 `POST /api/v1/isp/payments` accepts an optional `Idempotency-Key` header with

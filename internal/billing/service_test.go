@@ -2,6 +2,7 @@ package billing
 
 import (
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -421,6 +422,69 @@ func TestRecordPaymentWithoutKeyRecordsSeparateIdenticalPayments(t *testing.T) {
 	var payments int64
 	require.NoError(t, db.Model(&domain.Payment{}).Count(&payments).Error)
 	require.EqualValues(t, 2, payments)
+}
+
+// TestInvoiceTotalsStayExactAtInt64Boundary pins the money invariants at the
+// largest representable price: the invoice and item totals equal the package
+// price exactly, and partial payments always leave PaidAmount + Balance = Total
+// without overflow.
+func TestInvoiceTotalsStayExactAtInt64Boundary(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+	customer := domain.Customer{Name: "Boundary", Status: domain.CustomerActive}
+	require.NoError(t, db.Create(&customer).Error)
+	const maxPrice = int64(math.MaxInt64)
+	pkg := domain.InternetPackage{Code: "HOME-MAX", Name: "Boundary Package", Price: maxPrice, RadiusProfileID: 1, BillingCycle: "monthly", Status: "active"}
+	require.NoError(t, db.Create(&pkg).Error)
+	sub := domain.Subscription{CustomerID: customer.ID, PackageID: pkg.ID, Status: domain.SubscriptionActive,
+		StartDate: now.AddDate(0, -1, 0), BillingDay: 1, GraceDays: 3}
+	require.NoError(t, db.Create(&sub).Error)
+
+	created, err := GenerateMonthlyInvoices(db, now, 10)
+	require.NoError(t, err)
+	require.Equal(t, 1, created)
+	var invoice domain.Invoice
+	require.NoError(t, db.Where("subscription_id = ?", sub.ID).First(&invoice).Error)
+	require.Equal(t, maxPrice, invoice.Subtotal)
+	require.Equal(t, maxPrice, invoice.Total)
+	require.Equal(t, maxPrice, invoice.Balance)
+	var item domain.InvoiceItem
+	require.NoError(t, db.Where("invoice_id = ?", invoice.ID).First(&item).Error)
+	require.Equal(t, int64(1), item.Quantity)
+	require.Equal(t, maxPrice, item.UnitPrice)
+	require.Equal(t, invoice.Total, item.Total, "item totals must add up to the invoice total")
+
+	first := domain.Payment{InvoiceID: invoice.ID, Amount: 1, Method: "cash"}
+	require.NoError(t, RecordPayment(db, &first, now, false))
+	require.NoError(t, db.First(&invoice, invoice.ID).Error)
+	require.Equal(t, int64(1), invoice.PaidAmount)
+	require.Equal(t, int64(math.MaxInt64-1), invoice.Balance)
+	require.Equal(t, invoice.Total, invoice.PaidAmount+invoice.Balance)
+
+	overflowing := domain.Payment{InvoiceID: invoice.ID, Amount: math.MaxInt64, Method: "cash"}
+	require.ErrorIs(t, RecordPayment(db, &overflowing, now, false), ErrInvalidPayment)
+
+	last := domain.Payment{InvoiceID: invoice.ID, Amount: math.MaxInt64 - 1, Method: "cash"}
+	require.NoError(t, RecordPayment(db, &last, now.Add(time.Minute), false))
+	require.NoError(t, db.First(&invoice, invoice.ID).Error)
+	require.Equal(t, domain.InvoicePaid, invoice.Status)
+	require.Equal(t, int64(math.MaxInt64), invoice.PaidAmount)
+	require.Zero(t, invoice.Balance)
+	require.Equal(t, invoice.Total, invoice.PaidAmount+invoice.Balance)
+}
+
+func TestRecordPaymentRejectsNonPositiveAmount(t *testing.T) {
+	db := billingTestDB(t)
+	invoice := domain.Invoice{InvoiceNo: "INV-NONPOS", Total: 1000, Balance: 1000, Status: domain.InvoiceIssued}
+	require.NoError(t, db.Create(&invoice).Error)
+
+	for _, amount := range []int64{0, -1, math.MinInt64} {
+		payment := domain.Payment{InvoiceID: invoice.ID, Amount: amount, Method: "cash"}
+		require.ErrorIs(t, RecordPayment(db, &payment, time.Now(), false), ErrInvalidPayment)
+	}
+	var count int64
+	require.NoError(t, db.Model(&domain.Payment{}).Count(&count).Error)
+	require.Zero(t, count)
 }
 
 func TestRecordPaymentRejectsClosedInvoice(t *testing.T) {
