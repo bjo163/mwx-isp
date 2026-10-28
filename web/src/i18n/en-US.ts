@@ -1,6 +1,7 @@
 import { TranslationMessages } from 'react-admin';
 import englishMessages from 'ra-language-english';
 import { pageMessagesEn } from './pages';
+import type { StatusMessages } from './status';
 
 const customEnglishMessages: TranslationMessages = {
   ...englishMessages,
@@ -922,6 +923,39 @@ const customEnglishMessages: TranslationMessages = {
     no: 'No',
     loading: 'Loading...',
   },
+  status: {
+    pending: 'Pending',
+    active: 'Active',
+    inactive: 'Inactive',
+    suspended: 'Suspended',
+    terminated: 'Terminated',
+    billing_overdue: 'Billing Overdue',
+    draft: 'Draft',
+    issued: 'Issued',
+    partial: 'Partial',
+    paid: 'Paid',
+    overdue: 'Overdue',
+    void: 'Void',
+    received: 'Received',
+    open: 'Open',
+    scheduled: 'Scheduled',
+    assigned: 'Assigned',
+    in_progress: 'In Progress',
+    resolved: 'Resolved',
+    closed: 'Closed',
+    low: 'Low',
+    normal: 'Normal',
+    medium: 'Medium',
+    high: 'High',
+    urgent: 'Urgent',
+    critical: 'Critical',
+    up: 'Up',
+    down: 'Down',
+    online: 'Online',
+    offline: 'Offline',
+    unknown: 'Unknown',
+    failed: 'Failed',
+  } satisfies StatusMessages,
   error: {
     connectivity_title: 'Connection Issue',
     general_title: 'Something Went Wrong',
