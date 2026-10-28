@@ -12,6 +12,7 @@ import (
 	"errors"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -55,16 +56,52 @@ func (f *fakeCertResolver) CABundle(string) ([]byte, error) {
 	return f.caPEM, nil
 }
 
+// mutableCertResolver swaps the managed certificate material between calls, so
+// a test can prove the provider re-reads it per handshake instead of caching the
+// first generation.
+type mutableCertResolver struct {
+	mu      sync.Mutex
+	certPEM []byte
+	keyPEM  []byte
+	caPEM   []byte
+}
+
+func (m *mutableCertResolver) set(certPEM, keyPEM []byte) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.certPEM = certPEM
+	m.keyPEM = keyPEM
+}
+
+func (m *mutableCertResolver) ServerKeyPair(string) ([]byte, []byte, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.certPEM, m.keyPEM, nil
+}
+
+func (m *mutableCertResolver) CABundle(string) ([]byte, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.caPEM, nil
+}
+
 // genTestCertPEM generates a self-signed certificate and returns the certificate
 // and private key as in-memory PEM bytes.
 func genTestCertPEM(t *testing.T) (certPEM, keyPEM []byte) {
+	t.Helper()
+	return genTestCertPEMSerial(t, 2)
+}
+
+// genTestCertPEMSerial is genTestCertPEM with an explicit serial, so a rotation
+// test can tell two generations of material apart.
+func genTestCertPEMSerial(t *testing.T, serial int64) (certPEM, keyPEM []byte) {
 	t.Helper()
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)
 	}
 	tmpl := &x509.Certificate{
-		SerialNumber:          big.NewInt(2),
+		SerialNumber:          big.NewInt(serial),
 		Subject:               pkix.Name{CommonName: "toughradius-managed-cert"},
 		NotBefore:             time.Now().Add(-time.Hour),
 		NotAfter:              time.Now().Add(time.Hour),
@@ -163,6 +200,52 @@ func TestNewSettingsTLSConfigProvider_ValidMaterial(t *testing.T) {
 	}
 	if cfg.MinVersion != tls.VersionTLS12 {
 		t.Fatalf("expected default MinVersion TLS 1.2, got %#x", cfg.MinVersion)
+	}
+}
+
+// TestSettingsTLSConfigProvider_RotatesBetweenHandshakes proves the EAP rotation
+// path: the provider resolves the managed certificate on every call, so
+// switching the selected certificate (or re-importing its material) takes effect
+// on the next handshake without a restart, and switching back rolls it back.
+func TestSettingsTLSConfigProvider_RotatesBetweenHandshakes(t *testing.T) {
+	firstCert, firstKey := genTestCertPEMSerial(t, 101)
+	secondCert, secondKey := genTestCertPEMSerial(t, 202)
+
+	resolver := &mutableCertResolver{certPEM: firstCert, keyPEM: firstKey, caPEM: firstCert}
+	reader := newFakeReader(map[string]string{
+		"radius." + SettingEapTlsServerCert: "srv",
+		"radius." + SettingEapTlsClientCa:   "ca",
+	})
+	provider := NewSettingsTLSConfigProvider(reader, resolver)
+
+	serialOf := func(step string) string {
+		t.Helper()
+		cfg, err := provider()
+		if err != nil {
+			t.Fatalf("%s: unexpected error: %v", step, err)
+		}
+		if cfg == nil {
+			t.Fatalf("%s: expected configured material", step)
+		}
+		leaf, err := x509.ParseCertificate(cfg.ServerCertificate.Certificate[0])
+		if err != nil {
+			t.Fatalf("%s: parse leaf: %v", step, err)
+		}
+		return leaf.SerialNumber.String()
+	}
+
+	if got := serialOf("initial"); got != "101" {
+		t.Fatalf("initial handshake material serial = %s, want 101", got)
+	}
+
+	resolver.set(secondCert, secondKey)
+	if got := serialOf("rotated"); got != "202" {
+		t.Fatalf("rotated handshake material serial = %s, want 202 (provider cached the old material)", got)
+	}
+
+	resolver.set(firstCert, firstKey)
+	if got := serialOf("rolled back"); got != "101" {
+		t.Fatalf("rolled-back handshake material serial = %s, want 101", got)
 	}
 }
 
