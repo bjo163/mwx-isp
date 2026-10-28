@@ -31,7 +31,39 @@ the current tree.
 
 ## Progress
 
-Done: 36 / 100.
+Done: 37 / 100.
+
+- `ENG-057` (2026-10-29, `dev` @ `e308244`): dashboard chart timezone and
+  nominal audit. The 7-day authentication trend and 24-hour traffic series were
+  grouped by SQL `DATE()` / `TO_CHAR(date_trunc('hour', …))` on Postgres and
+  `strftime(…, 'localtime')` on SQLite — i.e. in the **database session
+  timezone** — while the response labels and the "today" boundary were computed
+  from Go `time.Local`. The comment on the dashboard test admitted the gap
+  ("due to timezone differences …"), which is the defect. With the DSN
+  hardcoding `TimeZone=Asia/Jakarta` and `system.location` configured
+  separately, a session starting at 00:30 local could be filed under the
+  previous day by the SQL, miss the label-keyed lookup and silently become a
+  zero. Both series now build half-open instant windows in the configured
+  location (`dayWindows`, `hourWindows`) and fold all windows into one
+  `COUNT/SUM(CASE WHEN acct_start_time >= ? AND acct_start_time < ? …)`
+  statement, so assignment depends only on the stored instant and the query
+  count does not grow; `dateBucketExpression` is gone. On the client, every
+  formatter was built without a locale (`Intl.DateTimeFormat(undefined, …)`,
+  `Intl.NumberFormat()`), the outstanding amount was hardcoded to `en-US`, the
+  day/hour labels used `hour12: false` (which can render midnight as `24:00`),
+  and the chart tooltips printed raw floats; all now follow React-Admin
+  `useLocale()` with `hourCycle: 'h23'`, plus `valueFormatter` on both charts.
+  Tests pin the fix deterministically in a fixed `UTC+7` zone
+  (`TestDayWindowsUseLocalCalendarDays`,
+  `TestCountSessionsPerWindowBucketsByInstant`) and the stats test now requires
+  the record in the last day bucket with exactly one non-zero traffic bucket.
+  `go test ./internal/adminapi/` (45.5 s), `npm run type-check` and
+  `npm run build` pass. Limits recorded in
+  `docs/dashboard-timezone-nominal-audit-2026-10-29.md`: the Postgres
+  instant-comparison path is argued, not matrix-tested; a distroless deploy
+  without zoneinfo still logs a `timezone config error` and runs in UTC (the
+  shipped image installs `tzdata`); other admin pages may still use
+  browser-locale formatting.
 
 - `ENG-054` (2026-10-29, `dev` @ `ef3c286`): ID/EN reconciliation of billing and
   incident status tags. `StatusChip` rendered the raw enum uppercased, so every
@@ -599,7 +631,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-058` TR-F031 P2 — Label confidence dan mapping pada NOC impact UI · LOKAL · dep ENG-055 · PROPOSED_VERIFICATION
 - [ ] `ENG-036` TR-F033 P2 — Jejak scheduler FUP terpisah per tenant sesudah perbaikan · LOKAL · dep ENG-019 · PROPOSED_VERIFICATION
 - [x] `ENG-054` TR-F023 P2 — Rekonsiliasi ID/EN seluruh status tagihan dan insiden · LOKAL · PROPOSED_VERIFICATION · commit `ef3c286`
-- [ ] `ENG-057` TR-F015 P2 — Audit grafik dashboard konsistensi timezone dan nominal · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-057` TR-F015 P2 — Audit grafik dashboard konsistensi timezone dan nominal · LOKAL · PROPOSED_VERIFICATION · commit `e308244`
 - [ ] `ENG-059` TR-F007 P2 — Audit import RADIUS user dengan preview dry-run saja · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-062` TR-F022 P2 — Sistem upgrade dependency dengan ratchet keamanan · LOKAL · dep ENG-030 · PROPOSED_VERIFICATION
 - [ ] `ENG-003` TR-F004 P2 — Pemetaan kebijakan pencabutan sertifikat EAP-TLS · LOKAL · PROPOSED_VERIFICATION
@@ -665,9 +697,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-057` — dashboard chart timezone and nominal consistency audit.
-2. `ENG-059` — RADIUS user import dry-run preview audit.
-3. `ENG-003` — EAP-TLS certificate revocation policy mapping.
+1. `ENG-059` — RADIUS user import dry-run preview audit.
+2. `ENG-003` — EAP-TLS certificate revocation policy mapping.
+3. `ENG-062` — dependency upgrade system with a security ratchet.
 
 `ENG-064` and `ENG-058` stay parked: their dependencies (`ENG-013` real-NAS
 pilot, `ENG-049` SNMPv3 hardware) are ASET items without a claimed host.
