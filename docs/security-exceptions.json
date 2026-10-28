@@ -1,0 +1,70 @@
+{
+  "exceptions": [
+    {
+      "id": "GO-2026-6603",
+      "reason": "Only the outbound HTTP/2 client used by the network monitor and benchmark reporter is reachable; probe targets are operator-configured. Fixed by the Go 1.27.2 toolchain bump the release build adopts before this exception expires.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6605",
+      "reason": "The reachable HTTP client only issues GET probes and never sends CONNECT, so the desynchronization sequence after a rejected CONNECT cannot be triggered. Fixed by the Go 1.27.2 toolchain bump.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6607",
+      "reason": "No MWX-ISP listener configures Encrypted Client Hello, so the malformed ECH outer-extension path is not exercised by the EAP-TLS, RadSec or admin TLS handshakes. Fixed by the Go 1.27.2 toolchain bump.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6608",
+      "reason": "The reachable multipart reader is the authenticated admin user-import endpoint, whose request body is capped at 16 MiB by middleware.BodyLimit and whose caller already holds tenant-wide write access. Fixed by the Go 1.27.2 toolchain bump.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6609",
+      "reason": "Reachable only through net/http.ServeContent, which the admin server uses to serve the embedded UI to authenticated operators. The defect is availability-only and the fix ships with the Go 1.27.2 toolchain bump.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6610",
+      "reason": "Reachable through the same outbound HTTP/2 client as GO-2026-6603: the network monitor probes operator-configured targets. Fixed by the Go 1.27.2 toolchain bump before this exception expires.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6611",
+      "reason": "The reachable HTTP/2 server is the admin listener behind the operator network and reverse proxy; the impact is CPU availability, not confidentiality or integrity. Fixed by the Go 1.27.2 toolchain bump.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6612",
+      "reason": "HTTP/2 flow-control refund defect on the admin listener; impact is availability of the management plane only. The standard-library fix ships with the Go 1.27.2 toolchain bump.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6613",
+      "reason": "The admin router has no CONNECT or proxy handler, so no 2xx CONNECT response is ever produced and the desynchronization sequence is unreachable. Fixed by the Go 1.27.2 toolchain bump.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6617",
+      "reason": "HPACK encoder race reachable only on the admin listener, where a crash costs management-plane availability until restart. Fixed by the Go 1.27.2 toolchain bump.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    },
+    {
+      "id": "GO-2026-6809",
+      "reason": "RadSec verifies peers against a deployment-configured CA bundle, so exploitation needs a compromised intermediate in that chain; the fix is the Go 1.27.3 distrust list adopted with the toolchain bump.",
+      "ticket": "ENG-062",
+      "expires": "2026-11-30"
+    }
+  ]
+}

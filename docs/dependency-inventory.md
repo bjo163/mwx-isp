@@ -147,6 +147,24 @@ How to read that table:
 4. Re-run the scan after any toolchain, module or lockfile change and update this
    table instead of opening a second one.
 
+### From register to gate
+
+The table above is the human record; [`tools/depratchet`](../tools/depratchet/main.go)
+is the machine check over the same scan:
+
+```sh
+govulncheck -json ./... | go run ./tools/depratchet
+```
+
+It fails when `govulncheck` reports a called vulnerable symbol and
+`docs/security-exceptions.json` has no valid entry for that advisory. Package-
+and module-level findings are printed as leads and never fail. Each exception
+needs a sentence of justification, an owner ticket and an expiry, and an
+exception that outlives its date, points at nothing, or leaves a fixed
+dependency unrescanned fails the gate. The upgrade cadence, PR risk tiers and
+exception lifetimes are in
+[dependency-upgrade-policy.md](dependency-upgrade-policy.md).
+
 ## Known limits
 
 - Licence detection is a small fingerprint table over `LICENSE` / `LICENCE` /
