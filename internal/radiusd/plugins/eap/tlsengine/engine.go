@@ -76,6 +76,11 @@ type Config struct {
 	// the opt-in compatibility path for CBC-only peers such as hostapd
 	// internal TLS; see ResolveCipherSuites. TLS 1.3 ignores this field.
 	CipherSuites []uint16
+	// VerifyConnection, when set, runs after crypto/tls has verified the peer
+	// certificate chain against ClientCAs. It exists for policy crypto/tls does
+	// not implement itself, such as revocation. A non-nil error aborts the
+	// handshake. Nil leaves chain verification as the only check.
+	VerifyConnection func(tls.ConnectionState) error
 	// HandshakeTimeout bounds the total handshake duration. Zero selects
 	// DefaultHandshakeTimeout.
 	HandshakeTimeout time.Duration
@@ -123,6 +128,9 @@ func New(cfg *Config) (*Engine, error) {
 		MinVersion:   cfg.MinVersion,
 		MaxVersion:   cfg.MaxVersion,
 		CipherSuites: cfg.CipherSuites,
+		// Runs after the built-in chain verification, which crypto/tls performs
+		// against ClientCAs; it cannot weaken that check.
+		VerifyConnection: cfg.VerifyConnection,
 		// EAP-TLS does not implement TLS session resumption, which RFC 9190
 		// §2.1.3 makes optional. Disabling tickets keeps the server's final
 		// TLS 1.3 flight free of NewSessionTicket messages, so the protected
