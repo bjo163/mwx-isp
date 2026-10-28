@@ -31,7 +31,22 @@ the current tree.
 
 ## Progress
 
-Done: 25 / 100.
+Done: 26 / 100.
+
+- `ENG-004` (2026-10-28, `dev` @ `3cf307c`): RadSec/EAP certificate rotation.
+  RadSec parsed its key pair and client CA bundle once, so any rotation forced a
+  restart that dropped live TLS connections. `internal/radiusd/radsec_tls.go` now
+  stats the three configured files on each handshake and swaps in a validated
+  snapshot when one changed; startup stays fail-closed (expired or unparsable
+  material refuses to listen) and a failed reload keeps the last known-good
+  snapshot and logs the reason. `radsec_rotation_test.go` drives real TLS
+  handshakes through a running listener: serial 1001 → 1002 after replacement,
+  1001 again after rollback, old+new client CA accepted during an overlap bundle,
+  invalid/expired replacements kept out, and concurrent handshakes during a
+  bundle rewrite. EAP already resolved material per handshake; the new
+  `TestSettingsTLSConfigProvider_RotatesBetweenHandshakes` proves the 101 → 202 →
+  101 switch. `docs/radsec-certificate-rotation.md` holds the procedure, rollback
+  and the log line to observe.
 
 - `ENG-061` (2026-10-27, `dev` @ `521963e`): repeatable test runs. Repeated
   `go test -count=N` runs failed on the second iteration because five files opened
@@ -372,7 +387,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-061` TR-F022 P1 — Stabilitas test E2E CI branch main dan dev · LOKAL · PROPOSED_VERIFICATION · commit `521963e`
 - [ ] `ENG-064` TR-F010 P1 — Pemeriksaan session-action queue dead-letter dan alert · LOKAL · dep ENG-013 · PROPOSED_VERIFICATION
 - [x] `ENG-053` TR-F013 P2 — Navigasi keyboard pada data-grid dan dialog kritis · LOKAL · PROPOSED_VERIFICATION · commit `4404b1b`
-- [ ] `ENG-004` TR-F003 P2 — Kesiapan rotasi sertifikat RadSec dan EAP · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-004` TR-F003 P2 — Kesiapan rotasi sertifikat RadSec dan EAP · LOKAL · PROPOSED_VERIFICATION · commit `3cf307c`
 - [ ] `ENG-030` TR-F022 P2 — Inventory SBOM backend/frontend serta lisensi · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-008` TR-F004 P2 — Pastikan EAP-OTP tak dapat diaktifkan tanpa validator · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-029` TR-F029 P2 — PNG branding parser dan metadata validation · LOKAL · PROPOSED_VERIFICATION
@@ -458,7 +473,6 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-004` — RadSec/EAP certificate rotation readiness.
-2. `ENG-009` — RadSec mTLS untrusted-certificate regression (follows `ENG-004`).
-3. `ENG-030` — SBOM and license inventory for backend/frontend.
-4. `ENG-027` — network diagnostic SSRF hardening.
+1. `ENG-009` — RadSec mTLS untrusted-certificate regression (now unblocked).
+2. `ENG-030` — SBOM and license inventory for backend/frontend.
+3. `ENG-027` — network diagnostic SSRF hardening.
