@@ -31,7 +31,24 @@ the current tree.
 
 ## Progress
 
-Done: 40 / 100.
+Done: 41 / 100.
+
+- `ENG-036` (2026-10-29, `dev` @ `39caa5f`): per-tenant FUP scheduler trail.
+  #46's per-tenant loop already continues after a tenant error, but nothing
+  failed if later scheduler work made one tenant's failure abort the run, and
+  the scheduler exported no telemetry. The fixture
+  `TestSchedFUPCheckIsolatesTenantFailuresWithBoundedTelemetry` seeds four
+  tenants, injects a GORM query failure for the first two through a test-only
+  callback, and asserts the two queued after them are still throttled in the
+  same run while the failing tenants are untouched. The scheduler now
+  increments two counters (`fup_scheduler_tenant_attempts_total`,
+  `fup_scheduler_tenant_failures_total`) whose label set is fixed — no tenant
+  or subscriber dimension — and the test pins that set, so metric cardinality
+  does not grow with the tenant count. Failure alerts keep one dedupe key per
+  job per minute, so two failing tenants produce one outbox row, not one per
+  tenant. `go test ./internal/app/` and `golangci-lint run ./internal/app/`
+  pass. Limit: the fixture injects the failure at the query layer; a panicking
+  tenant is handled by the job-level recover instead.
 
 - `ENG-062` (2026-10-29, `dev` @ `5173519`): dependency upgrade ratchet. The
   acceptance asked for a script that fails on a genuinely applicable advisory
@@ -702,7 +719,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 ## Wave 2 — 25 item (LOKAL 13 · RISET 2 · ASET 7 · RISET+ASET 3)
 
 - [ ] `ENG-058` TR-F031 P2 — Label confidence dan mapping pada NOC impact UI · LOKAL · dep ENG-055 · PROPOSED_VERIFICATION
-- [ ] `ENG-036` TR-F033 P2 — Jejak scheduler FUP terpisah per tenant sesudah perbaikan · LOKAL · dep ENG-019 · PROPOSED_VERIFICATION
+- [x] `ENG-036` TR-F033 P2 — Jejak scheduler FUP terpisah per tenant sesudah perbaikan · LOKAL · dep ENG-019 · PROPOSED_VERIFICATION · commit `39caa5f`
 - [x] `ENG-054` TR-F023 P2 — Rekonsiliasi ID/EN seluruh status tagihan dan insiden · LOKAL · PROPOSED_VERIFICATION · commit `ef3c286`
 - [x] `ENG-057` TR-F015 P2 — Audit grafik dashboard konsistensi timezone dan nominal · LOKAL · PROPOSED_VERIFICATION · commit `e308244`
 - [x] `ENG-059` TR-F007 P2 — Audit import RADIUS user dengan preview dry-run saja · LOKAL · PROPOSED_VERIFICATION · commit `06e7ae4`
@@ -770,10 +787,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-036` — per-tenant FUP scheduler trail (dependency ENG-019 is done).
-2. `ENG-026` — backup KDF and envelope parameter evaluation.
-3. `ENG-034` — operator payment correction (dependency ENG-033 is done).
-4. `ENG-060` — redacted support bundle study (dependency ENG-028 is done).
+1. `ENG-026` — backup KDF and envelope parameter evaluation.
+2. `ENG-034` — operator payment correction (dependency ENG-033 is done).
+3. `ENG-060` — redacted support bundle study (dependency ENG-028 is done).
 
 `ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
 `ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
