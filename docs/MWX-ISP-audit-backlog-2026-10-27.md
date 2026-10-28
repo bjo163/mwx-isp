@@ -31,7 +31,28 @@ the current tree.
 
 ## Progress
 
-Done: 33 / 100.
+Done: 34 / 100.
+
+- `ENG-016` (2026-10-29, `dev` @ `985908e`): periodic fork/upstream check of the
+  RADIUS codec library. The build resolves `layeh.com/radius` through the
+  `talkincode` fork, so a protocol-level fix can exist in one chain and not the
+  other with nothing local to show it. Upstream `master` is still
+  `1006025d24f8` (2023-12-13) — exactly the commit the `require` pseudo-version
+  names, so there is no upstream delta to take — while fork `v0.1.0`
+  (`8f214fbf5382`, 2026-06-08) equals fork `master` and is two commits ahead:
+  the generated `_SetVendor` panic/wrong-delete-index fix (reachable from a
+  repeated vendor VSA on the wire) and the `IPv6Prefix` padding-bit tolerance
+  (RFC 3162 requires zero padding, real equipment ignores it). Both are already
+  used here — the repo's own generated dictionaries carry the corrected
+  template and `setvendor_test.go` pins it, but the prefix tolerance had no
+  local test, so `radiuslib_contract_test.go` now pins a `/64` with host bits
+  and a `/61` with a trailing bit while still rejecting out-of-range lengths
+  and length-less attributes; reverting the `replace` to upstream fails the
+  test. `docs/radius-fork-upstream-audit-2026-10-29.md` records the SHAs, the
+  reproduce commands, a relevance matrix, the sync/defer/no-change criteria and
+  this run's **no change** decision (upstream dormant since 2023, 57 open
+  issues, issue #119 never merged). `go mod tidy -diff` empty, `go mod verify`
+  clean.
 
 - `ENG-063` (2026-10-29, `dev` @ `9ea95b8`): API response contract, pagination
   and error testing. The collection endpoints the React Admin dataProvider maps
@@ -537,7 +558,6 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 ## Wave 2 — 25 item (LOKAL 13 · RISET 2 · ASET 7 · RISET+ASET 3)
 
 - [ ] `ENG-058` TR-F031 P2 — Label confidence dan mapping pada NOC impact UI · LOKAL · dep ENG-055 · PROPOSED_VERIFICATION
-- [ ] `ENG-016` TR-F021 P2 — Pemeriksaan berkala perbedaan fork layeh dan upstream · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-036` TR-F033 P2 — Jejak scheduler FUP terpisah per tenant sesudah perbaikan · LOKAL · dep ENG-019 · PROPOSED_VERIFICATION
 - [ ] `ENG-040` TR-F011 P2 — Studi archival accounting retention dan query plan · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-054` TR-F023 P2 — Rekonsiliasi ID/EN seluruh status tagihan dan insiden · LOKAL · PROPOSED_VERIFICATION
@@ -561,6 +581,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ECO-001` TR-F027 P2 — Wawancara willingness-to-pay pada operator ISP kecil · RISET+ASET · PROPOSED_VERIFICATION
 - [ ] `ECO-002` TR-F029 P2 — Ukur waktu tugas operator sebelum/sesudah MWX-ISP · RISET+ASET · dep ECO-001 · PROPOSED_VERIFICATION
 - [ ] `ECO-007` TR-F030 P2 — Pengendalian biaya telemetri dan alert whatsmeow · RISET+ASET · dep ENG-048 · PROPOSED_VERIFICATION
+- [x] `ENG-016` TR-F021 P2 — Pemeriksaan berkala perbedaan fork layeh dan upstream · LOKAL · PROPOSED_VERIFICATION · commit `985908e`
 
 ## Wave 3 — 23 item (LOKAL 2 · RISET 21)
 
@@ -605,9 +626,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-016` — periodic fork/upstream `layeh.com/radius` diff check.
-2. `ENG-040` — accounting retention and query-plan study.
-3. `ENG-054` — ID/EN reconciliation of billing and incident status tags.
+1. `ENG-040` — accounting retention and query-plan study.
+2. `ENG-054` — ID/EN reconciliation of billing and incident status tags.
+3. `ENG-057` — dashboard chart timezone and nominal consistency audit.
 
 `ENG-064` and `ENG-058` stay parked: their dependencies (`ENG-013` real-NAS
 pilot, `ENG-049` SNMPv3 hardware) are ASET items without a claimed host.
