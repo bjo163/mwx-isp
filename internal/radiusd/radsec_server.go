@@ -38,6 +38,13 @@ const maxRadiusPacketLength = 4096
 // treat it as fatal and close the connection rather than continue parsing.
 var errMalformedFrame = errors.New("radius: malformed packet framing")
 
+// errMalformedPacketAttribute marks a frame whose body was read in full but
+// whose attributes could not be parsed. The stream is still aligned after such
+// a frame, so the connection can keep serving; every other parse error means
+// the transport itself failed (EOF, TLS alert or record error, broken pipe) and
+// must close the connection.
+var errMalformedPacketAttribute = errors.New("radius: malformed packet attributes")
+
 type packetResponseWriter struct {
 	// listener that received the packet
 	conn net.Conn
@@ -231,7 +238,7 @@ func parseTcpPacket(r io.Reader, secret []byte) (*radius.Packet, error) {
 
 	attrs, err := radius.ParseAttributes(data[16:])
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errMalformedPacketAttribute, err)
 	}
 
 	packet := &radius.Packet{
@@ -295,6 +302,18 @@ func (s *RadsecPacketServer) Serve(conn net.Conn) error {
 		s.activeDone()
 	}()
 
+	// Complete the TLS handshake explicitly and before any per-peer lookup.
+	// Waiting for the first Read to do it would report a rejected client
+	// certificate as a packet parse error, and a transport error leaves the TLS
+	// connection unusable; both must end the connection instead of re-entering
+	// the read loop.
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		if err := tlsConn.HandshakeContext(s.ctx); err != nil {
+			zap.S().Infof("radius: radsec TLS handshake with %s failed: %v", conn.RemoteAddr(), err)
+			return err
+		}
+	}
+
 	secret, err := s.SecretSource.RADIUSSecret(s.ctx, conn.RemoteAddr())
 	if err != nil {
 		zap.S().Errorf("radius: error fetching from secret source: %v", err)
@@ -311,6 +330,12 @@ func (s *RadsecPacketServer) Serve(conn net.Conn) error {
 	for {
 		pkt, err := parseTcpPacket(r, secret)
 		if err != nil {
+			if errors.Is(err, errMalformedPacketAttribute) {
+				// The frame body was consumed in full, so the stream is still
+				// aligned: drop this packet and keep serving the connection.
+				zap.S().Errorf("radius: dropping packet with malformed attributes from %s: %v", conn.RemoteAddr(), err)
+				continue
+			}
 			if err == io.EOF {
 				zap.S().Infof("radius: connection closed by client %s", conn.RemoteAddr())
 				return err
@@ -319,16 +344,16 @@ func (s *RadsecPacketServer) Serve(conn net.Conn) error {
 				zap.S().Infof("radius: connection error %s: %v", conn.RemoteAddr(), err)
 				return err
 			}
-			// A framing error means the length prefix could not delimit the
-			// frame and its announced body was not consumed, so the stream is
-			// desynchronized. Continuing would misread the body as the next
-			// header; close the connection instead. The client may reconnect.
+			// Any other error comes from the transport (for example a TLS record
+			// or handshake failure) or from a framing guard. The connection is
+			// unusable, and retrying would spin on the same error forever, so
+			// close it and let the client reconnect.
 			if errors.Is(err, errMalformedFrame) {
 				zap.S().Errorf("radius: closing connection %s on malformed frame: %v", conn.RemoteAddr(), err)
 				return err
 			}
-			zap.S().Errorf("radius: unable to parse packet: %v", err)
-			continue
+			zap.S().Errorf("radius: closing connection %s after read error: %v", conn.RemoteAddr(), err)
+			return err
 		}
 
 		// Reserve a worker slot before spawning the handler goroutine. This

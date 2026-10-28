@@ -221,6 +221,15 @@ func loadRadsecTLSConfig(capath, crtfile, keyfile string, now time.Time) (*tls.C
 			return nil, nil, fmt.Errorf("parse RadSec CA bundle %q: no PEM certificates found", capath)
 		}
 		cfg.ClientCAs = pool
+	} else {
+		// Without a bundle the server cannot advertise a client CA; peers that
+		// present a certificate are still verified (against the system roots),
+		// but a peer presenting none is accepted. Say so at load time instead of
+		// letting an operator discover it from a packet trace.
+		zap.S().Warnf(
+			"radius: RadSec client CA bundle %q not found; client certificates are not required for incoming connections",
+			capath,
+		)
 	}
 
 	return cfg, leaf, nil
