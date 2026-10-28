@@ -17,7 +17,7 @@ import {
 import { alpha, useTheme } from '@mui/material/styles';
 import ReactECharts from 'echarts-for-react';
 import { useMemo } from 'react';
-import { useTranslate } from 'react-admin';
+import { useLocale, useTranslate } from 'react-admin';
 import { Link as RouterLink } from 'react-router-dom';
 import { useApiQuery } from '../hooks/useApiQuery';
 import { GettingStartedCard } from '../components/onboarding/GettingStartedCard';
@@ -108,6 +108,7 @@ const Dashboard = () => {
   const isDark = theme.palette.mode === 'dark';
   const chartColors = isDark ? dataSeriesColors : lightDataSeriesColors;
   const translate = useTranslate();
+  const locale = useLocale();
   const { data: statsPayload, isFetching, isError: statsError } = useApiQuery<DashboardStats>({
     path: '/dashboard/stats',
     queryKey: ['dashboard', 'stats'],
@@ -127,13 +128,29 @@ const Dashboard = () => {
 
   const stats = statsPayload ?? emptyStats;
 
-  const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }), []);
+  // All formatters follow the selected administration locale, so the dashboard
+  // does not fall back to the browser language the way `undefined` would.
+  const dateFormatter = useMemo(() => new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }), [locale]);
+  // h23 avoids the "24:00" label that hour12:false produces for midnight in
+  // some locales.
   const hourFormatter = useMemo(
-    () => new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }),
-    [],
+    () => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
+    [locale],
   );
 
-  const numberFormatter = useMemo(() => new Intl.NumberFormat(), []);
+  const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const decimalFormatter = useMemo(
+    () => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    [locale],
+  );
+  const percentFormatter = useMemo(
+    () => new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    [locale],
+  );
+  const currencyFormatter = useMemo(
+    () => new Intl.NumberFormat(locale, { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }),
+    [locale],
+  );
 
   const onlineRatio =
     stats.total_users > 0 ? Math.min((stats.online_users / stats.total_users) * 100, 100) : 0;
@@ -191,8 +208,8 @@ const Dashboard = () => {
     },
     {
       title: translate('dashboard.today_traffic'),
-      value: `↑ ${stats.today_input_gb.toFixed(2)} GB`,
-      secondaryValue: `↓ ${stats.today_output_gb.toFixed(2)} GB`,
+      value: `↑ ${decimalFormatter.format(stats.today_input_gb)} GB`,
+      secondaryValue: `↓ ${decimalFormatter.format(stats.today_output_gb)} GB`,
       icon: <SwapVertOutlinedIcon fontSize="large" />,
       accent: chartColors[3],
       highlights: [],
@@ -212,7 +229,10 @@ const Dashboard = () => {
   const authTrendOption = useMemo(
     () => ({
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
+      tooltip: {
+        trigger: 'axis',
+        valueFormatter: (value: unknown) => numberFormatter.format(Number(value)),
+      },
       textStyle: { color: alpha(theme.palette.text.primary, 0.7) },
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: {
@@ -251,7 +271,7 @@ const Dashboard = () => {
         },
       ],
     }),
-    [theme, authTrendLabels, authTrendSeries, translate],
+    [theme, authTrendLabels, authTrendSeries, translate, numberFormatter],
   );
 
   const onlineDistributionOption = useMemo(
@@ -295,7 +315,10 @@ const Dashboard = () => {
   const trafficOption = useMemo(
     () => ({
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
+      tooltip: {
+        trigger: 'axis',
+        valueFormatter: (value: unknown) => `${decimalFormatter.format(Number(value))} GB`,
+      },
       legend: {
         data: [translate('dashboard.upload'), translate('dashboard.download')],
         top: 0,
@@ -341,7 +364,7 @@ const Dashboard = () => {
         },
       ],
     }),
-    [theme, trafficData, translate],
+    [theme, trafficData, translate, decimalFormatter],
   );
 
   return (
@@ -400,7 +423,7 @@ const Dashboard = () => {
                 {translate('dashboard.online_ratio')}
               </Typography>
                 <Typography variant="h3" sx={{ fontWeight: 900, my: 0.3, color: 'primary.main', fontVariantNumeric: 'tabular-nums' }}>
-                {onlineRatio.toFixed(1)}%
+                {percentFormatter.format(onlineRatio)}%
               </Typography>
               <LinearProgress
                 variant="determinate"
@@ -416,10 +439,10 @@ const Dashboard = () => {
               />
               <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.8 }}>
                   <Typography variant="caption" color="text.secondary">
-                  {translate('dashboard.online_count')} <Box component="span" sx={{ color: 'primary.main', fontWeight: 800 }}>{stats.online_users}</Box>
+                  {translate('dashboard.online_count')} <Box component="span" sx={{ color: 'primary.main', fontWeight: 800 }}>{numberFormatter.format(stats.online_users)}</Box>
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {translate('dashboard.total_count')} {stats.total_users}
+                  {translate('dashboard.total_count')} {numberFormatter.format(stats.total_users)}
                 </Typography>
               </Stack>
             </Box>
@@ -447,7 +470,7 @@ const Dashboard = () => {
               </Stack>
               <Typography variant="h6" sx={{ fontWeight: 800, mt: 0.35, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.025em' }}>
                   {label === 'dashboard.outstanding'
-                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value)
+                    ? currencyFormatter.format(value)
                     : numberFormatter.format(value)}
               </Typography>
               </CardContent>
@@ -499,7 +522,7 @@ const Dashboard = () => {
                   </Box>
                 </Stack>
                 {card.highlights.length > 0 && <Stack direction="row" spacing={0.5} sx={{ mt: 1, flexWrap: 'wrap' }}>
-                  {card.highlights.map((item) => <Chip key={item.label} label={`${item.label}: ${item.value}`} size="small" />)}
+                  {card.highlights.map((item) => <Chip key={item.label} label={`${item.label}: ${numberFormatter.format(item.value)}`} size="small" />)}
                 </Stack>}
               </CardContent>
             </Card>
@@ -525,7 +548,7 @@ const Dashboard = () => {
               </Typography>
             </Box>
             <Chip
-              label={`${translate('dashboard.ipv6_adoption')}: ${ipv6.adoption_rate.toFixed(1)}%`}
+              label={`${translate('dashboard.ipv6_adoption')}: ${percentFormatter.format(ipv6.adoption_rate)}%`}
               color="primary"
               sx={{ fontWeight: 600 }}
             />

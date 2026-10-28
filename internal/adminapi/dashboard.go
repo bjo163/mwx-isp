@@ -2,6 +2,7 @@ package adminapi
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
@@ -86,13 +87,16 @@ const (
 // series, and the distribution of online users across profiles — together with an
 // IPv6 adoption summary ([DashboardIPv6Stats]).
 //
-// "Today" is measured from the local start of day; the trend and traffic series
-// are zero-filled so every day/hour bucket is present even with no data, and
-// traffic is reported in GB (bytes divided by 1024^3). TodayAuthCount is an
-// estimate derived from sessions that started today, not a dedicated
-// authentication counter. A failure in any individual section is logged and that
-// section falls back to zero/empty rather than failing the whole response. Any
-// authenticated operator may call it.
+// "Today" is measured from the local start of day in the configured system
+// location (time.Local). The trend and traffic series are bucketed by explicit
+// instant windows rather than by SQL DATE()/date_trunc()/strftime('localtime'),
+// so the database session timezone cannot shift a point into a different column
+// than the Go-generated label. Buckets are zero-filled so every day/hour is
+// present even with no data, and traffic is reported in GB (bytes divided by
+// 1024^3). TodayAuthCount is an estimate derived from sessions that started
+// today, not a dedicated authentication counter. A failure in any individual
+// section is logged and that section falls back to zero/empty rather than
+// failing the whole response. Any authenticated operator may call it.
 //
 // @Summary get dashboard statistics
 // @Tags Dashboard
@@ -154,76 +158,112 @@ func registerDashboardRoutes() {
 	webserver.ApiGET("/dashboard/stats", GetDashboardStats)
 }
 
+// dashboardWindow is a half-open interval [start, end) covered by one point of
+// a dashboard time series.
+type dashboardWindow struct {
+	start time.Time
+	end   time.Time
+}
+
+// dayWindows returns consecutive calendar days in the time's location, ending
+// with the day that contains now.
+func dayWindows(now time.Time, days int) []dashboardWindow {
+	windows := make([]dashboardWindow, days)
+	for i := range windows {
+		start := startOfDay(now).AddDate(0, 0, i-days+1)
+		windows[i] = dashboardWindow{start: start, end: start.AddDate(0, 0, 1)}
+	}
+	return windows
+}
+
+// hourWindows returns consecutive clock hours, ending with the hour that
+// contains now.
+func hourWindows(now time.Time, hours int) []dashboardWindow {
+	windows := make([]dashboardWindow, hours)
+	next := startOfHour(now).Add(time.Hour)
+	for i := range windows {
+		start := next.Add(time.Duration(i-hours) * time.Hour)
+		windows[i] = dashboardWindow{start: start, end: start.Add(time.Hour)}
+	}
+	return windows
+}
+
+// countSessionsPerWindow counts accounting sessions that started inside each
+// window in a single statement. The per-window CASE keeps the boundaries as
+// instant comparisons, so the result does not depend on the database session
+// timezone the way DATE() or date_trunc() would.
+func countSessionsPerWindow(db *gorm.DB, windows []dashboardWindow) []int64 {
+	counts := make([]int64, len(windows))
+	selects := make([]string, len(windows))
+	args := make([]any, 0, len(windows)*2)
+	for i, w := range windows {
+		selects[i] = fmt.Sprintf("COUNT(CASE WHEN acct_start_time >= ? AND acct_start_time < ? THEN 1 END) AS bucket_%d", i)
+		args = append(args, w.start, w.end)
+	}
+	row := db.Model(&domain.RadiusAccounting{}).Select(strings.Join(selects, ", "), args...).Row()
+	dests := make([]any, len(counts))
+	for i := range counts {
+		dests[i] = &counts[i]
+	}
+	if err := row.Scan(dests...); err != nil {
+		logDashboardQueryError("count sessions per window", err)
+	}
+	return counts
+}
+
+// sumTrafficPerWindow returns the uploaded and downloaded bytes of sessions
+// that started inside each window, using the same instant boundaries as
+// [countSessionsPerWindow].
+func sumTrafficPerWindow(db *gorm.DB, windows []dashboardWindow) (upload, download []float64) {
+	upload = make([]float64, len(windows))
+	download = make([]float64, len(windows))
+	selects := make([]string, 0, len(windows)*2)
+	args := make([]any, 0, len(windows)*4)
+	for i, w := range windows {
+		selects = append(selects, fmt.Sprintf("COALESCE(SUM(CASE WHEN acct_start_time >= ? AND acct_start_time < ? THEN acct_input_total END), 0) AS upload_%d", i))
+		args = append(args, w.start, w.end)
+	}
+	for i, w := range windows {
+		selects = append(selects, fmt.Sprintf("COALESCE(SUM(CASE WHEN acct_start_time >= ? AND acct_start_time < ? THEN acct_output_total END), 0) AS download_%d", i))
+		args = append(args, w.start, w.end)
+	}
+	row := db.Model(&domain.RadiusAccounting{}).Select(strings.Join(selects, ", "), args...).Row()
+	dests := make([]any, 0, len(windows)*2)
+	for i := range upload {
+		dests = append(dests, &upload[i])
+	}
+	for i := range download {
+		dests = append(dests, &download[i])
+	}
+	if err := row.Scan(dests...); err != nil {
+		logDashboardQueryError("sum traffic per window", err)
+	}
+	return upload, download
+}
+
 func fetchAuthTrend(db *gorm.DB, now time.Time) []DashboardAuthTrendPoint {
-	const days = 7
-	result := make([]DashboardAuthTrendPoint, days)
-	seriesEnd := startOfDay(now).Add(24 * time.Hour)
-	seriesStart := seriesEnd.AddDate(0, 0, -days)
-	bucketExpr := dateBucketExpression(db, "acct_start_time", "day")
-	var rows []struct {
-		Bucket string
-		Count  int64
-	}
-	if err := db.Model(&domain.RadiusAccounting{}).
-		Select(fmt.Sprintf("%s AS bucket, COUNT(*) AS count", bucketExpr)).
-		Where("acct_start_time >= ? AND acct_start_time < ?", seriesStart, seriesEnd).
-		Group("bucket").
-		Order("bucket").
-		Scan(&rows).Error; err != nil {
-		logDashboardQueryError("fetch auth trend", err)
-	}
-	counts := make(map[string]int64, len(rows))
-	for _, row := range rows {
-		counts[row.Bucket] = row.Count
-	}
-	for i := 0; i < days; i++ {
-		day := seriesStart.AddDate(0, 0, i)
-		key := day.Format(dateKeyFormat)
+	windows := dayWindows(now, 7)
+	counts := countSessionsPerWindow(db, windows)
+	result := make([]DashboardAuthTrendPoint, len(windows))
+	for i, w := range windows {
 		result[i] = DashboardAuthTrendPoint{
-			Date:  key,
-			Count: counts[key],
+			Date:  w.start.Format(dateKeyFormat),
+			Count: counts[i],
 		}
 	}
 	return result
 }
 
 func fetchTrafficStats(db *gorm.DB, now time.Time) []DashboardTrafficPoint {
-	const hours = 24
-	result := make([]DashboardTrafficPoint, hours)
-	hourEnd := startOfHour(now).Add(time.Hour)
-	hourStart := hourEnd.Add(-hours * time.Hour)
-	bucketExpr := dateBucketExpression(db, "acct_start_time", "hour")
-	var rows []struct {
-		Bucket   string
-		Upload   float64
-		Download float64
-	}
-	if err := db.Model(&domain.RadiusAccounting{}).
-		Select(fmt.Sprintf("%s AS bucket, COALESCE(SUM(acct_input_total), 0) AS upload, COALESCE(SUM(acct_output_total), 0) AS download", bucketExpr)).
-		Where("acct_start_time >= ? AND acct_start_time < ?", hourStart, hourEnd).
-		Group("bucket").
-		Order("bucket").
-		Scan(&rows).Error; err != nil {
-		logDashboardQueryError("fetch traffic stats", err)
-	}
-	lookup := make(map[string]struct {
-		Upload   float64
-		Download float64
-	})
-	for _, row := range rows {
-		lookup[row.Bucket] = struct {
-			Upload   float64
-			Download float64
-		}{Upload: row.Upload / bytesInGB, Download: row.Download / bytesInGB}
-	}
-	for i := 0; i < hours; i++ {
-		hour := hourStart.Add(time.Duration(i) * time.Hour)
-		key := hour.Format(hourKeyFormat)
-		if val, ok := lookup[key]; ok {
-			result[i] = DashboardTrafficPoint{Hour: key, UploadGB: val.Upload, DownloadGB: val.Download}
-			continue
+	windows := hourWindows(now, 24)
+	upload, download := sumTrafficPerWindow(db, windows)
+	result := make([]DashboardTrafficPoint, len(windows))
+	for i, w := range windows {
+		result[i] = DashboardTrafficPoint{
+			Hour:       w.start.Format(hourKeyFormat),
+			UploadGB:   upload[i] / bytesInGB,
+			DownloadGB: download[i] / bytesInGB,
 		}
-		result[i] = DashboardTrafficPoint{Hour: key, UploadGB: 0, DownloadGB: 0}
 	}
 	return result
 }
@@ -303,26 +343,6 @@ func fetchIPv6Stats(db *gorm.DB, onlineTotal int64) DashboardIPv6Stats {
 		stats.AdoptionRate = float64(stats.OnlineWithIPv6) / float64(onlineTotal) * 100
 	}
 	return stats
-}
-
-func dateBucketExpression(db *gorm.DB, field, granularity string) string {
-	switch db.Name() { //nolint:staticcheck
-	case "postgres":
-		switch granularity {
-		case "day":
-			return fmt.Sprintf("DATE(%s)", field)
-		case "hour":
-			return fmt.Sprintf("TO_CHAR(date_trunc('hour', %s), 'YYYY-MM-DD HH24:00')", field)
-		}
-	default:
-		switch granularity {
-		case "day":
-			return fmt.Sprintf("strftime('%%Y-%%m-%%d', %s, 'localtime')", field)
-		case "hour":
-			return fmt.Sprintf("strftime('%%Y-%%m-%%d %%H:00', %s, 'localtime')", field)
-		}
-	}
-	return field
 }
 
 func startOfDay(t time.Time) time.Time {

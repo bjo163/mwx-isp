@@ -91,7 +91,7 @@ func TestGetDashboardStats(t *testing.T) {
 		{
 			Username:        "alice",
 			AcctSessionId:   "acct-1",
-			AcctStartTime:   now.Add(-1 * time.Minute), // 1 minute ago - within today and 24h window
+			AcctStartTime:   startOfDay(now).Add(time.Minute), // today, inside the 24h window
 			AcctInputTotal:  int64(1 * 1024 * 1024 * 1024),
 			AcctOutputTotal: int64(2 * 1024 * 1024 * 1024),
 		},
@@ -147,17 +147,22 @@ func TestGetDashboardStats(t *testing.T) {
 		trendTotal += point.Count
 	}
 	assert.Equal(t, int64(3), trendTotal)
+	// acct-1 started today, so it must land in the last (current) day bucket.
+	assert.Equal(t, int64(1), stats.AuthTrend[len(stats.AuthTrend)-1].Count)
 
 	require.Len(t, stats.Traffic24h, 24)
-	// Calculate total traffic from all 24h points
-	// Note: Due to timezone differences between Go's time.Now() and SQLite's localtime,
-	// we check total traffic sum instead of specific hour to ensure CI compatibility
 	var totalDownloadGB float64
+	nonZeroBuckets := 0
 	for _, point := range stats.Traffic24h {
 		totalDownloadGB += point.DownloadGB
+		if point.DownloadGB > 0 {
+			nonZeroBuckets++
+		}
 	}
-	// The first accounting record (acct-1) has 2GB download and was created 1 minute ago
+	// Only acct-1 falls inside the 24h window, and it must not be smeared
+	// across buckets by a timezone conversion.
 	assert.InDelta(t, 2.0, totalDownloadGB, 0.01)
+	assert.Equal(t, 1, nonZeroBuckets)
 	assert.GreaterOrEqual(t, stats.TodayInputGB, 1.0)
 	assert.GreaterOrEqual(t, stats.TodayOutputGB, 2.0)
 
@@ -177,6 +182,51 @@ func TestGetDashboardStats(t *testing.T) {
 	require.Equal(t, profiles[1].Name, premiumProfile.ProfileName)
 	assert.Equal(t, int64(1), premiumProfile.Value)
 	assert.Equal(t, int64(1), unassignedCount)
+}
+
+// TestDayWindowsUseLocalCalendarDays pins the day buckets to the application's
+// timezone. The old implementation grouped with SQL DATE()/strftime('localtime'),
+// whose timezone comes from the database session, so a deployment whose database
+// ran in UTC filed early-morning local sessions under the previous day.
+func TestDayWindowsUseLocalCalendarDays(t *testing.T) {
+	previous := time.Local
+	time.Local = time.FixedZone("UTC+7", 7*60*60)
+	t.Cleanup(func() { time.Local = previous })
+
+	now := time.Date(2026, 3, 10, 10, 0, 0, 0, time.Local)
+	windows := dayWindows(now, 3)
+	require.Len(t, windows, 3)
+
+	assert.Equal(t, "2026-03-08", windows[0].start.Format(dateKeyFormat))
+	assert.Equal(t, "2026-03-09", windows[1].start.Format(dateKeyFormat))
+	assert.Equal(t, "2026-03-10", windows[2].start.Format(dateKeyFormat))
+	for _, w := range windows {
+		assert.Equal(t, 0, w.start.Hour())
+		assert.Equal(t, w.start.AddDate(0, 0, 1), w.end)
+	}
+}
+
+// TestCountSessionsPerWindowBucketsByInstant verifies that sessions are assigned
+// by comparing the stored instant against local window boundaries. The 00:30
+// record is still the previous UTC day on a UTC database, so any timezone-aware
+// SQL grouping would place it in the wrong bucket.
+func TestCountSessionsPerWindowBucketsByInstant(t *testing.T) {
+	db := setupTestDB(t)
+
+	previous := time.Local
+	time.Local = time.FixedZone("UTC+7", 7*60*60)
+	t.Cleanup(func() { time.Local = previous })
+
+	windows := dayWindows(time.Date(2026, 3, 10, 10, 0, 0, 0, time.Local), 3)
+	records := []*domain.RadiusAccounting{
+		{Username: "first-day", AcctSessionId: "win-1", AcctStartTime: time.Date(2026, 3, 8, 23, 30, 0, 0, time.Local)},
+		{Username: "last-day", AcctSessionId: "win-2", AcctStartTime: time.Date(2026, 3, 10, 0, 30, 0, 0, time.Local)},
+	}
+	for _, record := range records {
+		require.NoError(t, db.Create(record).Error)
+	}
+
+	assert.Equal(t, []int64{1, 0, 1}, countSessionsPerWindow(db, windows))
 }
 
 // TestGetDashboardIPv6Stats exercises the IPv6 dimension of the dashboard along
