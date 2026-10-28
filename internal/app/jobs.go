@@ -416,7 +416,9 @@ func (a *Application) SchedFUPCheckTask() {
 		return
 	}
 	for _, tenant := range tenants {
+		fupTenantAttempts.Add(1)
 		if err := a.runFUPCheckForTenant(tenant.ID, now, monthStart); err != nil {
+			fupTenantFailures.Add(1)
 			zap.S().Error("tenant FUP check failed", zap.Int64("tenant_id", tenant.ID), zap.Error(err))
 			a.enqueueSchedulerFailure("isp-fup", fmt.Sprintf("FUP failed for tenant %d", tenant.ID))
 		}
