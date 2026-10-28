@@ -16,15 +16,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo/v4"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/webserver"
+	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
 
 const (
-	brandingRecordID = 1
-	maxBrandLogoSize = 1 << 20
+	brandingRecordID      = 1
+	maxBrandLogoSize      = 1 << 20
+	maxBrandLogoDimension = 2048
 )
 
 var brandLogoNamePattern = regexp.MustCompile(`^logo-[a-f0-9]{32}\.png$`)
@@ -361,8 +362,15 @@ func readBrandLogo(file io.Reader) ([]byte, error) {
 		return nil, errors.New("logo file must be between 1 byte and 1 MiB")
 	}
 	config, err := png.DecodeConfig(bytes.NewReader(content))
-	if err != nil || config.Width < 1 || config.Height < 1 || config.Width > 2048 || config.Height > 2048 {
+	if err != nil || config.Width < 1 || config.Height < 1 || config.Width > maxBrandLogoDimension || config.Height > maxBrandLogoDimension {
 		return nil, errors.New("logo must be a valid PNG no larger than 2048 by 2048 pixels")
+	}
+	// DecodeConfig stops after IHDR, so a file truncated behind a well-formed
+	// header would pass and be published as a logo that cannot render. Decode
+	// the whole stream too; the dimension cap above bounds the allocation, so a
+	// crafted header cannot turn this into a decompression bomb.
+	if _, err := png.Decode(bytes.NewReader(content)); err != nil {
+		return nil, errors.New("logo must be a complete, decodable PNG")
 	}
 	return content, nil
 }
