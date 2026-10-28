@@ -1,0 +1,6670 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "author": "The Babel Team (https://babel.dev/team)",
+      "bom-ref": "@babel/runtime@7.29.7",
+      "description": "babel's modular runtime helpers",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@babel/runtime/-/runtime-7.29.7.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/babel/babel.git"
+        },
+        {
+          "type": "website",
+          "url": "https://babel.dev/docs/en/next/babel-runtime"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "36af0e8465a264864657a84b1e8c8028b2dc26284fff115e04c189a14af14d7da9b08f1d0a27f32e16484856fe5564b7c053110e6086c3947e74ec920aa3cb87"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@babel/runtime",
+      "properties": [],
+      "purl": "pkg:npm/%40babel/runtime@7.29.7",
+      "scope": "required",
+      "type": "library",
+      "version": "7.29.7"
+    },
+    {
+      "author": "Jasmin Noetzli",
+      "bom-ref": "@corvu/utils@0.4.2",
+      "description": "Utilities for corvu",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@corvu/utils/-/utils-0.4.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/corvudev/corvu.git"
+        },
+        {
+          "type": "website",
+          "url": "https://corvu.dev"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/corvudev/corvu/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3b1da4632c72ecda1774a59d1de0c48d9c42970ccee1228cf29940695c260093f11cca80d2b2cea00b1afa1043c112e972d7fe6519c077fca482eb8989d9da4c"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@corvu/utils",
+      "properties": [],
+      "purl": "pkg:npm/%40corvu/utils@0.4.2",
+      "scope": "required",
+      "type": "library",
+      "version": "0.4.2"
+    },
+    {
+      "author": "Kye Hohenberger",
+      "bom-ref": "@emotion/babel-plugin@11.13.5",
+      "description": "A recommended babel preprocessing plugin for emotion, The Next Generation of CSS-in-JS.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/babel-plugin/-/babel-plugin-11.13.5.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://emotion.sh"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/emotion-js/emotion/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a711c2a53d9ec7ed2af871fdd7fcec747930fe55dde3af0320ddb3bdfbcbb4f28b2cca3a8108fba0b39babc3e192bc4e65bfe0182ab4dd2dd9ecf0e14bca5db9"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/babel-plugin",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/babel-plugin@11.13.5",
+      "scope": "required",
+      "type": "library",
+      "version": "11.13.5"
+    },
+    {
+      "bom-ref": "@emotion/cache@11.14.0",
+      "description": "emotion's cache",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/cache/-/cache-11.14.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "2ff07595cfd3562624e037291b1b4055bc7467288a33992da08c9a7c6907eb383fb63fa603e344fff68f60a1b493c9021d21d526ba4ba5c02538111743749abc"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/cache",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/cache@11.14.0",
+      "scope": "required",
+      "type": "library",
+      "version": "11.14.0"
+    },
+    {
+      "bom-ref": "@emotion/hash@0.9.2",
+      "description": "A MurmurHash2 implementation",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/hash/-/hash-0.9.2.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "332aa5893646b8e9b7fb965149a68118fdd448bc3af841b2924c199ecd843c2e60f23278cfd3ab75963d6a9925dfe50ff7eb1dcfbe98624c0228fe6087c898de"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/hash",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/hash@0.9.2",
+      "scope": "required",
+      "type": "library",
+      "version": "0.9.2"
+    },
+    {
+      "bom-ref": "@emotion/is-prop-valid@1.4.0",
+      "description": "A function to check whether a prop is valid for HTML and SVG elements",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/is-prop-valid/-/is-prop-valid-1.4.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "4200f87f2b1c19c6db2b0266a8dbd4312134d8eb0751afa501629d1142092a0a9ee48c1148a77bf8a8626c459d68ac208cb8f40d148703d6e2008a86064d3997"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/is-prop-valid",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/is-prop-valid@1.4.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.4.0"
+    },
+    {
+      "bom-ref": "@emotion/memoize@0.9.0",
+      "description": "emotion's memoize utility",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/memoize/-/memoize-0.9.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "df41408fbfc4a09e66c153ce5a1032097f853df303ad579c24033e230f4d4684a5e0104041eaa3e1c0291c7517395bc83e02d50ec085a33fe1183fb94100f519"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/memoize",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/memoize@0.9.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.9.0"
+    },
+    {
+      "author": "Emotion Contributors",
+      "bom-ref": "@emotion/react@11.14.0",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/react/-/react-11.14.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3b4d3430b0c10dd93f1288493c552abe7a78aa71de62454fe41d31106d03fcbedc38a3fd91e7eed835e7f1d8fbe1c41fb04cd4aa1facaf547316a88bd68f8fa4"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/react",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/react@11.14.0",
+      "scope": "required",
+      "type": "library",
+      "version": "11.14.0"
+    },
+    {
+      "bom-ref": "@emotion/serialize@1.3.3",
+      "description": "serialization utils for emotion",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/serialize/-/serialize-1.3.3.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "108486aadeec48d587188efa842ef1d4292c8973da85bc443ab0b94639854494ea2f210af7ff6166f05b8989fbd1dc38c2ec0c2a210c094951e995d349642ac4"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/serialize",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/serialize@1.3.3",
+      "scope": "required",
+      "type": "library",
+      "version": "1.3.3"
+    },
+    {
+      "bom-ref": "@emotion/sheet@1.4.0",
+      "description": "emotion's stylesheet",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/sheet/-/sheet-1.4.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "7d3056f7ff2bdb0ddd5d660ce07081d51769f0d2e26cec36f9710b1f99b9f8091688bfcaa985fa75cd2429895a6322a3ad0e9db37dcc09d30f13082cdb3d6baa"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/sheet",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/sheet@1.4.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.4.0"
+    },
+    {
+      "bom-ref": "@emotion/styled@11.14.1",
+      "description": "styled API for emotion",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/styled/-/styled-11.14.1.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a84109b78d83b93a1ade0bab947e10a9cd6456936af303bc709b43cd4e3a4e39735a30e5b15c9ebed6024628d5ab74ab1ec44e4be81543c16779ad74f069cacf"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/styled",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/styled@11.14.1",
+      "scope": "required",
+      "type": "library",
+      "version": "11.14.1"
+    },
+    {
+      "bom-ref": "@emotion/unitless@0.10.0",
+      "description": "An object of css properties that don't accept values with units",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/unitless/-/unitless-0.10.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "745a0c52e400db4cefb554eec59c30e8e1e825882bcdf28cd6de76995c920c99cc4846b4f2bb84bdd6106e1bf2bbab2853e35e2d5777c8a7d37d3d0d795eaa1a"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/unitless",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/unitless@0.10.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.10.0"
+    },
+    {
+      "bom-ref": "@emotion/use-insertion-effect-with-fallbacks@1.2.0",
+      "description": "A wrapper package that uses `useInsertionEffect` or a fallback for it",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/use-insertion-effect-with-fallbacks/-/use-insertion-effect-with-fallbacks-1.2.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "c8932d55d1f9f6cc62fda54906993d150abe391f25979193f2859de7b52979a28454669be35256682140ec544ba0c2e5a0e645fdcff0b0fa1ef9b7c69912a00e"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/use-insertion-effect-with-fallbacks",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/use-insertion-effect-with-fallbacks@1.2.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.2.0"
+    },
+    {
+      "bom-ref": "@emotion/utils@1.4.2",
+      "description": "internal utils for emotion",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/utils/-/utils-1.4.2.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "def2dc951a1f1738886b7276c0387d8e36e4533f6a939562dc867f1524ca56207493e79fd1f3d5edd62b508ba06e0ba9603c7bbfdb9dfd28ebb443fc638c4ba0"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/utils",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/utils@1.4.2",
+      "scope": "required",
+      "type": "library",
+      "version": "1.4.2"
+    },
+    {
+      "bom-ref": "@emotion/weak-memoize@0.4.0",
+      "description": "A memoization function that uses a WeakMap",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@emotion/weak-memoize/-/weak-memoize-0.4.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b272aab4f5b4d6d374ba2ef2bbdac6bfaf5a257aff6bf630be5d75b148cdb4471173e9e0fe642b8852f4c0b5cc79fef88876bf1247ed6c3cd4f45f2215b1fece"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@emotion/weak-memoize",
+      "properties": [],
+      "purl": "pkg:npm/%40emotion/weak-memoize@0.4.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.4.0"
+    },
+    {
+      "author": "atomiks",
+      "bom-ref": "@floating-ui/core@1.8.0",
+      "description": "Positioning library for floating elements: tooltips, popovers, dropdowns, and more",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@floating-ui/core/-/core-1.8.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/floating-ui/floating-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://floating-ui.com"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d02219e62b69b3ff31ec11bc744221b39dc1bc2507d8f0a8a20b5a930453badf80ae6e7cb09a2827402e6612f0d87258211e5c30b34f0524bbdbcb0f868da485"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@floating-ui/core",
+      "properties": [],
+      "purl": "pkg:npm/%40floating-ui/core@1.8.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.8.0"
+    },
+    {
+      "author": "atomiks",
+      "bom-ref": "@floating-ui/dom@1.8.0",
+      "description": "Floating UI for the web",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@floating-ui/dom/-/dom-1.8.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/floating-ui/floating-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://floating-ui.com"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "c974abcde1d905365a74b3a57f28429091cd78b2671d19d1227c1d678d0bed989a02dac1c28625b03ad7defe7307552d93b08b7f370e5675555a85c4932ec27a"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@floating-ui/dom",
+      "properties": [],
+      "purl": "pkg:npm/%40floating-ui/dom@1.8.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.8.0"
+    },
+    {
+      "author": "atomiks",
+      "bom-ref": "@floating-ui/utils@0.2.12",
+      "description": "Utilities for Floating UI",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@floating-ui/utils/-/utils-0.2.12.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/floating-ui/floating-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://floating-ui.com"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "1e90a8f2d996ccb55a779b36775f44840cf9ceaaeb43ab3af6a77a9a83cc42f90eb92c034f562045f59256e7387a79eaae0bf7387a6988e18c43ba02d77c88c3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@floating-ui/utils",
+      "properties": [],
+      "purl": "pkg:npm/%40floating-ui/utils@0.2.12",
+      "scope": "required",
+      "type": "library",
+      "version": "0.2.12"
+    },
+    {
+      "bom-ref": "@internationalized/number@3.6.8",
+      "description": "Internationalized number formatting and parsing utilities",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@internationalized/number/-/number-3.6.8.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/adobe/react-spectrum"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f1498c1626b8e8352dfa4f7bcca77d7ca5977161d1fa4f1a7b7798cc82c44ee4f629b22f2f239f69cef37acc3eb0975100067b43da4cd4c936d9a5e9d8b0f422"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "@internationalized/number",
+      "properties": [],
+      "purl": "pkg:npm/%40internationalized/number@3.6.8",
+      "scope": "required",
+      "type": "library",
+      "version": "3.6.8"
+    },
+    {
+      "author": "jer3m01 \u003cjer3m01@jer3m01.com\u003e",
+      "bom-ref": "@kobalte/core@0.13.14",
+      "description": "Unstyled components and primitives for building accessible web apps and design systems with SolidJS.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@kobalte/core/-/core-0.13.14.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/kobaltedev/kobalte.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/kobaltedev/kobalte/tree/main/packages/core#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/kobaltedev/kobalte/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "481541d659ef61b62ddb1dededf1b4968e5f18b11b1d0e8f208dcd0cfbdaf2f0f97b6bf9dce9fce195508ae224d1723fe7947819085d7a7ed87a6f91fd747cb9"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@kobalte/core",
+      "properties": [],
+      "purl": "pkg:npm/%40kobalte/core@0.13.14",
+      "scope": "required",
+      "type": "library",
+      "version": "0.13.14"
+    },
+    {
+      "author": "Fabien Marie-Louise \u003cfabienml.dev@gmail.com\u003e",
+      "bom-ref": "@kobalte/utils@0.9.2",
+      "description": "Common utilities and types for Kobalte.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@kobalte/utils/-/utils-0.9.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/kobaltedev/kobalte.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/kobaltedev/kobalte/tree/main/packages/utils#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/kobaltedev/kobalte/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "8d1557afecec547c730d746887e083797cef0ac149eae88786aa8d436e82c3d66c6770fa9ea3d406dd60195b63d993e644bddaf54935bfc0f5689f3f235d83a3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@kobalte/utils",
+      "properties": [],
+      "purl": "pkg:npm/%40kobalte/utils@0.9.2",
+      "scope": "required",
+      "type": "library",
+      "version": "0.9.2"
+    },
+    {
+      "author": "MUI Team",
+      "bom-ref": "@mui/core-downloads-tracker@7.3.11",
+      "description": "Internal package to track number of downloads of our design system libraries.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@mui/core-downloads-tracker/-/core-downloads-tracker-7.3.11.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/mui/material-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://mui.com/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/mui/material-ui/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "6bb23f6ff9c14dd5d8cf670e4a5126910f56584d71f051e9a8c8453e9f98d553c5c5c3b0f751b910b3870114001923f2e55f940a026e6ba2bfd71ef46c0b503f"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@mui/core-downloads-tracker",
+      "properties": [],
+      "purl": "pkg:npm/%40mui/core-downloads-tracker@7.3.11",
+      "scope": "required",
+      "type": "library",
+      "version": "7.3.11"
+    },
+    {
+      "author": "MUI Team",
+      "bom-ref": "@mui/icons-material@7.3.11",
+      "description": "Material Design icons distributed as SVG React components.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@mui/icons-material/-/icons-material-7.3.11.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/mui/material-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://mui.com/material-ui/material-icons/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/mui/material-ui/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "fa1cf98a5c076777637797acdec084acb8a8a9efcd8597184ec57f4cd5d900c74975bdb7178c73263aa79d9767bab7374b5fa27ad72cb1136a89e3a13d02d9ed"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@mui/icons-material",
+      "properties": [],
+      "purl": "pkg:npm/%40mui/icons-material@7.3.11",
+      "scope": "required",
+      "type": "library",
+      "version": "7.3.11"
+    },
+    {
+      "author": "MUI Team",
+      "bom-ref": "@mui/material@7.3.11",
+      "description": "Material UI is an open-source React component library that implements Google's Material Design. It's comprehensive and can be used in production out of the box.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@mui/material/-/material-7.3.11.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/mui/material-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://mui.com/material-ui/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/mui/material-ui/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "caaf1b3dcdcbc4ec0a456a5c8d1803918166a4ce9a2a50117c449398e41cbcb605789c2d1ed7b6b70ea1243adbf2c93cc1cbe90e9ac710755aa1453432c94893"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@mui/material",
+      "properties": [],
+      "purl": "pkg:npm/%40mui/material@7.3.11",
+      "scope": "required",
+      "type": "library",
+      "version": "7.3.11"
+    },
+    {
+      "author": "MUI Team",
+      "bom-ref": "@mui/private-theming@7.3.11",
+      "description": "Private - The React theme context to be shared between `@mui/styles` and `@mui/material`.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@mui/private-theming/-/private-theming-7.3.11.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/mui/material-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/mui/material-ui/tree/master/packages/mui-private-theming"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/mui/material-ui/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f41f982a6b347d11db36baa9f6d393fc335b367539832bc9d68dea0065dfabc1a665c6c99c4dc0b7dc74ed9affa34a648738386837705d5a9ee3e01c82d3823c"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@mui/private-theming",
+      "properties": [],
+      "purl": "pkg:npm/%40mui/private-theming@7.3.11",
+      "scope": "required",
+      "type": "library",
+      "version": "7.3.11"
+    },
+    {
+      "author": "MUI Team",
+      "bom-ref": "@mui/styled-engine@7.3.10",
+      "description": "styled() API wrapper package for emotion.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@mui/styled-engine/-/styled-engine-7.3.10.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/mui/material-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://mui.com/system/styled/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/mui/material-ui/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "5b113d4a217cc6c90042a1a3b29d29a170a40aab285c512c4abd070577c0a6618747e0c19d7469fb3e3a56c96d8388293cce19f7a0de0104697803a784d83b36"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@mui/styled-engine",
+      "properties": [],
+      "purl": "pkg:npm/%40mui/styled-engine@7.3.10",
+      "scope": "required",
+      "type": "library",
+      "version": "7.3.10"
+    },
+    {
+      "author": "MUI Team",
+      "bom-ref": "@mui/system@7.3.11",
+      "description": "MUI System is a set of CSS utilities to help you build custom designs more efficiently. It makes it possible to rapidly lay out custom designs.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@mui/system/-/system-7.3.11.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/mui/material-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://mui.com/system/getting-started/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/mui/material-ui/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ee2cf019674d6b000aa4129c465c7b7f68059c00239804815af31cc97e1860478b385b1b7c645b5181889ef9c07147aa977acfc48ec5f45b78a18d8e2d1cf8e2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@mui/system",
+      "properties": [],
+      "purl": "pkg:npm/%40mui/system@7.3.11",
+      "scope": "required",
+      "type": "library",
+      "version": "7.3.11"
+    },
+    {
+      "author": "MUI Team",
+      "bom-ref": "@mui/types@7.4.12",
+      "description": "Utility types for Material UI.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@mui/types/-/types-7.4.12.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/mui/material-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/mui/material-ui/tree/master/packages/mui-types"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/mui/material-ui/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "88a340176bbd3f34888f8d028ef2895b1157268d76da35d576b99d87484c61df8547e36e24c92bfcbf3c5f058b091889e4fd63faec9a736e7e2a9e980b886eeb"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@mui/types",
+      "properties": [],
+      "purl": "pkg:npm/%40mui/types@7.4.12",
+      "scope": "required",
+      "type": "library",
+      "version": "7.4.12"
+    },
+    {
+      "author": "MUI Team",
+      "bom-ref": "@mui/utils@7.3.11",
+      "description": "Utility functions for React components.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@mui/utils/-/utils-7.3.11.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/mui/material-ui.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/mui/material-ui/tree/master/packages/mui-utils"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/mui/material-ui/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "5d38c69e27f0b5e83bd7f8a3fb47bb63b77e870ca7b4c60fe703e803f83676b7461fe16592f8f0cb439fad5a4a05b68ebe87eae3353f2c8c946722a0996bb5f2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@mui/utils",
+      "properties": [],
+      "purl": "pkg:npm/%40mui/utils@7.3.11",
+      "scope": "required",
+      "type": "library",
+      "version": "7.3.11"
+    },
+    {
+      "author": "Federico Zivolo \u003cfederico.zivolo@gmail.com\u003e",
+      "bom-ref": "@popperjs/core@2.11.8",
+      "description": "Tooltip and Popover Positioning Engine",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@popperjs/core/-/core-2.11.8.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3f5b2dd1a92c0ab9fdb06661a7c18c63006742c6ef016b19017e38a1734dbcb1c6a8039ca15c668d98a886cb7043b4aa2a76d1e3b6a474d8beba57960fcfa0e8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@popperjs/core",
+      "properties": [],
+      "purl": "pkg:npm/%40popperjs/core@2.11.8",
+      "scope": "required",
+      "type": "library",
+      "version": "2.11.8"
+    },
+    {
+      "author": "David Di Biase \u003cdave@solidjs.com\u003e",
+      "bom-ref": "@solid-primitives/event-listener@2.4.6",
+      "description": "SolidJS Primitives to manage creating event listeners.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/event-listener/-/event-listener-2.4.6.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/event-listener"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "e48d1825c4d56085a8326801491381646733fb29a17b0fe91938367475bbe0152314ab15f0b8b86ce65897460018fe261f0e68e1405df7f0447aca81722df0c7"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/event-listener",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/event-listener@2.4.6",
+      "scope": "required",
+      "type": "library",
+      "version": "2.4.6"
+    },
+    {
+      "author": "Damian Tarnawski @thetarnav \u003cgthetarnav@gmail.com\u003e",
+      "bom-ref": "@solid-primitives/keyed@1.5.3",
+      "description": "Control Flow primitives and components that require specifying explicit keys to identify or rerender elements.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/keyed/-/keyed-1.5.3.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/keyed"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ccd69db7260184948e8d7b68824187991c6319dcfd28773cb06195006954001904f01103dad6c8668c64c12ab33b075ef0e714107d1b6f90cb65458832fc8148"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/keyed",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/keyed@1.5.3",
+      "scope": "required",
+      "type": "library",
+      "version": "1.5.3"
+    },
+    {
+      "author": "Damian Tarnawski @thetarnav \u003cgthetarnav@gmail.com\u003e",
+      "bom-ref": "@solid-primitives/map@0.4.13",
+      "description": "The Map \u0026 WeakMap data structures as a reactive signals.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/map/-/map-0.4.13.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/map"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/solidjs-community/solid-primitives/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "075cf215bb224d0bea3ebf9cb8f0973bbdac46e7331bd4b09dcaa4e4fef83421b0d5513ca9afd1cbd1a57c8d5efd575e4181e36a7f9791b137aced865bfa8a7b"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/map",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/map@0.4.13",
+      "scope": "required",
+      "type": "library",
+      "version": "0.4.13"
+    },
+    {
+      "author": "David Di Biase \u003cdave@solidjs.com\u003e",
+      "bom-ref": "@solid-primitives/media@2.3.6",
+      "description": "Primitives for media query and device features",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/media/-/media-2.3.6.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/media"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a64e3d80f3aafd4311509fa94d2ace7c1891f312634581d721fd6247f8d29f243f2aba14f995e1919cdabc2ee1bdfa76bc978e4d6e64dbf1cdd2bdd0d5527b3f"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/media",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/media@2.3.6",
+      "scope": "required",
+      "type": "library",
+      "version": "2.3.6"
+    },
+    {
+      "author": "Damian Tarnawski \u003cgthetarnav@gmail.com\u003e",
+      "bom-ref": "@solid-primitives/props@3.2.4",
+      "description": "Library of primitives focused around component props.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/props/-/props-3.2.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/props"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3175ddbe2d93481e9dfb437ab9e03f1cfd63fca87d48473859d17564330bc0f6a0c56ea92071d24bdc5b44ed118ea495a4d3f88f49f10964f5871dc290936134"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/props",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/props@3.2.4",
+      "scope": "required",
+      "type": "library",
+      "version": "3.2.4"
+    },
+    {
+      "author": "Damian Tarnawski @thetarnav \u003cgthetarnav@gmail.com\u003e",
+      "bom-ref": "@solid-primitives/refs@1.1.4",
+      "description": "Library of primitives, components and directives for SolidJS that help managing references to JSX elements.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/refs/-/refs-1.1.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/refs"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "6cb8f022ce993eef0d427bb0d38b14dd973ca8a4a96dcd2e99453f3b84877faa1639d3b8f9d1d8f2f6f54fb0b86ff4e0d74dfef561abeac104d3e34595b681fc"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/refs",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/refs@1.1.4",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.4"
+    },
+    {
+      "author": "Moshe Udimar",
+      "bom-ref": "@solid-primitives/resize-observer@2.2.0",
+      "description": "Reactive primitives for observing resizing of HTML elements.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/resize-observer/-/resize-observer-2.2.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/resize-observer"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f45baefc45817868fe6ad187449a7bd072a175f6a59a98f0c58f1adf63598b174b3667c2278e407e12d036beae3b31136db88cc788822a54eb27c2990870b65b"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/resize-observer",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/resize-observer@2.2.0",
+      "scope": "required",
+      "type": "library",
+      "version": "2.2.0"
+    },
+    {
+      "author": "Damian Tarnawski @thetarnav \u003cgthetarnav@gmail.com\u003e",
+      "bom-ref": "@solid-primitives/rootless@1.5.4",
+      "description": "A collection of helpers that aim to simplify using reactive primitives outside of reactive roots, and managing disposal of reactive roots.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/rootless/-/rootless-1.5.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/rootless"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "4ce2196b55547d527ef679027116a3c37538b7dbc138fd47c57d561cd4db5eadf6997c25a93bd49c2e024488a5a2172bc81913f6ed99921503487453686a79e6"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/rootless",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/rootless@1.5.4",
+      "scope": "required",
+      "type": "library",
+      "version": "1.5.4"
+    },
+    {
+      "author": "Damian Tarnawski \u003cgthetarnav@gmail.com\u003e",
+      "bom-ref": "@solid-primitives/static-store@0.1.4",
+      "description": "Primitives for creating small reactive objects that doesn't change their shape over time - don't need a proxy wrapper.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/static-store/-/static-store-0.1.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/static-store"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/solidjs-community/solid-primitives/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "2e0b5569506d07b11b992e3e3346fcc58e48abaa5459706c202e1582dac528318377209a0edf3cb079347d4971d449f19bf5d99d9c8b5c90014686b7f518c9a8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/static-store",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/static-store@0.1.4",
+      "scope": "required",
+      "type": "library",
+      "version": "0.1.4"
+    },
+    {
+      "author": "Alex Lohr \u003calex.lohr@logmein.com\u003e",
+      "bom-ref": "@solid-primitives/storage@1.3.11",
+      "description": "Primitive that provides reactive wrappers for storage access",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/storage/-/storage-1.3.11.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/solidjs-community/solid-primitives/tree/main/packages/storage"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3e94164774da4f11c82456c8f59b2c61333801aebb835bc9220a6ce133e1717cc7aaaa26acf008bde142d851bb4834288bd61089af055418e28042f3889a5f22"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/storage",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/storage@1.3.11",
+      "scope": "required",
+      "type": "library",
+      "version": "1.3.11"
+    },
+    {
+      "author": "Damian Tarnawski \u003cgthetarnav@gmail.com\u003e",
+      "bom-ref": "@solid-primitives/transition-group@1.1.2",
+      "description": "Reactive primitives for implementing transition effects in SolidJS",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/transition-group/-/transition-group-1.1.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/transition-group"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/solidjs-community/solid-primitives/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "8271d2d0e99c7637a81cdf67eca86ef0a36b3a545cf1adb07844c3b76613ea8d73796fd7b540ba0dbdd0f6990c53ff5c08a74498de1bd1aff8d4c2801d187358"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/transition-group",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/transition-group@1.1.2",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.2"
+    },
+    {
+      "author": "Damian Tarnawski \u003cgthetarnav@gmail.com\u003e",
+      "bom-ref": "@solid-primitives/trigger@1.2.4",
+      "description": "A set of primitives based on Solid signals, used to trigger computations.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/trigger/-/trigger-1.2.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://primitives.solidjs.community/package/trigger"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/solidjs-community/solid-primitives/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "26ed1ef99383ee1a4ea7b9e9b498a6bc34991d616f22f17d88158cbeec2ddf4b265fb739c2607c2a673401d0eebf4c0e4e2d3a3d0d49e48acfd5625b1f6c9405"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/trigger",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/trigger@1.2.4",
+      "scope": "required",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "author": "Damian Tarnawski @thetarnav \u003cgthetarnav@gmail.com\u003e",
+      "bom-ref": "@solid-primitives/utils@6.4.1",
+      "description": "A bunch of reactive utility types and functions, for building primitives with Solid.js",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@solid-primitives/utils/-/utils-6.4.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/solidjs-community/solid-primitives.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/solidjs-community/solid-primitives/tree/main/packages/utils#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/solidjs-community/solid-primitives/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "212481e505f5a8fdb29eb85e229630738a0a479372e2c88db94c9fd6a6678b2f8897ea7f3ed0c1d102b50e795ef27a221e9c110f78293ddb9b382dea23f65a9a"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@solid-primitives/utils",
+      "properties": [],
+      "purl": "pkg:npm/%40solid-primitives/utils@6.4.1",
+      "scope": "required",
+      "type": "library",
+      "version": "6.4.1"
+    },
+    {
+      "author": "강동윤 \u003ckdy1997.dev@gmail.com\u003e",
+      "bom-ref": "@swc/helpers@0.5.23",
+      "description": "External helpers for the swc project.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.23.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/swc-project/swc.git"
+        },
+        {
+          "type": "website",
+          "url": "https://swc.rs"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/swc-project/swc/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "e654ac30e4d751178f8250dfbee01052a9067a4f47836924b0e61acb69b4f9747ef9bd8d5982ffe2c5b2baf54122cf282a725ac64762f7085a2ffb2a375dda7f"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "@swc/helpers",
+      "properties": [],
+      "purl": "pkg:npm/%40swc/helpers@0.5.23",
+      "scope": "required",
+      "type": "library",
+      "version": "0.5.23"
+    },
+    {
+      "bom-ref": "@tanstack/match-sorter-utils@8.19.4",
+      "description": "A fork of match-sorter with separated filtering and sorting phases",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@tanstack/match-sorter-utils/-/match-sorter-utils-8.19.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/TanStack/table.git"
+        },
+        {
+          "type": "website",
+          "url": "https://tanstack.com/table"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "5a8d622add9bf4e4fb77e60686f10f0f70d7bcfbf67ad4eeb08321314a06edf6e19b17170ad223243132832f756362459701b28ea8813d1a3399eed40fc868aa"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@tanstack/match-sorter-utils",
+      "properties": [],
+      "purl": "pkg:npm/%40tanstack/match-sorter-utils@8.19.4",
+      "scope": "required",
+      "type": "library",
+      "version": "8.19.4"
+    },
+    {
+      "author": "tannerlinsley",
+      "bom-ref": "@tanstack/query-core@5.103.2",
+      "description": "The framework agnostic core that powers TanStack Query",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.103.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/TanStack/query.git"
+        },
+        {
+          "type": "website",
+          "url": "https://tanstack.com/query"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "23c0e415796ce635cbaad9bcf90a4e844986d3b8486e5852645cda7e0f701ec31212f33350bcbd84ad7bc14d53fda85f84c6ed2132616f1badc300a88a1911ec"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@tanstack/query-core",
+      "properties": [],
+      "purl": "pkg:npm/%40tanstack/query-core@5.103.2",
+      "scope": "required",
+      "type": "library",
+      "version": "5.103.2"
+    },
+    {
+      "author": "tannerlinsley",
+      "bom-ref": "@tanstack/query-devtools@5.103.2",
+      "description": "Developer tools to interact with and visualize the TanStack Query cache",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@tanstack/query-devtools/-/query-devtools-5.103.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/TanStack/query.git"
+        },
+        {
+          "type": "website",
+          "url": "https://tanstack.com/query"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "416fae56d4fb75971cf4a326290f38e98c36e61ed63e133571f09861a4a49263ea90adfd83e0a3d6d700b7e1207beeab055150bcdc98967d0580000771819274"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@tanstack/query-devtools",
+      "properties": [],
+      "purl": "pkg:npm/%40tanstack/query-devtools@5.103.2",
+      "scope": "required",
+      "type": "library",
+      "version": "5.103.2"
+    },
+    {
+      "author": "tannerlinsley",
+      "bom-ref": "@tanstack/react-query-devtools@5.103.2",
+      "description": "Developer tools to interact with and visualize the TanStack/react-query cache",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@tanstack/react-query-devtools/-/react-query-devtools-5.103.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/TanStack/query.git"
+        },
+        {
+          "type": "website",
+          "url": "https://tanstack.com/query"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "355d80c0a792e14a3200915c53408db280012957f703d28c5f6227b882362cf516ef3e94dbdea66d02135110283300c0c42d8030509b5e53043c28111af79087"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@tanstack/react-query-devtools",
+      "properties": [],
+      "purl": "pkg:npm/%40tanstack/react-query-devtools@5.103.2",
+      "scope": "required",
+      "type": "library",
+      "version": "5.103.2"
+    },
+    {
+      "author": "tannerlinsley",
+      "bom-ref": "@tanstack/react-query@5.103.2",
+      "description": "Hooks for managing, caching and syncing asynchronous and remote data in React",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.103.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/TanStack/query.git"
+        },
+        {
+          "type": "website",
+          "url": "https://tanstack.com/query"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "07e7d689864173ed2e503e730d901e2f0f5d2a3ed712c767baeeb3459fa7a3a2cd2a9784dcfddb27e37a1c836370895647a7d6def5284e77846866b657a7a1ab"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@tanstack/react-query",
+      "properties": [],
+      "purl": "pkg:npm/%40tanstack/react-query@5.103.2",
+      "scope": "required",
+      "type": "library",
+      "version": "5.103.2"
+    },
+    {
+      "bom-ref": "@types/parse-json@4.0.2",
+      "description": "TypeScript definitions for parse-json",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@types/parse-json/-/parse-json-4.0.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/parse-json"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "7484a80d759643052aba22acc99e0d83e1d7d8ab0f2fb2f21ca1d0c20185100dc868a69ce0e6ddfa1d9afdaeb06a2b00a1ea49941731f69696aa303cfc75630b"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@types/parse-json",
+      "properties": [],
+      "purl": "pkg:npm/%40types/parse-json@4.0.2",
+      "scope": "required",
+      "type": "library",
+      "version": "4.0.2"
+    },
+    {
+      "bom-ref": "@types/prop-types@15.7.15",
+      "description": "TypeScript definitions for prop-types",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@types/prop-types/-/prop-types-15.7.15.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/prop-types"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "17a6c4c9a995f632860050449a54277ac44f18e42a4b6f94c22d049b5e717a73b11da7f686fe8bf180959f7acf74f24e8897cf8829cb211cafc156aa318dcc23"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@types/prop-types",
+      "properties": [],
+      "purl": "pkg:npm/%40types/prop-types@15.7.15",
+      "scope": "required",
+      "type": "library",
+      "version": "15.7.15"
+    },
+    {
+      "bom-ref": "@types/react-transition-group@4.4.12",
+      "description": "TypeScript definitions for react-transition-group",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@types/react-transition-group/-/react-transition-group-4.4.12.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-transition-group"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f1357a4778768fb6bdd5cfb50d77498b74b2a3af73cc865bcfb2e0e6d3913392c4246ed7fc4e9ad55dddad1c81459abbfeeb73ec0f9ce0e8182e22dc6061c6eb"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@types/react-transition-group",
+      "properties": [],
+      "purl": "pkg:npm/%40types/react-transition-group@4.4.12",
+      "scope": "required",
+      "type": "library",
+      "version": "4.4.12"
+    },
+    {
+      "bom-ref": "@types/trusted-types@2.0.7",
+      "description": "TypeScript definitions for trusted-types",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@types/trusted-types/-/trusted-types-2.0.7.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/trusted-types"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "49c68f767d5d41cce06e5d101537933a65471542eddfde17260390368c95859eabdaf2e730b25f04f779dd2079d93ff71b7e95235fe0d8c65a5f47300ee5ec7f"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "@types/trusted-types",
+      "properties": [],
+      "purl": "pkg:npm/%40types/trusted-types@2.0.7",
+      "scope": "optional",
+      "type": "library",
+      "version": "2.0.7"
+    },
+    {
+      "author": "Andrey Okonetchnikov @okonetchnikov",
+      "bom-ref": "attr-accept@2.2.5",
+      "description": "JavaScript implementation of the \"accept\" attribute for HTML5 \u003cinput type=\"file\"\u003e",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/attr-accept/-/attr-accept-2.2.5.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/react-dropzone/attr-accept.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/react-dropzone/attr-accept#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/react-dropzone/attr-accept/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d1b0cd9d8feeea93f01c3328174162794df9e28062d1af2b0fd15cb0bc3370659b73c292f0a3c88bbcbeb35dce95563e80c59cffdc4431480d13a426f1996561"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "attr-accept",
+      "properties": [],
+      "purl": "pkg:npm/attr-accept@2.2.5",
+      "scope": "required",
+      "type": "library",
+      "version": "2.2.5"
+    },
+    {
+      "author": "Misha Moroshko \u003cmichael.moroshko@gmail.com\u003e",
+      "bom-ref": "autosuggest-highlight@3.3.4",
+      "description": "Utilities for highlighting text in autosuggest and autocomplete components",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/autosuggest-highlight/-/autosuggest-highlight-3.3.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/moroshko/autosuggest-highlight.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "8fa4444c10f6c589eb55ca15d52e51e2ddd6c4e95664ac834239309e08033d28c5e4be2357df1996d069bcfbdb90cd47b6849ee68f9b36b4c7ca33db89e19e60"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "autosuggest-highlight",
+      "properties": [],
+      "purl": "pkg:npm/autosuggest-highlight@3.3.4",
+      "scope": "required",
+      "type": "library",
+      "version": "3.3.4"
+    },
+    {
+      "author": "Kent C. Dodds \u003cme@kentcdodds.com\u003e (https://kentcdodds.com)",
+      "bom-ref": "babel-plugin-macros@3.1.0",
+      "description": "Allows you to build compile-time libraries",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/babel-plugin-macros/-/babel-plugin-macros-3.1.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/kentcdodds/babel-plugin-macros"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/kentcdodds/babel-plugin-macros#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/kentcdodds/babel-plugin-macros/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "0a0ed3146a48af4d6f39034e0d738e686cf6369094e6097cc75a8915b6fa85b67147b5eb704dafb5b02c4c06c9effc7026d52e244c3c2bc66bfc01342c795eb2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "babel-plugin-macros",
+      "properties": [],
+      "purl": "pkg:npm/babel-plugin-macros@3.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "3.1.0"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "call-bind-apply-helpers@1.0.2",
+      "description": "Helper functions around Function call/apply/bind, for use in `call-bind`",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/call-bind-apply-helpers.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/call-bind-apply-helpers#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/call-bind-apply-helpers/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "4a9d5a6e52748af0e44b38dc68977112e9cde7f5ef92c149dac30115fabac74af285057fd9bfcac057b6d5c329987b4f3928a3f0af7dff049fa04b9339b9ae31"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "call-bind-apply-helpers",
+      "properties": [],
+      "purl": "pkg:npm/call-bind-apply-helpers@1.0.2",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.2"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "call-bind@1.0.8",
+      "description": "Robustly `.call.bind()` a function",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/call-bind/-/call-bind-1.0.8.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/call-bind.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/call-bind#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/call-bind/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a0a95214c70cc29520d9e767921438e78c1f5a253fba5dc29097bf3c41dc4caba25fa4696de854885317bb5dc76a5199c5f530090cd91bbe3b617067d629bdc3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "call-bind",
+      "properties": [],
+      "purl": "pkg:npm/call-bind@1.0.8",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.8"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "call-bound@1.0.4",
+      "description": "Robust call-bound JavaScript intrinsics, using `call-bind` and `get-intrinsic`.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/call-bound.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/call-bound#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/call-bound/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "fb2b3df7b53dea9a382b1fc0069042aa103d12ec49690583420ef6f791f8841a61bf72198346e804abb0629b78617a7a319e4099942753fb72313951a5a49e8e"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "call-bound",
+      "properties": [],
+      "purl": "pkg:npm/call-bound@1.0.4",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.4"
+    },
+    {
+      "author": "Luke Edwards",
+      "bom-ref": "clsx@2.1.1",
+      "description": "A tiny (239B) utility for constructing className strings conditionally.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/clsx/-/clsx-2.1.1.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "7989b441606d52b0566561b4777f3a386030d7a67df793e2395a3607b6e35926c779d1a5e5ed1959aabae6438681448d7ac1080e407d2126d383f24af5d84264"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "clsx",
+      "properties": [],
+      "purl": "pkg:npm/clsx@2.1.1",
+      "scope": "required",
+      "type": "library",
+      "version": "2.1.1"
+    },
+    {
+      "author": "Thorsten Lorenz",
+      "bom-ref": "convert-source-map@1.9.0",
+      "description": "Converts a source-map from/to  different formats and allows adding/changing properties.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/convert-source-map/-/convert-source-map-1.9.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/thlorenz/convert-source-map.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/thlorenz/convert-source-map"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "012141ba9d0ccf5bb28888c035a9f58f32d06a68bdcf53e86126428a2616d857333db7a75dce3915974164bcce4feafafa2722b8432876d982b62fa18da024d0"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "convert-source-map",
+      "properties": [],
+      "purl": "pkg:npm/convert-source-map@1.9.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.9.0"
+    },
+    {
+      "author": "Roman Shtylman \u003cshtylman@gmail.com\u003e",
+      "bom-ref": "cookie@1.1.1",
+      "description": "HTTP server cookie parsing and serialization",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/cookie/-/cookie-1.1.1.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "7a2f00a2cee36b4c1e469173267100f541c9ffb5d09aa8256d1c277f60138dc07d5aaf3be15287f647e38e2acce94854dbf1397c561a77297284595d72a4a275"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "cookie",
+      "properties": [],
+      "purl": "pkg:npm/cookie@1.1.1",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.1"
+    },
+    {
+      "author": "Luca Ban - Mesqueeb (https://cycraft.co)",
+      "bom-ref": "copy-anything@4.1.1",
+      "description": "An optimised way to copy'ing an object. A small and simple integration",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/copy-anything/-/copy-anything-4.1.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/mesqueeb/copy-anything.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/mesqueeb/copy-anything#readme"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "0284fa22676bf7c7de4a915f985c1314def771c76beee14f7f6edc042818bf2c91ca7d41ccb47132fac7366c173b92c931d751cb845d870d9bd61eef48c2ac13"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "copy-anything",
+      "properties": [],
+      "purl": "pkg:npm/copy-anything@4.1.1",
+      "scope": "required",
+      "type": "library",
+      "version": "4.1.1"
+    },
+    {
+      "author": "David Clark \u003cdavid.dave.clark@gmail.com\u003e",
+      "bom-ref": "cosmiconfig@7.1.0",
+      "description": "Find and load configuration from a package.json property, rc file, or CommonJS module",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/cosmiconfig/-/cosmiconfig-7.1.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/davidtheclark/cosmiconfig.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/davidtheclark/cosmiconfig#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/davidtheclark/cosmiconfig/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "01d997eb153374d012b30b05b66c12b7b563f29a3d22ea979b4517cfb40a3ee11498f0785f28c67da02bd8f4ae10b3309113151f51292245f96d3646441dde08"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "cosmiconfig",
+      "properties": [],
+      "purl": "pkg:npm/cosmiconfig@7.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "7.1.0"
+    },
+    {
+      "author": "Eric Ferraiuolo \u003ceferraiuolo@gmail.com\u003e",
+      "bom-ref": "css-mediaquery@0.1.2",
+      "description": "Parses and determines if a given CSS Media Query matches a set of values.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/css-mediaquery/-/css-mediaquery-0.1.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/ericf/css-mediaquery.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ericf/css-mediaquery"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ericf/css-mediaquery/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "08eb67e0444e5b97411a513fe0f88a9e1eab66900fc437852da104c2de22d748e90cc16dd84850192efd4269ab3be88a087bf43d4fc7ace5848628c5775c7df5"
+        }
+      ],
+      "name": "css-mediaquery",
+      "properties": [],
+      "purl": "pkg:npm/css-mediaquery@0.1.2",
+      "scope": "required",
+      "type": "library",
+      "version": "0.1.2"
+    },
+    {
+      "bom-ref": "date-fns@3.6.0",
+      "description": "Modern JavaScript date utility library",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/date-fns/-/date-fns-3.6.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "7d11d31bc83f1a27fe912879d2068611d4e87a681f8fbe1a457decc2d8a8b9ba22a792432c0c8313d175d671cc21cbce69778e0ba0fb4a93618bbb85c81ed4c3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "date-fns",
+      "properties": [],
+      "purl": "pkg:npm/date-fns@3.6.0",
+      "scope": "required",
+      "type": "library",
+      "version": "3.6.0"
+    },
+    {
+      "author": "Sam Verschueren",
+      "bom-ref": "decode-uri-component@0.5.0",
+      "description": "A better decodeURIComponent",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/decode-uri-component/-/decode-uri-component-0.5.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d418905682bc0bd8146d053a37302d3bfb64cf6a8e16910e6cc5a9705be1c787d89e3e0e739cb368937f2c3dfa8a191551d5f287965e9335fec8cfadcbf4ab3e"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "decode-uri-component",
+      "properties": [],
+      "purl": "pkg:npm/decode-uri-component@0.5.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.5.0"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "define-data-property@1.1.4",
+      "description": "Define a data property on an object. Will fall back to assignment in an engine without descriptors.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/define-data-property/-/define-data-property-1.1.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/define-data-property.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/define-data-property#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/define-data-property/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ac132f23396903cbfa13e489668a3ef87018aac2eb920ecc49f2229cc3c5866928af0ed7f9d39754942cf904faf731a4cccc9f0e720c3765a2775f8d6cbdd3f8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "define-data-property",
+      "properties": [],
+      "purl": "pkg:npm/define-data-property@1.1.4",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.4"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "define-properties@1.2.1",
+      "description": "Define multiple non-enumerable properties at once. Uses `Object.defineProperty` when available; falls back to standard assignment in older engines.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/define-properties/-/define-properties-1.2.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/ljharb/define-properties.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f109902aa10048b7799f1d14d41d6890b1256d4baeb6d27f0276264576db6c60d687ab92db4f048c3e17aaafc8f702bbbb4bfa3b4f178535a7b795ed11b47a0e"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "define-properties",
+      "properties": [],
+      "purl": "pkg:npm/define-properties@1.2.1",
+      "scope": "required",
+      "type": "library",
+      "version": "1.2.1"
+    },
+    {
+      "author": "Nijiko Yonskai",
+      "bom-ref": "diacritic@0.0.2",
+      "description": "Removes accents / diacritics from strings, sentences, and paragraphs fast and effeciently.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/diacritic/-/diacritic-0.0.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git@github.com:Nijikokun/Diacritics.js.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "89009e0e448fc247f058fafe1d9678f5646b33615223dd3ded0f70eda83244274b705f44876124d2c1ca726316c76a195418d1044fecce21858d9bb4b9fd496e"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "diacritic",
+      "properties": [],
+      "purl": "pkg:npm/diacritic@0.0.2",
+      "scope": "required",
+      "type": "library",
+      "version": "0.0.2"
+    },
+    {
+      "author": "Jason Quense",
+      "bom-ref": "dom-helpers@5.2.1",
+      "description": "tiny modular DOM lib for ie9+",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/dom-helpers/-/dom-helpers-5.2.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/react-bootstrap/dom-helpers.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/react-bootstrap/dom-helpers#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/react-bootstrap/dom-helpers/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "9d109aec22b7553accd8d986908cb871b2bb219960044fcf60c9f9e6bad779faf9c570cfd0b76d7cf9db9450e855d7007ec949ee8afa8aa0149f1d0208621640"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "dom-helpers",
+      "properties": [],
+      "purl": "pkg:npm/dom-helpers@5.2.1",
+      "scope": "required",
+      "type": "library",
+      "version": "5.2.1"
+    },
+    {
+      "author": "Dr.-Ing. Mario Heiderich, Cure53 \u003cmario@cure53.de\u003e (https://cure53.de/)",
+      "bom-ref": "dompurify@3.4.16",
+      "description": "DOMPurify is a DOM-only, super-fast, uber-tolerant XSS sanitizer for HTML, MathML and SVG. It runs as JavaScript and works in all modern browsers, as well as in Node.js (via jsdom). DOMPurify is written by security people who have vast background in web attacks and XSS. Fear not.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/dompurify/-/dompurify-3.4.16.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/cure53/DOMPurify.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/cure53/DOMPurify"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/cure53/DOMPurify/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b2aa3ea4da77a918422296e0462d72f13824dbb068d91cbbc34742d4d05e3537590a15a3cfd5dbfca3a865b44ffd1ea9419f34430f18857c35de159605b3119d"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "(MPL-2.0 OR Apache-2.0)"
+        }
+      ],
+      "name": "dompurify",
+      "properties": [],
+      "purl": "pkg:npm/dompurify@3.4.16",
+      "scope": "required",
+      "type": "library",
+      "version": "3.4.16"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "dunder-proto@1.0.1",
+      "description": "If available, the `Object.prototype.__proto__` accessor and mutator, call-bound",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/es-shims/dunder-proto.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/es-shims/dunder-proto#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/es-shims/dunder-proto/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "28837f9c3241411717c3430b561644f62407986ebca80548060f42aa65188e64088608a3f54e4c16faea9142f915bb72cb366e39e3add3375e45ee1463b72df8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "dunder-proto",
+      "properties": [],
+      "purl": "pkg:npm/dunder-proto@1.0.1",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.1"
+    },
+    {
+      "author": "hustcc (http://github.com/hustcc)",
+      "bom-ref": "echarts-for-react@3.0.6",
+      "description": " Apache Echarts components for React.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/echarts-for-react/-/echarts-for-react-3.0.6.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/hustcc/echarts-for-react.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/hustcc/echarts-for-react"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/hustcc/echarts-for-react/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "e33a8b8131964b726f9100d78f3911d64d421d176977a6f2d3df3c4d6309827bc3cad7a058b6de3ff54d66631afb4549c76783ed8eb7d9b8b626ab970e088626"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "echarts-for-react",
+      "properties": [],
+      "purl": "pkg:npm/echarts-for-react@3.0.6",
+      "scope": "required",
+      "type": "library",
+      "version": "3.0.6"
+    },
+    {
+      "bom-ref": "echarts@6.1.0",
+      "description": "Apache ECharts is a powerful, interactive charting and data visualization library for browser",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/echarts/-/echarts-6.1.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/apache/echarts.git"
+        },
+        {
+          "type": "website",
+          "url": "https://echarts.apache.org"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/apache/echarts/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ab4c9a14f8200bd15476c587e1b95abd15859b176b22875b92828d02326e74023a080f6034fc47b55d917193447a9655964e32bc16243a46e4e87215a48c8764"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "echarts",
+      "properties": [],
+      "purl": "pkg:npm/echarts@6.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "6.1.0"
+    },
+    {
+      "bom-ref": "error-ex@1.3.4",
+      "description": "Easy error subclassing and stack customization",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/error-ex/-/error-ex-1.3.4.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b2a41a9809d1d785600abd40eb5f00dec1abca07292be1c46de9c0fc7884024914c1c648201fed816a871715a03b20e1e270782424629a1efd751e58c1cf4c0d"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "error-ex",
+      "properties": [],
+      "purl": "pkg:npm/error-ex@1.3.4",
+      "scope": "required",
+      "type": "library",
+      "version": "1.3.4"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "es-define-property@1.0.1",
+      "description": "`Object.defineProperty`, but not IE 8's broken one.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/es-define-property.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/es-define-property#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/es-define-property/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "7b79d17e07d4678acd18bdb7da05205f4e90372c9ecf4e0a76316b17e2d34683979ab3a014a0e0e0109db235bc1274faf5ea9d606991a49c223d560dac2696de"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "es-define-property",
+      "properties": [],
+      "purl": "pkg:npm/es-define-property@1.0.1",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.1"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "es-errors@1.3.0",
+      "description": "A simple cache for a few of the JS Error constructors.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/es-errors.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/es-errors#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/es-errors/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "65fe47d8ac6ddb18d3bdb26f3f66562c4202c40ea3fa1026333225ca9cb8c5c060d6f2959f1f3d5b2d066d2fa47f9730095145cdd0858765d20853542d2e9cb3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "es-errors",
+      "properties": [],
+      "purl": "pkg:npm/es-errors@1.3.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.3.0"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "es-object-atoms@1.1.1",
+      "description": "ES Object-related atoms: Object, ToObject, RequireObjectCoercible",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/es-object-atoms.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/es-object-atoms#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/es-object-atoms/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "146807da1f3328d8a6f658e3edd6a79053dc20220af42a796e6f9cda041261e3e1a5a1b9f9eb2b2ce0e2848a2b9fe3dee85189cd6857428b4fbfbde34da95d5c"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "es-object-atoms",
+      "properties": [],
+      "purl": "pkg:npm/es-object-atoms@1.1.1",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.1"
+    },
+    {
+      "author": "Arnout Kazemier",
+      "bom-ref": "eventemitter3@5.0.4",
+      "description": "EventEmitter3 focuses on performance while maintaining a Node.js AND browser compatible interface.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/eventemitter3/-/eventemitter3-5.0.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/primus/eventemitter3.git"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/primus/eventemitter3/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "9a5b1347219a3c18cf79d93a06fc3e6aa6ec5c3b680320339b930eec9814fb2551c8c4393bc6c3e0a71c8bb052f397fddef79e81e08f90bf11e062c29678cb17"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "eventemitter3",
+      "properties": [],
+      "purl": "pkg:npm/eventemitter3@5.0.4",
+      "scope": "required",
+      "type": "library",
+      "version": "5.0.4"
+    },
+    {
+      "author": "Roland Groza",
+      "bom-ref": "file-selector@2.1.2",
+      "description": "Convert DataTransfer object to a list of File objects",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/file-selector/-/file-selector-2.1.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/react-dropzone/file-selector.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/react-dropzone/file-selector"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "4205e8fa65d37bc9637aa505697dd0547739a2c488b49fca9bec69a1cc74692a9618c4827faa98b3f567cd9812f3ae0f8e7e6271e31116281e015ec07d395a8a"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "file-selector",
+      "properties": [],
+      "purl": "pkg:npm/file-selector@2.1.2",
+      "scope": "required",
+      "type": "library",
+      "version": "2.1.2"
+    },
+    {
+      "author": "Sindre Sorhus",
+      "bom-ref": "filter-obj@1.1.0",
+      "description": "Filter object keys and values into a new object",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/filter-obj/-/filter-obj-1.1.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f2b5e0d599d7ef1cf2d8d183564055680cbe95294f37069dd7706d81294bbb17c8b25cade5583ae14eed15c0ade164b547486fb674326d3fc8c829066770e95d"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "filter-obj",
+      "properties": [],
+      "purl": "pkg:npm/filter-obj@1.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.0"
+    },
+    {
+      "author": "jsdnxx",
+      "bom-ref": "find-root@1.1.0",
+      "description": "find the closest package.json",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/find-root/-/find-root-1.1.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "34a7d6e9b79ce867ca734486c757b4ed0658f4f13df6ed017edff4af3483e64dec3bfbf09155290d42959b91a9a7951edd87d284f1535f6d3bd2d0ece6407d36"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "find-root",
+      "properties": [],
+      "purl": "pkg:npm/find-root@1.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.0"
+    },
+    {
+      "author": "Raynos \u003craynos2@gmail.com\u003e",
+      "bom-ref": "function-bind@1.1.2",
+      "description": "Implementation of Function.prototype.bind",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Raynos/function-bind.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/Raynos/function-bind"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/Raynos/function-bind/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ed71cdc47eea5fdc46e66230c6486e993a31fcc21135c3a00ebc56b0cb76a40af6dd61e9e8cad194dec50521690a9afea153b417be38894811f369c931f1b648"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "function-bind",
+      "properties": [],
+      "purl": "pkg:npm/function-bind@1.1.2",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.2"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "get-intrinsic@1.3.0",
+      "description": "Get and robustly cache all JS language-level intrinsics at first require time",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/get-intrinsic.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/get-intrinsic#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/get-intrinsic/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f5f4a349aa2cfdf448548a7ec5226513a95fc21112ecb36d29a08121a987b23af69dad418800493e8d263a38f3f062435116ab9823c6a9a89583999f8dbf7c09"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "get-intrinsic",
+      "properties": [],
+      "purl": "pkg:npm/get-intrinsic@1.3.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.3.0"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "get-proto@1.0.1",
+      "description": "Robustly get the [[Prototype]] of an object",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/get-proto.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/get-proto#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/get-proto/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b1349f063a17069f3d26f20a21e7eac3b53608279bb1cef892263a6b0886a202ada1219b823604fc6ffe97db05dcc5853cd73d21ca0e0b83837ca1dfc459a9d2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "get-proto",
+      "properties": [],
+      "purl": "pkg:npm/get-proto@1.0.1",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.1"
+    },
+    {
+      "author": "Cristian \u003cbotecristian@yahoo.com\u003e",
+      "bom-ref": "goober@2.1.19",
+      "description": "A less than 1KB css-in-js solution",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/goober/-/goober-2.1.19.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/cristianbote/goober"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "53bbde8b332ac722a5339f3e6798f69e02411ffafdb220e6c69bcdc52c343f2945e9642fac0489119af18758627510497368eaa01552c8e6da9f9bbc9bee91c6"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "goober",
+      "properties": [],
+      "purl": "pkg:npm/goober@2.1.19",
+      "scope": "required",
+      "type": "library",
+      "version": "2.1.19"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "gopd@1.2.0",
+      "description": "`Object.getOwnPropertyDescriptor`, but accounts for IE's broken implementation.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/gopd.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/gopd#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/gopd/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "65429187afe4505a0089302d4d83d9277870f70371c7e04804e8a39e51bd3e7ac9b027128ecd70cb20fabc9a5a62d827cc3aca6114aa7f738ee917daf77c6c46"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "gopd",
+      "properties": [],
+      "purl": "pkg:npm/gopd@1.2.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.2.0"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "has-property-descriptors@1.0.2",
+      "description": "Does the environment have full property descriptor support? Handles IE 8's broken defineProperty/gOPD.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/has-property-descriptors/-/has-property-descriptors-1.0.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/inspect-js/has-property-descriptors.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/inspect-js/has-property-descriptors#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/inspect-js/has-property-descriptors/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "e7924d2ae216fafab829ed418ce4e333661cb5022f093ec61731f099f64f1a8e709eb82489dd1842d9c095e152aae9999b86b3de7d814be7ab6f2e62a49760ae"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "has-property-descriptors",
+      "properties": [],
+      "purl": "pkg:npm/has-property-descriptors@1.0.2",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.2"
+    },
+    {
+      "author": "Jordan Harband",
+      "bom-ref": "has-symbols@1.1.0",
+      "description": "Determine if the JS environment has Symbol support. Supports spec, or shams.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/inspect-js/has-symbols.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/has-symbols#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/has-symbols/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d5c0cd77027625aa2199bdec8383a629a301c2e0b8f2c6278b91d4c360efb02f0b8c64cb2bd87e79bd57e91cae3877b8853d142c25baf22a26863528294aa53d"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "has-symbols",
+      "properties": [],
+      "purl": "pkg:npm/has-symbols@1.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.0"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "hasown@2.0.4",
+      "description": "A robust, ES3 compatible, \"has own property\" predicate.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/hasown/-/hasown-2.0.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/inspect-js/hasOwn.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/inspect-js/hasOwn#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/inspect-js/hasOwn/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "4f651b7db044177db089ea5722c3254d6f7e743602eb0321fedfef600e2db8e30aa96cff9f7bebd4d152c508b23fece4da65eca0c03f8bfeea57a2cabadd6dd4"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "hasown",
+      "properties": [],
+      "purl": "pkg:npm/hasown@2.0.4",
+      "scope": "required",
+      "type": "library",
+      "version": "2.0.4"
+    },
+    {
+      "author": "Michael Ridgway \u003cmcridgway@gmail.com\u003e",
+      "bom-ref": "hoist-non-react-statics@3.3.2",
+      "description": "Copies non-react specific statics from a child component to a parent component",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/hoist-non-react-statics/-/hoist-non-react-statics-3.3.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/mridgway/hoist-non-react-statics.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "fe01a2bf18bc24f296366fd6d234a6cdc30fa5fa4f2dcddd63fe86c615f6850f621a3dda0df925578113ecd8caa528a72e9279bda7daf62886204660d7449f07"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "hoist-non-react-statics",
+      "properties": [],
+      "purl": "pkg:npm/hoist-non-react-statics@3.3.2",
+      "scope": "required",
+      "type": "library",
+      "version": "3.3.2"
+    },
+    {
+      "author": "dreamerslab \u003cben@dreamerslab.com\u003e",
+      "bom-ref": "inflection@3.0.2",
+      "description": "A port of inflection-js to node.js module",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/inflection/-/inflection-3.0.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/dreamerslab/node.inflection.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f81837fa483e27a2545a7f09e9bcc598e5a44d0e8bfcd1df0d149853e115bee2870f15031c05e0aa2c477d5973b8141a3ce4da73c867e3768f84c364eab31ede"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "inflection",
+      "properties": [],
+      "purl": "pkg:npm/inflection@3.0.2",
+      "scope": "required",
+      "type": "library",
+      "version": "3.0.2"
+    },
+    {
+      "author": "Qix (http://github.com/qix-)",
+      "bom-ref": "is-arrayish@0.2.1",
+      "description": "Determines if an object can be used as an array",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/is-arrayish/-/is-arrayish-0.2.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/qix-/node-is-arrayish.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "cf3d3a4bcb74a33a035cc1beb9b7b6eb37824cd5dc2883c96498bc841ac5e227422e6b38086f50b4aeea065d5ba22e4e0f31698ecc1be493e61c26cca63698ce"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "is-arrayish",
+      "properties": [],
+      "purl": "pkg:npm/is-arrayish@0.2.1",
+      "scope": "required",
+      "type": "library",
+      "version": "0.2.1"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "is-core-module@2.17.0",
+      "description": "Is this specifier a node.js core module?",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/is-core-module/-/is-core-module-2.17.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/inspect-js/is-core-module.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/inspect-js/is-core-module"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/inspect-js/is-core-module/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "27fbc6d330426c828e4057ee7d2c325dd32bb2887224850d92b9e6a3a5991b3a0ceedaff96c6df5b96f606f8ac2facecc8cccaf54c55f4be9cec0a056f25c738"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "is-core-module",
+      "properties": [],
+      "purl": "pkg:npm/is-core-module@2.17.0",
+      "scope": "required",
+      "type": "library",
+      "version": "2.17.0"
+    },
+    {
+      "author": "Kat Marchán",
+      "bom-ref": "json-parse-even-better-errors@2.3.1",
+      "description": "JSON.parse with context information on error",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/json-parse-even-better-errors/-/json-parse-even-better-errors-2.3.1.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "c72170ca1ae8fc91287fa1a17b68b3d8d717a23dac96836c5abfd7b044432bfa223c27da36197938d7e9fa341d01945043420958dcc7f7321917b962f75921db"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "json-parse-even-better-errors",
+      "properties": [],
+      "purl": "pkg:npm/json-parse-even-better-errors@2.3.1",
+      "scope": "required",
+      "type": "library",
+      "version": "2.3.1"
+    },
+    {
+      "author": "Kauê Gimenes",
+      "bom-ref": "jsonexport@3.2.0",
+      "description": "Makes easy to convert JSON to CSV",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/jsonexport/-/jsonexport-3.2.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/kauegimenes/jsonexport.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/kauegimenes/jsonexport"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/kauegimenes/jsonexport/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "19b3bdba06f461365ab4f77f86a086474152c1bafcd87e8ecc6d38cb376b1bb5ce7b8419d23850fa43ac076f73aa4ce86092e62f16dbac58aec1b42ef3dd579d"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "jsonexport",
+      "properties": [],
+      "purl": "pkg:npm/jsonexport@3.2.0",
+      "scope": "required",
+      "type": "library",
+      "version": "3.2.0"
+    },
+    {
+      "author": "Brian Donovan \u003cbrian@donovans.cc\u003e",
+      "bom-ref": "lines-and-columns@1.2.4",
+      "description": "Maps lines and columns to character offsets and back.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/lines-and-columns/-/lines-and-columns-1.2.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/eventualbuddha/lines-and-columns.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/eventualbuddha/lines-and-columns#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/eventualbuddha/lines-and-columns/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ef297295eb1943f3d5dbd8e110397751f8e8e995fb802a89af917b3caaea73ddefedfcd2ca6b75069c0453c9c0517b3cab3cefaa16e384ae50660e8cb7f1e406"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "lines-and-columns",
+      "properties": [],
+      "purl": "pkg:npm/lines-and-columns@1.2.4",
+      "scope": "required",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "author": "John-David Dalton \u003cjohn.david.dalton@gmail.com\u003e",
+      "bom-ref": "lodash@4.18.1",
+      "description": "Lodash modular utilities.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/lodash/-/lodash-4.18.1.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://lodash.com/"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "74c22789c4cf544f1dd5ee68b5fc269a3971919a14a6254bc32793754b22fc26a3fe07f3cdb941702139b111d5fc0b23b829b15abb5ed93346498b82782abed1"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "lodash",
+      "properties": [],
+      "purl": "pkg:npm/lodash@4.18.1",
+      "scope": "required",
+      "type": "library",
+      "version": "4.18.1"
+    },
+    {
+      "author": "Andres Suarez \u003czertosh@gmail.com\u003e",
+      "bom-ref": "loose-envify@1.4.0",
+      "description": "Fast (and loose) selective `process.env` replacer using js-tokens instead of an AST",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/loose-envify/-/loose-envify-1.4.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/zertosh/loose-envify.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/zertosh/loose-envify"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "972bb13c6aff59f86b95e9b608bfd472751cd7372a280226043cee918ed8e45ff242235d928ebe7d12debe5c351e03324b0edfeb5d54218e34f04b71452a0add"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "loose-envify",
+      "properties": [],
+      "purl": "pkg:npm/loose-envify@1.4.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.4.0"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "math-intrinsics@1.1.0",
+      "description": "ES Math-related intrinsics and helpers, robustly cached.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/es-shims/math-intrinsics.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/es-shims/math-intrinsics#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/es-shims/math-intrinsics/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "fc85ed6f0124e474cfc84c32297ea11a4617c4cf676e3eb807e8a55499c2fd1e81d291f91b85776f4a556cbec3063e2d921040a696d05257fa17a5e5f4b1eed6"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "math-intrinsics",
+      "properties": [],
+      "purl": "pkg:npm/math-intrinsics@1.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.0"
+    },
+    {
+      "author": "Spike Brehm \u003cspike@airbnb.com\u003e",
+      "bom-ref": "node-polyglot@2.6.0",
+      "description": "Give your JavaScript the ability to speak many languages.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/node-polyglot/-/node-polyglot-2.6.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/airbnb/polyglot.js.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "659164698cc87c67c1bd233a42103d74cf0411a5093957b0cc649171759b2442d70e3d256a302d29a10d098c6f179c84f9380783a3506f40a681832c31d70d25"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "name": "node-polyglot",
+      "properties": [],
+      "purl": "pkg:npm/node-polyglot@2.6.0",
+      "scope": "required",
+      "type": "library",
+      "version": "2.6.0"
+    },
+    {
+      "author": "Sindre Sorhus",
+      "bom-ref": "object-assign@4.1.1",
+      "description": "ES2015 `Object.assign()` ponyfill",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ac98134279149c7d6c170f324fa552537cc3dec5a6bbab19848b1e63c557f8646edcfe85ec5bbe24d0e85df9251256cb2529dcdc55101d57b8714e618fe05c52"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "object-assign",
+      "properties": [],
+      "purl": "pkg:npm/object-assign@4.1.1",
+      "scope": "required",
+      "type": "library",
+      "version": "4.1.1"
+    },
+    {
+      "author": "Jordan Harband",
+      "bom-ref": "object-keys@1.1.1",
+      "description": "An Object.keys replacement, in case Object.keys is not available. From https://github.com/es-shims/es5-shim",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/object-keys/-/object-keys-1.1.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/ljharb/object-keys.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "36e00449439432b9485ce7c72b30fa6e93eeded62ddf1be335d44843e15e4f494d6f82bc591ef409a0f186e360b92d971be1a39323303b3b0de5992d2267e12c"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "object-keys",
+      "properties": [],
+      "purl": "pkg:npm/object-keys@1.1.1",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.1"
+    },
+    {
+      "author": "Jordan Harband",
+      "bom-ref": "object.entries@1.1.9",
+      "description": "ES2017 spec-compliant Object.entries shim.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/object.entries/-/object.entries-1.1.9.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git://github.com/es-shims/Object.entries.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f2efe17d7151043d4ed213d48e2a0b8685851d19adead280e3fbd93f272406bd7c975284f6e1eb15a15a522f0c0d14e98b8b9a936828c8f4d23492d75f69361f"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "object.entries",
+      "properties": [],
+      "purl": "pkg:npm/object.entries@1.1.9",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.9"
+    },
+    {
+      "author": "Sindre Sorhus",
+      "bom-ref": "parse-json@5.2.0",
+      "description": "Parse JSON with more helpful errors",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/parse-json/-/parse-json-5.2.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "6b208abe6fe98421b13a461148233cda20f072df3f1289d2120092c56c43eef7ba8c7820b059787d955004f44d810a0a8ae57fa1d845ac6cd05d9c1b89f0bc46"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "parse-json",
+      "properties": [],
+      "purl": "pkg:npm/parse-json@5.2.0",
+      "scope": "required",
+      "type": "library",
+      "version": "5.2.0"
+    },
+    {
+      "author": "Javier Blanco \u003chttp://jbgutierrez.info\u003e",
+      "bom-ref": "path-parse@1.0.7",
+      "description": "Node.js path.parse() ponyfill",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/path-parse/-/path-parse-1.0.7.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/jbgutierrez/path-parse.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/jbgutierrez/path-parse#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/jbgutierrez/path-parse/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "2c32733d510410f47ecb8f33f7703411dd325dbf29001c865a8fe4e5861d620a58dbfd84b0eb24b09aeaee5387c6bcab54e9f57a31baa00a7c6a1bce2100fcb3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "path-parse",
+      "properties": [],
+      "purl": "pkg:npm/path-parse@1.0.7",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.7"
+    },
+    {
+      "bom-ref": "prop-types@15.8.1",
+      "description": "Runtime type checking for React props and similar objects.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/prop-types/-/prop-types-15.8.1.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://facebook.github.io/react/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/facebook/prop-types/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a23f3b0a064809dba5528868815011ec08e50b4df6ed4e1e9782fa780bcea827ae74c0d553435384d695f9bf437f87578123f58173139cf7617deff6a831f972"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "prop-types",
+      "properties": [],
+      "purl": "pkg:npm/prop-types@15.8.1",
+      "scope": "required",
+      "type": "library",
+      "version": "15.8.1"
+    },
+    {
+      "author": "Sindre Sorhus",
+      "bom-ref": "query-string@7.1.3",
+      "description": "Parse and stringify URL query strings",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/query-string/-/query-string-7.1.3.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "861d96621ab87e2f3e6feff62a0f421207b87c33ef1d2e77e1a38ebce65e437f957f698216c6850588f48be897700aba23d573a797e330506538dbdac830b5aa"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "query-string",
+      "properties": [],
+      "purl": "pkg:npm/query-string@7.1.3",
+      "scope": "required",
+      "type": "library",
+      "version": "7.1.3"
+    },
+    {
+      "bom-ref": "ra-core@5.15.4",
+      "description": "Core components of react-admin, a frontend Framework for building admin applications on top of REST services, using ES6, React",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/ra-core/-/ra-core-5.15.4.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/marmelab/react-admin#readme"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3e22a031ec40d7b2309136760e366c0accf162f3e27fa8cc40566ac3924df045a4cb0f66fe658fd38c85142cb7effcd8f6105998434754627c4a302fb8224aab"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ra-core",
+      "properties": [],
+      "purl": "pkg:npm/ra-core@5.15.4",
+      "scope": "required",
+      "type": "library",
+      "version": "5.15.4"
+    },
+    {
+      "bom-ref": "ra-data-simple-rest@5.15.4",
+      "description": "Simple REST data provider for react-admin",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/ra-data-simple-rest/-/ra-data-simple-rest-5.15.4.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/marmelab/react-admin#readme"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a7ad38c2e75b6c8eb92f9c75dbc855f2b450e02caa453e4473b5f9ebf47c17b28193ed01b8a5c579b6bed4e921ae8276386bb1971b089945627c0e74a528fbbe"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ra-data-simple-rest",
+      "properties": [],
+      "purl": "pkg:npm/ra-data-simple-rest@5.15.4",
+      "scope": "required",
+      "type": "library",
+      "version": "5.15.4"
+    },
+    {
+      "bom-ref": "ra-i18n-polyglot@5.15.4",
+      "description": "Polyglot i18n provider for react-admin",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/ra-i18n-polyglot/-/ra-i18n-polyglot-5.15.4.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/marmelab/react-admin#readme"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "7dbe6325657f74e0afa83f3b28e9728672998863409e70e37b46bb6b2e9cee1676385c11d49dd9cda995b6759b86f20db1f0ff8d3d15fdccce0b952ffb3a2925"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ra-i18n-polyglot",
+      "properties": [],
+      "purl": "pkg:npm/ra-i18n-polyglot@5.15.4",
+      "scope": "required",
+      "type": "library",
+      "version": "5.15.4"
+    },
+    {
+      "author": "François Zaninotto",
+      "bom-ref": "ra-language-english@5.15.4",
+      "description": "English messages for react-admin, the frontend framework for building admin applications on top of REST/GraphQL services",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/ra-language-english/-/ra-language-english-5.15.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/marmelab/react-admin.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/marmelab/react-admin#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/marmelab/react-admin/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ed23e3a19a0f68a033300e3d515eb8ae34f6372250e7f2925e30f89754759a3247002a106fa77d55dff81c3bda2b139f0bf8a351fbffeae2d6e2f996bba2dbd5"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ra-language-english",
+      "properties": [],
+      "purl": "pkg:npm/ra-language-english@5.15.4",
+      "scope": "required",
+      "type": "library",
+      "version": "5.15.4"
+    },
+    {
+      "bom-ref": "ra-ui-materialui@5.15.4",
+      "description": "UI Components for react-admin with Material UI",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/ra-ui-materialui/-/ra-ui-materialui-5.15.4.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/marmelab/react-admin#readme"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "1c55c494bdc25b28c388658d523fba049b99edf8e6f7ff3e21a1608454d476e93bce7b9beed6a16be5ddb7dd9f9a6d199ecf986ce7779e1edc2cfea8baddab28"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ra-ui-materialui",
+      "properties": [],
+      "purl": "pkg:npm/ra-ui-materialui@5.15.4",
+      "scope": "required",
+      "type": "library",
+      "version": "5.15.4"
+    },
+    {
+      "bom-ref": "react-admin@5.15.4",
+      "description": "A frontend Framework for building admin applications on top of REST services, using ES6, React and Material UI",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-admin/-/react-admin-5.15.4.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/marmelab/react-admin#readme"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3ca4f137aa03746dee1d1b34c56421959713e35ed7268181210b7ef64f760cb07bb2dea5c44190ec7896d63a1f235ec377e9ce98368742d21b608fa239fcd21b"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-admin",
+      "properties": [],
+      "purl": "pkg:npm/react-admin@5.15.4",
+      "scope": "required",
+      "type": "library",
+      "version": "5.15.4"
+    },
+    {
+      "bom-ref": "react-dom@19.3.0",
+      "description": "React package for working with the DOM.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-dom/-/react-dom-19.3.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/react/react.git"
+        },
+        {
+          "type": "website",
+          "url": "https://react.dev/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/react/react/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "24393c76089fe753a31680c4ef4f8e4fd202c98afeebd1e59a284dc29d7e36c7db9dadede6c22209af59264b43990e3fd5bfeb9f6ea1200476b985c332be6bd1"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-dom",
+      "properties": [],
+      "purl": "pkg:npm/react-dom@19.3.0",
+      "scope": "required",
+      "type": "library",
+      "version": "19.3.0"
+    },
+    {
+      "author": "Param Aggarwal",
+      "bom-ref": "react-dropzone@14.4.1",
+      "description": "Simple HTML5 drag-drop zone with React.js",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-dropzone/-/react-dropzone-14.4.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/react-dropzone/react-dropzone.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/react-dropzone/react-dropzone"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/react-dropzone/react-dropzone/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "403b95efabf7b8a6c7887df84a9c227d9fa038b8b5f9176c08ed64979bf1313e305bc47cdbeb2d863bc1c38b61dcd1c5fd75fa141b2a0d865534dfa99e16b0d2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-dropzone",
+      "properties": [],
+      "purl": "pkg:npm/react-dropzone@14.4.1",
+      "scope": "required",
+      "type": "library",
+      "version": "14.4.1"
+    },
+    {
+      "author": "Brian Vaughn \u003cbrian.david.vaughn@gmail.com\u003e",
+      "bom-ref": "react-error-boundary@4.1.2",
+      "description": "Simple reusable React error boundary component",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-error-boundary/-/react-error-boundary-4.1.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/bvaughn/react-error-boundary"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "1900f167925df80abfa94c5b0a6d54b7398bfecfbe57bcca804f32324b498824170821599cc661f6783eebf35ee8f8cd4971f42fd0a378e11111f467aba0ee6a"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-error-boundary",
+      "properties": [],
+      "purl": "pkg:npm/react-error-boundary@4.1.2",
+      "scope": "required",
+      "type": "library",
+      "version": "4.1.2"
+    },
+    {
+      "author": "Beier(Bill) Luo \u003cbluebill1049@hotmail.com\u003e",
+      "bom-ref": "react-hook-form@7.76.1",
+      "description": "Performant, flexible and extensible forms library for React Hooks",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-hook-form/-/react-hook-form-7.76.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/react-hook-form/react-hook-form"
+        },
+        {
+          "type": "website",
+          "url": "https://react-hook-form.com"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ad833bb4f89696ede765c86447f7b1ee98b2cee8b6bc53f268b9d79c8fd19db941fcbe2a7cc9b2b1eb3c965255b45d4da44f56041b09946b5c499ccf0975b5a9"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-hook-form",
+      "properties": [],
+      "purl": "pkg:npm/react-hook-form@7.76.1",
+      "scope": "required",
+      "type": "library",
+      "version": "7.76.1"
+    },
+    {
+      "author": "Johannes Klauss",
+      "bom-ref": "react-hotkeys-hook@5.3.3",
+      "description": "React hook for handling keyboard shortcuts",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-hotkeys-hook/-/react-hotkeys-hook-5.3.3.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/JohannesKlauss/react-keymap-hook.git"
+        },
+        {
+          "type": "website",
+          "url": "https://react-hotkeys-hook.vercel.app/"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "6acc20c96527136e619a1cc74df28398acec6921390c9e0b29a53fa3aad049790377fd4187d4df00541b1e47fa7cbcb5d47be5624a7e7030daac67619820e1a1"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-hotkeys-hook",
+      "properties": [],
+      "purl": "pkg:npm/react-hotkeys-hook@5.3.3",
+      "scope": "required",
+      "type": "library",
+      "version": "5.3.3"
+    },
+    {
+      "bom-ref": "react-is@16.13.1",
+      "description": "Brand checking of React Elements.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/facebook/react.git"
+        },
+        {
+          "type": "website",
+          "url": "https://reactjs.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/facebook/react/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "db87baca71361fe38ab7892ab0ebcd77c901a55eb9ce8c5b038055b04381dc0455590922fc31f3694a02e4ab8e37f06271c0da0824d906e39c7d9b3bd2447c6d"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-is",
+      "properties": [],
+      "purl": "pkg:npm/react-is@16.13.1",
+      "scope": "required",
+      "type": "library",
+      "version": "16.13.1"
+    },
+    {
+      "bom-ref": "react-is@19.2.7",
+      "description": "Brand checking of React Elements.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-is/-/react-is-19.2.7.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/facebook/react.git"
+        },
+        {
+          "type": "website",
+          "url": "https://react.dev/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/facebook/react/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "919167a2ec95bfb78ffcf866ae5a3d14afb370076b89926fcf15c71754a5d4fdfbed64867b61bf2715689614eb07f8de578ee52889a1354b228e31c001b725fc"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-is",
+      "properties": [],
+      "purl": "pkg:npm/react-is@19.2.7",
+      "scope": "required",
+      "type": "library",
+      "version": "19.2.7"
+    },
+    {
+      "author": "Remix Software \u003chello@remix.run\u003e",
+      "bom-ref": "react-router-dom@7.18.4",
+      "description": "Declarative routing for React web applications",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-router-dom/-/react-router-dom-7.18.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/remix-run/react-router"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "cab7e62472290c6eed682a6a2a34f51b907aab73b62be44df3f7e035fd254e30b088f6d0d1e8babd75fd663411fbb95df13afb679c66c8c9d9f1826ba6159053"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-router-dom",
+      "properties": [],
+      "purl": "pkg:npm/react-router-dom@7.18.4",
+      "scope": "required",
+      "type": "library",
+      "version": "7.18.4"
+    },
+    {
+      "author": "Remix Software \u003chello@remix.run\u003e",
+      "bom-ref": "react-router@7.18.4",
+      "description": "Declarative routing for React",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-router/-/react-router-7.18.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/remix-run/react-router"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3d43d070c84c19102c94b72fb653f3fe49b304458f84b7602c5acbee92cd7a904be9d5f49568f8583d9c518560602b93de3c6f82160583cd5c0d38f8e0385eb5"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-router",
+      "properties": [],
+      "purl": "pkg:npm/react-router@7.18.4",
+      "scope": "required",
+      "type": "library",
+      "version": "7.18.4"
+    },
+    {
+      "bom-ref": "react-transition-group@4.4.5",
+      "description": "A react component toolset for managing animations",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react-transition-group/-/react-transition-group-4.4.5.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/reactjs/react-transition-group.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/reactjs/react-transition-group#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/reactjs/react-transition-group/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a5971dd4c089a222a2051d8d471782460d77b825dbc9d3e7981e0439e46b63be3cd2a3563bc2088101bace50e49bab9132c5115cfb8aab4196b62339f5ae50ea"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "react-transition-group",
+      "properties": [],
+      "purl": "pkg:npm/react-transition-group@4.4.5",
+      "scope": "required",
+      "type": "library",
+      "version": "4.4.5"
+    },
+    {
+      "bom-ref": "react@19.3.0",
+      "description": "React is a JavaScript library for building user interfaces.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/react/-/react-19.3.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/react/react.git"
+        },
+        {
+          "type": "website",
+          "url": "https://react.dev/"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "13c2d471bb415addb46db9766281dfc7864305dc554df38ab42667f5c0d227897afe7ba8029729201723e3bb76c19a155fc836647b8c1db892860091d53e52a2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react",
+      "properties": [],
+      "purl": "pkg:npm/react@19.3.0",
+      "scope": "required",
+      "type": "library",
+      "version": "19.3.0"
+    },
+    {
+      "author": "Marin Atanasov",
+      "bom-ref": "remove-accents@0.4.4",
+      "description": "Converting the accented characters to their corresponding non-accented ASCII characters.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/remove-accents/-/remove-accents-0.4.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/tyxla/remove-accents"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/tyxla/remove-accents"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/tyxla/remove-accents/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "12915c39afc849eb551c45eabbe57023de8a6419aaf9af0b2671a469e170e397a91a5c48673e5d84412735932c41780e46edea68ca0b5f8a890b33a293acad02"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "remove-accents",
+      "properties": [],
+      "purl": "pkg:npm/remove-accents@0.4.4",
+      "scope": "required",
+      "type": "library",
+      "version": "0.4.4"
+    },
+    {
+      "author": "Marin Atanasov",
+      "bom-ref": "remove-accents@0.5.0",
+      "description": "Converting the accented characters to their corresponding non-accented ASCII characters.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/remove-accents/-/remove-accents-0.5.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/tyxla/remove-accents"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/tyxla/remove-accents"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/tyxla/remove-accents/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f20dff3adc757896950f5d9edf551b263d58cddb55bf31fce4757bb7ef4c25893fbb75e690e509e58b3dc10adff4f08f2bcfb19f8ca6cea60289997a4162a7f8"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "remove-accents",
+      "properties": [],
+      "purl": "pkg:npm/remove-accents@0.5.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.5.0"
+    },
+    {
+      "author": "James Halliday",
+      "bom-ref": "resolve@1.22.12",
+      "description": "resolve like require.resolve() on behalf of files asynchronously and synchronously",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/resolve/-/resolve-1.22.12.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "ssh://github.com/browserify/resolve.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "4f2789d7389fe7704f7c7a28b411b03d1613d5152dea8196b1a42bf14c995bf7809bd6caa228edbebb920c49991e6f760b04bd9e3eff7d6b6da8f0a0cdea7c08"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "resolve",
+      "properties": [],
+      "purl": "pkg:npm/resolve@1.22.12",
+      "scope": "required",
+      "type": "library",
+      "version": "1.22.12"
+    },
+    {
+      "bom-ref": "scheduler@0.28.0",
+      "description": "Cooperative scheduler for the browser environment.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/scheduler/-/scheduler-0.28.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/react/react.git"
+        },
+        {
+          "type": "website",
+          "url": "https://react.dev/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/react/react/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "8eea2b7c2988908c3cb53fa9e415d29ba3c98d017fc9c11898acb3511088b7f45a64884bf8fba56d0f58bb6cf51dd3890dda834e5c40d7ec4a0661d726c73303"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "scheduler",
+      "properties": [],
+      "purl": "pkg:npm/scheduler@0.28.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.28.0"
+    },
+    {
+      "author": "Alexis Munsayac",
+      "bom-ref": "seroval-plugins@1.5.6",
+      "description": "Stringify JS values",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/seroval-plugins/-/seroval-plugins-1.5.6.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/lxsmnsyc/seroval.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/lxsmnsyc/seroval/tree/main/packages/plugins"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/lxsmnsyc/seroval/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "1d7b8b017da9bbf501c8fa5a7a8fd368c7ef3088bed50a88a0f25809c02d53c42454dc2047a30f946b8241312b575270ada68c6d8696548057ee6a69cc62c04d"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "seroval-plugins",
+      "properties": [],
+      "purl": "pkg:npm/seroval-plugins@1.5.6",
+      "scope": "required",
+      "type": "library",
+      "version": "1.5.6"
+    },
+    {
+      "author": "Alexis Munsayac",
+      "bom-ref": "seroval@1.5.6",
+      "description": "Stringify JS values",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/seroval/-/seroval-1.5.6.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/lxsmnsyc/seroval.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/lxsmnsyc/seroval/tree/main/packages/seroval"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/lxsmnsyc/seroval/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ad54155a38d2be520dcda40f647e4916ab2a12c216753c58de22590a74cbff98106d7211a28559288eb4b550a43957f37113de8dba313b6b743fcf5d83999068"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "seroval",
+      "properties": [],
+      "purl": "pkg:npm/seroval@1.5.6",
+      "scope": "required",
+      "type": "library",
+      "version": "1.5.6"
+    },
+    {
+      "author": "Nathan Friedly",
+      "bom-ref": "set-cookie-parser@2.7.2",
+      "description": "Parses set-cookie headers into objects",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/set-cookie-parser/-/set-cookie-parser-2.7.2.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/nfriedly/set-cookie-parser"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a1e33596953f52f853c70fa0ddc21fc571f225173fba275ddf22b53f6e368331ddb34b9d401633b37cbc8f8802096f9927b69dd3272d95df1160ef9b76eae5bf"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "set-cookie-parser",
+      "properties": [],
+      "purl": "pkg:npm/set-cookie-parser@2.7.2",
+      "scope": "required",
+      "type": "library",
+      "version": "2.7.2"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "set-function-length@1.2.2",
+      "description": "Set a function's length property",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/set-function-length/-/set-function-length-1.2.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/ljharb/set-function-length.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/ljharb/set-function-length#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/ljharb/set-function-length/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a6045ce21278fec363582492f409a74b8d31ddb34c0d39271e02f951a3014ccc899d4f741205a1d51cfe302f5e16ee01b8dfd4c198ca42e63fd6fdeb33b1cc7e"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "set-function-length",
+      "properties": [],
+      "purl": "pkg:npm/set-function-length@1.2.2",
+      "scope": "required",
+      "type": "library",
+      "version": "1.2.2"
+    },
+    {
+      "author": "hustcc",
+      "bom-ref": "size-sensor@1.0.2",
+      "description": "DOM element size sensor which will callback when size changed.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/size-sensor/-/size-sensor-1.0.2.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/hustcc/size-sensor.git"
+        },
+        {
+          "type": "website",
+          "url": "https://git.hust.cc/size-sensor"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/hustcc/size-sensor/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d8d0a65b163b03da582865cd05fb5ea38872d78816bb8eeb839ebdda979532cb7a9502cf2ab563858f944c4b0f23971e15125297781580c61a522fe12ae6a22b"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ],
+      "name": "size-sensor",
+      "properties": [],
+      "purl": "pkg:npm/size-sensor@1.0.2",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.2"
+    },
+    {
+      "author": "Ryan Carniato",
+      "bom-ref": "solid-js@1.9.15",
+      "description": "A declarative JavaScript library for building user interfaces.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/solid-js/-/solid-js-1.9.15.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/solidjs/solid"
+        },
+        {
+          "type": "website",
+          "url": "https://solidjs.com"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "11e898db17e9649a8f2e35eca5510a8c0208e32bfc3721bffcdc59dc8a4e1477543679d3c8bd2e24e792f4b586bc0edc142cf9cbde1c8c5c18966c392ee9dcb2"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "solid-js",
+      "properties": [],
+      "purl": "pkg:npm/solid-js@1.9.15",
+      "scope": "required",
+      "type": "library",
+      "version": "1.9.15"
+    },
+    {
+      "author": "Jasmin Noetzli",
+      "bom-ref": "solid-presence@0.2.0",
+      "description": "SolidJS utility that manages the presence of an element in the DOM while being aware of pending animations.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/solid-presence/-/solid-presence-0.2.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/corvudev/corvu.git"
+        },
+        {
+          "type": "website",
+          "url": "https://corvu.dev/docs/utilities/presence"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/corvudev/corvu/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "60cf76a3e8efa735f75c6683e2b2d89aafca736655878ec64822c4b9f1c1150408babbd94ecf12a062713bc04918d0f104a75c4bc177758856d520d7a7804d8c"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "solid-presence",
+      "properties": [],
+      "purl": "pkg:npm/solid-presence@0.2.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.2.0"
+    },
+    {
+      "author": "Jasmin Noetzli",
+      "bom-ref": "solid-prevent-scroll@0.1.11",
+      "description": "SolidJS utility that prevents scrolling outside of a given DOM element. Works by preventing events that else would lead to scrolling.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/solid-prevent-scroll/-/solid-prevent-scroll-0.1.11.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/corvudev/corvu.git"
+        },
+        {
+          "type": "website",
+          "url": "https://corvu.dev/docs/utilities/prevent-scroll"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/corvudev/corvu/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d8f0a89950831da40dff9b7ba2012a5187876acae2b5929767c49bfd52e497459e6fca3d6211303a8f0b4ae8c911a86f3256023722add3344978795d38079666"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "solid-prevent-scroll",
+      "properties": [],
+      "purl": "pkg:npm/solid-prevent-scroll@0.1.11",
+      "scope": "required",
+      "type": "library",
+      "version": "0.1.11"
+    },
+    {
+      "author": "Ryan Carniato",
+      "bom-ref": "solid-transition-group@0.2.3",
+      "description": "Components to manage animations for SolidJS",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/solid-transition-group/-/solid-transition-group-0.2.3.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/solidjs/solid-transition-group"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/solidjs/solid-transition-group#readme"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "881ef673d3792b3f72911a885e5d2542884e6aee2dd1d85e97d923c05bf1f3551925b57068284cb81bb28626662b6e1bf1a2842b4c37b8533de99c7373264676"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "solid-transition-group",
+      "properties": [],
+      "purl": "pkg:npm/solid-transition-group@0.2.3",
+      "scope": "required",
+      "type": "library",
+      "version": "0.2.3"
+    },
+    {
+      "author": "Nick Fitzgerald \u003cnfitzgerald@mozilla.com\u003e",
+      "bom-ref": "source-map@0.5.7",
+      "description": "Generates and consumes source maps",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/source-map/-/source-map-0.5.7.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "http://github.com/mozilla/source-map.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/mozilla/source-map"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "2dbae624e31449d115c482af75c273402fa74217bc1546504d7432ebe23be6c90d827dcea10d03640f189c56bb829f2daad2f728f7f5926a344790e802979219"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "source-map",
+      "properties": [],
+      "purl": "pkg:npm/source-map@0.5.7",
+      "scope": "required",
+      "type": "library",
+      "version": "0.5.7"
+    },
+    {
+      "author": "Sindre Sorhus",
+      "bom-ref": "split-on-first@1.1.0",
+      "description": "Split a string on the first occurance of a given separator",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/split-on-first/-/split-on-first-1.1.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "e3766cb0025a32eb2e2962fcb0a5014171d63a9abc77a09f37fbb5a78814cdf264334e42f2bc53998ae420f4d76a966939103a2e4933714ba527c16a03b52e77"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "split-on-first",
+      "properties": [],
+      "purl": "pkg:npm/split-on-first@1.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.1.0"
+    },
+    {
+      "author": "Kevin Mårtensson",
+      "bom-ref": "strict-uri-encode@2.0.0",
+      "description": "A stricter URI encode adhering to RFC 3986",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/strict-uri-encode/-/strict-uri-encode-2.0.0.tgz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "430897660a5170a9214e3d927279fefb83cab56b07d24a7367ad8bd91e9cfcb51562fee156766a720dbeb0cb93e91ec9bacbb5bef88afcc16cbba90d25f5a511"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "strict-uri-encode",
+      "properties": [],
+      "purl": "pkg:npm/strict-uri-encode@2.0.0",
+      "scope": "required",
+      "type": "library",
+      "version": "2.0.0"
+    },
+    {
+      "author": "Sultan Tarimo \u003csultantarimo@me.com\u003e",
+      "bom-ref": "stylis@4.2.0",
+      "description": "A Light–weight CSS Preprocessor",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/stylis/-/stylis-4.2.0.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/thysultan/stylis.js"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3aba2fea0e81075b037d883359f4c70cec5a9ad5f56c4ff3a35d380e1f5ee9fa89dcfa288a96327c9d29526ad93b6c00bcef186c4c9e16b915f755d3b06312af"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "stylis",
+      "properties": [],
+      "purl": "pkg:npm/stylis@4.2.0",
+      "scope": "required",
+      "type": "library",
+      "version": "4.2.0"
+    },
+    {
+      "author": "Simon Knott",
+      "bom-ref": "superjson@2.2.6",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/superjson/-/superjson-2.2.6.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/blitz-js/superjson"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "1feb9ef19a38bc9995da7463a71f3a3f7e65cf00d3de722d9c8b28720ba682bd211cc43e646ab9beb11183d909068e405869b16438730e8f9654826a901d1c18"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "superjson",
+      "properties": [],
+      "purl": "pkg:npm/superjson@2.2.6",
+      "scope": "required",
+      "type": "library",
+      "version": "2.2.6"
+    },
+    {
+      "author": "Jordan Harband \u003cljharb@gmail.com\u003e",
+      "bom-ref": "supports-preserve-symlinks-flag@1.0.0",
+      "description": "Determine if the current node version supports the `--preserve-symlinks` flag.",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/inspect-js/node-supports-preserve-symlinks-flag.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/inspect-js/node-supports-preserve-symlinks-flag#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/inspect-js/node-supports-preserve-symlinks-flag/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a2dd169d74bd7e076480871e3dee911cd935580f3e9ae3dae9c4a3791dd5f0adbbabd041d6b4c4dd1d69ec7bf4cf567201cf2ce95beff0323259febcd4c02dd3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "supports-preserve-symlinks-flag",
+      "properties": [],
+      "purl": "pkg:npm/supports-preserve-symlinks-flag@1.0.0",
+      "scope": "required",
+      "type": "library",
+      "version": "1.0.0"
+    },
+    {
+      "author": "Microsoft Corp.",
+      "bom-ref": "tslib@2.3.0",
+      "description": "Runtime library for TypeScript helper functions",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/tslib/-/tslib-2.3.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Microsoft/tslib.git"
+        },
+        {
+          "type": "website",
+          "url": "https://www.typescriptlang.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/Microsoft/TypeScript/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "37cda8a32c55366ea1d6b88b0a8c92f5eddfb89dc0306db3219b3619dd404dc4858d2036dd0d1fce38d97a1d236c9bd65436747094fcc9a34d69a5c7cee78d8e"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "0BSD"
+          }
+        }
+      ],
+      "name": "tslib",
+      "properties": [],
+      "purl": "pkg:npm/tslib@2.3.0",
+      "scope": "required",
+      "type": "library",
+      "version": "2.3.0"
+    },
+    {
+      "author": "Microsoft Corp.",
+      "bom-ref": "tslib@2.8.1",
+      "description": "Runtime library for TypeScript helper functions",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/Microsoft/tslib.git"
+        },
+        {
+          "type": "website",
+          "url": "https://www.typescriptlang.org/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/Microsoft/TypeScript/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a0916ef781d06fe29576e49440bef09e99aa9df98bb0e03f9c087a6fa107d30084a0ad3f98f79753a737c0a0d5f373243ae1cf447b525ca294f7d2016b34bfdb"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "0BSD"
+          }
+        }
+      ],
+      "name": "tslib",
+      "properties": [],
+      "purl": "pkg:npm/tslib@2.8.1",
+      "scope": "required",
+      "type": "library",
+      "version": "2.8.1"
+    },
+    {
+      "author": "Berkeley Martinez \u003cberkeley@berkeleytrue.com\u003e (http://www.berkeleytrue.com)",
+      "bom-ref": "warning@4.0.3",
+      "description": "A mirror of Facebook's Warning",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/warning/-/warning-4.0.3.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/BerkeleyTrue/warning.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/BerkeleyTrue/warning"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/BerkeleyTrue/warning/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ae9272376db629622f1c9fc5e775d266fd1997f69c72a1d1f1eb7592968c4c3fdf2c2471b55f225fc73333363bb1566ea53237cdc51383c7b2712da4345f65eb"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "warning",
+      "properties": [],
+      "purl": "pkg:npm/warning@4.0.3",
+      "scope": "required",
+      "type": "library",
+      "version": "4.0.3"
+    },
+    {
+      "author": "Eemeli Aro \u003ceemeli@gmail.com\u003e",
+      "bom-ref": "yaml@1.10.3",
+      "description": "JavaScript parser and stringifier for YAML",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/yaml/-/yaml-1.10.3.tgz"
+        },
+        {
+          "type": "website",
+          "url": "https://eemeli.org/yaml/v1/"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "bc861e175bb70a39610057a43cf024da1fcabf84f798090ca31e4eca6462250074b290cfd742c7bedf8aec6f4dcba36eb8c01bdb9ffa9f5ab252301c18d7ff00"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ],
+      "name": "yaml",
+      "properties": [],
+      "purl": "pkg:npm/yaml@1.10.3",
+      "scope": "required",
+      "type": "library",
+      "version": "1.10.3"
+    },
+    {
+      "bom-ref": "zrender@6.1.0",
+      "description": "A lightweight graphic library providing 2d draw for Apache ECharts",
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/zrender/-/zrender-6.1.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/ecomfe/zrender.git"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "a0418c0c1ea938fd92e8ec114783dd56feb5d33ae39c0dc187e267486d767d826504a8ed340a046f97d252808e3883651fde88d9f537f3f03652944ab3aef161"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "zrender",
+      "properties": [],
+      "purl": "pkg:npm/zrender@6.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "6.1.0"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependsOn": [
+        "@tanstack/react-query@5.103.2",
+        "@tanstack/react-query-devtools@5.103.2",
+        "echarts@6.1.0",
+        "echarts-for-react@3.0.6",
+        "node-polyglot@2.6.0",
+        "ra-data-simple-rest@5.15.4",
+        "ra-language-english@5.15.4",
+        "react@19.3.0",
+        "react-admin@5.15.4",
+        "react-dom@19.3.0"
+      ],
+      "ref": "mwx-isp-web@0.1.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@babel/runtime@7.29.7"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@floating-ui/dom@1.8.0"
+      ],
+      "ref": "@corvu/utils@0.4.2"
+    },
+    {
+      "dependsOn": [
+        "@babel/runtime@7.29.7",
+        "@emotion/hash@0.9.2",
+        "@emotion/memoize@0.9.0",
+        "@emotion/serialize@1.3.3",
+        "babel-plugin-macros@3.1.0",
+        "convert-source-map@1.9.0",
+        "find-root@1.1.0",
+        "source-map@0.5.7",
+        "stylis@4.2.0"
+      ],
+      "ref": "@emotion/babel-plugin@11.13.5"
+    },
+    {
+      "dependsOn": [],
+      "ref": "convert-source-map@1.9.0"
+    },
+    {
+      "dependsOn": [
+        "@emotion/memoize@0.9.0",
+        "@emotion/sheet@1.4.0",
+        "@emotion/utils@1.4.2",
+        "@emotion/weak-memoize@0.4.0",
+        "stylis@4.2.0"
+      ],
+      "ref": "@emotion/cache@11.14.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@emotion/hash@0.9.2"
+    },
+    {
+      "dependsOn": [
+        "@emotion/memoize@0.9.0"
+      ],
+      "ref": "@emotion/is-prop-valid@1.4.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@emotion/memoize@0.9.0"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "@babel/runtime@7.29.7",
+        "@emotion/babel-plugin@11.13.5",
+        "@emotion/cache@11.14.0",
+        "@emotion/serialize@1.3.3",
+        "@emotion/use-insertion-effect-with-fallbacks@1.2.0",
+        "@emotion/utils@1.4.2",
+        "@emotion/weak-memoize@0.4.0",
+        "hoist-non-react-statics@3.3.2"
+      ],
+      "ref": "@emotion/react@11.14.0"
+    },
+    {
+      "dependsOn": [
+        "@emotion/hash@0.9.2",
+        "@emotion/memoize@0.9.0",
+        "@emotion/unitless@0.10.0",
+        "@emotion/utils@1.4.2"
+      ],
+      "ref": "@emotion/serialize@1.3.3"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@emotion/sheet@1.4.0"
+    },
+    {
+      "dependsOn": [
+        "@emotion/react@11.14.0",
+        "react@19.3.0",
+        "@babel/runtime@7.29.7",
+        "@emotion/babel-plugin@11.13.5",
+        "@emotion/is-prop-valid@1.4.0",
+        "@emotion/serialize@1.3.3",
+        "@emotion/use-insertion-effect-with-fallbacks@1.2.0",
+        "@emotion/utils@1.4.2"
+      ],
+      "ref": "@emotion/styled@11.14.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@emotion/unitless@0.10.0"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0"
+      ],
+      "ref": "@emotion/use-insertion-effect-with-fallbacks@1.2.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@emotion/utils@1.4.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@emotion/weak-memoize@0.4.0"
+    },
+    {
+      "dependsOn": [
+        "@floating-ui/utils@0.2.12"
+      ],
+      "ref": "@floating-ui/core@1.8.0"
+    },
+    {
+      "dependsOn": [
+        "@floating-ui/core@1.8.0",
+        "@floating-ui/utils@0.2.12"
+      ],
+      "ref": "@floating-ui/dom@1.8.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@floating-ui/utils@0.2.12"
+    },
+    {
+      "dependsOn": [
+        "@swc/helpers@0.5.23"
+      ],
+      "ref": "@internationalized/number@3.6.8"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@floating-ui/dom@1.8.0",
+        "@internationalized/number@3.6.8",
+        "@kobalte/utils@0.9.2",
+        "@solid-primitives/props@3.2.4",
+        "@solid-primitives/resize-observer@2.2.0",
+        "solid-presence@0.2.0",
+        "solid-prevent-scroll@0.1.11"
+      ],
+      "ref": "@kobalte/core@0.13.14"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/event-listener@2.4.6",
+        "@solid-primitives/keyed@1.5.3",
+        "@solid-primitives/map@0.4.13",
+        "@solid-primitives/media@2.3.6",
+        "@solid-primitives/props@3.2.4",
+        "@solid-primitives/refs@1.1.4",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@kobalte/utils@0.9.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@mui/core-downloads-tracker@7.3.11"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "@mui/material@7.3.11",
+        "@babel/runtime@7.29.7"
+      ],
+      "ref": "@mui/icons-material@7.3.11"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "react-dom@19.3.0",
+        "@emotion/react@11.14.0",
+        "@emotion/styled@11.14.1",
+        "@babel/runtime@7.29.7",
+        "@popperjs/core@2.11.8",
+        "@types/react-transition-group@4.4.12",
+        "clsx@2.1.1",
+        "prop-types@15.8.1",
+        "react-is@19.2.7",
+        "react-transition-group@4.4.5",
+        "@mui/core-downloads-tracker@7.3.11",
+        "@mui/utils@7.3.11",
+        "@mui/types@7.4.12",
+        "@mui/system@7.3.11"
+      ],
+      "ref": "@mui/material@7.3.11"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "@babel/runtime@7.29.7",
+        "prop-types@15.8.1",
+        "@mui/utils@7.3.11"
+      ],
+      "ref": "@mui/private-theming@7.3.11"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "@emotion/react@11.14.0",
+        "@emotion/styled@11.14.1",
+        "@babel/runtime@7.29.7",
+        "@emotion/cache@11.14.0",
+        "@emotion/serialize@1.3.3",
+        "@emotion/sheet@1.4.0",
+        "prop-types@15.8.1"
+      ],
+      "ref": "@mui/styled-engine@7.3.10"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "@emotion/react@11.14.0",
+        "@emotion/styled@11.14.1",
+        "@babel/runtime@7.29.7",
+        "clsx@2.1.1",
+        "prop-types@15.8.1",
+        "@mui/private-theming@7.3.11",
+        "@mui/styled-engine@7.3.10",
+        "@mui/utils@7.3.11",
+        "@mui/types@7.4.12"
+      ],
+      "ref": "@mui/system@7.3.11"
+    },
+    {
+      "dependsOn": [
+        "@babel/runtime@7.29.7"
+      ],
+      "ref": "@mui/types@7.4.12"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "@babel/runtime@7.29.7",
+        "@types/prop-types@15.7.15",
+        "clsx@2.1.1",
+        "prop-types@15.8.1",
+        "react-is@19.2.7",
+        "@mui/types@7.4.12"
+      ],
+      "ref": "@mui/utils@7.3.11"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@popperjs/core@2.11.8"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@solid-primitives/event-listener@2.4.6"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15"
+      ],
+      "ref": "@solid-primitives/keyed@1.5.3"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/trigger@1.2.4"
+      ],
+      "ref": "@solid-primitives/map@0.4.13"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/event-listener@2.4.6",
+        "@solid-primitives/rootless@1.5.4",
+        "@solid-primitives/static-store@0.1.4",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@solid-primitives/media@2.3.6"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@solid-primitives/props@3.2.4"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@solid-primitives/refs@1.1.4"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/rootless@1.5.4",
+        "@solid-primitives/event-listener@2.4.6",
+        "@solid-primitives/static-store@0.1.4",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@solid-primitives/resize-observer@2.2.0"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@solid-primitives/rootless@1.5.4"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@solid-primitives/static-store@0.1.4"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@solid-primitives/storage@1.3.11"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15"
+      ],
+      "ref": "@solid-primitives/transition-group@1.1.2"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/utils@6.4.1"
+      ],
+      "ref": "@solid-primitives/trigger@1.2.4"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15"
+      ],
+      "ref": "@solid-primitives/utils@6.4.1"
+    },
+    {
+      "dependsOn": [
+        "tslib@2.8.1"
+      ],
+      "ref": "@swc/helpers@0.5.23"
+    },
+    {
+      "dependsOn": [],
+      "ref": "tslib@2.8.1"
+    },
+    {
+      "dependsOn": [
+        "remove-accents@0.5.0"
+      ],
+      "ref": "@tanstack/match-sorter-utils@8.19.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "remove-accents@0.5.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@tanstack/query-core@5.103.2"
+    },
+    {
+      "dependsOn": [
+        "@kobalte/core@0.13.14",
+        "@solid-primitives/keyed@1.5.3",
+        "@solid-primitives/resize-observer@2.2.0",
+        "@solid-primitives/storage@1.3.11",
+        "@tanstack/match-sorter-utils@8.19.4",
+        "clsx@2.1.1",
+        "goober@2.1.19",
+        "solid-js@1.9.15",
+        "solid-transition-group@0.2.3",
+        "superjson@2.2.6",
+        "@tanstack/query-core@5.103.2"
+      ],
+      "ref": "@tanstack/query-devtools@5.103.2"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "@tanstack/query-core@5.103.2"
+      ],
+      "ref": "@tanstack/react-query@5.103.2"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "@tanstack/react-query@5.103.2",
+        "@tanstack/query-devtools@5.103.2"
+      ],
+      "ref": "@tanstack/react-query-devtools@5.103.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@types/parse-json@4.0.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@types/prop-types@15.7.15"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@types/react-transition-group@4.4.12"
+    },
+    {
+      "dependsOn": [],
+      "ref": "@types/trusted-types@2.0.7"
+    },
+    {
+      "dependsOn": [],
+      "ref": "attr-accept@2.2.5"
+    },
+    {
+      "dependsOn": [
+        "remove-accents@0.4.4"
+      ],
+      "ref": "autosuggest-highlight@3.3.4"
+    },
+    {
+      "dependsOn": [
+        "@babel/runtime@7.29.7",
+        "cosmiconfig@7.1.0",
+        "resolve@1.22.12"
+      ],
+      "ref": "babel-plugin-macros@3.1.0"
+    },
+    {
+      "dependsOn": [
+        "call-bind-apply-helpers@1.0.2",
+        "es-define-property@1.0.1",
+        "get-intrinsic@1.3.0",
+        "set-function-length@1.2.2"
+      ],
+      "ref": "call-bind@1.0.8"
+    },
+    {
+      "dependsOn": [
+        "es-errors@1.3.0",
+        "function-bind@1.1.2"
+      ],
+      "ref": "call-bind-apply-helpers@1.0.2"
+    },
+    {
+      "dependsOn": [
+        "call-bind-apply-helpers@1.0.2",
+        "get-intrinsic@1.3.0"
+      ],
+      "ref": "call-bound@1.0.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "clsx@2.1.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "cookie@1.1.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "copy-anything@4.1.1"
+    },
+    {
+      "dependsOn": [
+        "@types/parse-json@4.0.2",
+        "parse-json@5.2.0",
+        "yaml@1.10.3"
+      ],
+      "ref": "cosmiconfig@7.1.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "yaml@1.10.3"
+    },
+    {
+      "dependsOn": [],
+      "ref": "css-mediaquery@0.1.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "date-fns@3.6.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "decode-uri-component@0.5.0"
+    },
+    {
+      "dependsOn": [
+        "es-define-property@1.0.1",
+        "es-errors@1.3.0",
+        "gopd@1.2.0"
+      ],
+      "ref": "define-data-property@1.1.4"
+    },
+    {
+      "dependsOn": [
+        "define-data-property@1.1.4",
+        "has-property-descriptors@1.0.2",
+        "object-keys@1.1.1"
+      ],
+      "ref": "define-properties@1.2.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "diacritic@0.0.2"
+    },
+    {
+      "dependsOn": [
+        "@babel/runtime@7.29.7"
+      ],
+      "ref": "dom-helpers@5.2.1"
+    },
+    {
+      "dependsOn": [
+        "@types/trusted-types@2.0.7"
+      ],
+      "ref": "dompurify@3.4.16"
+    },
+    {
+      "dependsOn": [
+        "call-bind-apply-helpers@1.0.2",
+        "es-errors@1.3.0",
+        "gopd@1.2.0"
+      ],
+      "ref": "dunder-proto@1.0.1"
+    },
+    {
+      "dependsOn": [
+        "tslib@2.3.0",
+        "zrender@6.1.0"
+      ],
+      "ref": "echarts@6.1.0"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "echarts@6.1.0",
+        "size-sensor@1.0.2"
+      ],
+      "ref": "echarts-for-react@3.0.6"
+    },
+    {
+      "dependsOn": [
+        "is-arrayish@0.2.1"
+      ],
+      "ref": "error-ex@1.3.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "es-define-property@1.0.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "es-errors@1.3.0"
+    },
+    {
+      "dependsOn": [
+        "es-errors@1.3.0"
+      ],
+      "ref": "es-object-atoms@1.1.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "eventemitter3@5.0.4"
+    },
+    {
+      "dependsOn": [
+        "tslib@2.8.1"
+      ],
+      "ref": "file-selector@2.1.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "find-root@1.1.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "function-bind@1.1.2"
+    },
+    {
+      "dependsOn": [
+        "call-bind-apply-helpers@1.0.2",
+        "es-define-property@1.0.1",
+        "es-errors@1.3.0",
+        "es-object-atoms@1.1.1",
+        "function-bind@1.1.2",
+        "get-proto@1.0.1",
+        "gopd@1.2.0",
+        "has-symbols@1.1.0",
+        "hasown@2.0.4",
+        "math-intrinsics@1.1.0"
+      ],
+      "ref": "get-intrinsic@1.3.0"
+    },
+    {
+      "dependsOn": [
+        "dunder-proto@1.0.1",
+        "es-object-atoms@1.1.1"
+      ],
+      "ref": "get-proto@1.0.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "goober@2.1.19"
+    },
+    {
+      "dependsOn": [],
+      "ref": "gopd@1.2.0"
+    },
+    {
+      "dependsOn": [
+        "es-define-property@1.0.1"
+      ],
+      "ref": "has-property-descriptors@1.0.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "has-symbols@1.1.0"
+    },
+    {
+      "dependsOn": [
+        "function-bind@1.1.2"
+      ],
+      "ref": "hasown@2.0.4"
+    },
+    {
+      "dependsOn": [
+        "react-is@16.13.1"
+      ],
+      "ref": "hoist-non-react-statics@3.3.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "react-is@16.13.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "inflection@3.0.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "is-arrayish@0.2.1"
+    },
+    {
+      "dependsOn": [
+        "hasown@2.0.4"
+      ],
+      "ref": "is-core-module@2.17.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "json-parse-even-better-errors@2.3.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "jsonexport@3.2.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "lines-and-columns@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "lodash@4.18.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "loose-envify@1.4.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "math-intrinsics@1.1.0"
+    },
+    {
+      "dependsOn": [
+        "hasown@2.0.4",
+        "object.entries@1.1.9",
+        "warning@4.0.3"
+      ],
+      "ref": "node-polyglot@2.6.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "object-assign@4.1.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "object-keys@1.1.1"
+    },
+    {
+      "dependsOn": [
+        "call-bind@1.0.8",
+        "call-bound@1.0.4",
+        "define-properties@1.2.1",
+        "es-object-atoms@1.1.1"
+      ],
+      "ref": "object.entries@1.1.9"
+    },
+    {
+      "dependsOn": [
+        "error-ex@1.3.4",
+        "json-parse-even-better-errors@2.3.1",
+        "lines-and-columns@1.2.4"
+      ],
+      "ref": "parse-json@5.2.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "path-parse@1.0.7"
+    },
+    {
+      "dependsOn": [
+        "loose-envify@1.4.0",
+        "object-assign@4.1.1",
+        "react-is@16.13.1"
+      ],
+      "ref": "prop-types@15.8.1"
+    },
+    {
+      "dependsOn": [
+        "@tanstack/react-query@5.103.2",
+        "react@19.3.0",
+        "react-dom@19.3.0",
+        "react-hook-form@7.76.1",
+        "react-router@7.18.4",
+        "react-router-dom@7.18.4",
+        "date-fns@3.6.0",
+        "eventemitter3@5.0.4",
+        "inflection@3.0.2",
+        "jsonexport@3.2.0",
+        "lodash@4.18.1",
+        "query-string@7.1.3",
+        "react-error-boundary@4.1.2",
+        "react-is@19.2.7"
+      ],
+      "ref": "ra-core@5.15.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "filter-obj@1.1.0"
+    },
+    {
+      "dependsOn": [
+        "decode-uri-component@0.5.0",
+        "filter-obj@1.1.0",
+        "split-on-first@1.1.0",
+        "strict-uri-encode@2.0.0"
+      ],
+      "ref": "query-string@7.1.3"
+    },
+    {
+      "dependsOn": [],
+      "ref": "split-on-first@1.1.0"
+    },
+    {
+      "dependsOn": [
+        "ra-core@5.15.4",
+        "query-string@7.1.3"
+      ],
+      "ref": "ra-data-simple-rest@5.15.4"
+    },
+    {
+      "dependsOn": [
+        "node-polyglot@2.6.0",
+        "ra-core@5.15.4"
+      ],
+      "ref": "ra-i18n-polyglot@5.15.4"
+    },
+    {
+      "dependsOn": [
+        "ra-core@5.15.4"
+      ],
+      "ref": "ra-language-english@5.15.4"
+    },
+    {
+      "dependsOn": [
+        "@mui/icons-material@7.3.11",
+        "@mui/material@7.3.11",
+        "@mui/system@7.3.11",
+        "@mui/utils@7.3.11",
+        "@tanstack/react-query@5.103.2",
+        "ra-core@5.15.4",
+        "react@19.3.0",
+        "react-dom@19.3.0",
+        "react-hook-form@7.76.1",
+        "react-is@19.2.7",
+        "react-router@7.18.4",
+        "react-router-dom@7.18.4",
+        "autosuggest-highlight@3.3.4",
+        "clsx@2.1.1",
+        "css-mediaquery@0.1.2",
+        "diacritic@0.0.2",
+        "dompurify@3.4.16",
+        "inflection@3.0.2",
+        "jsonexport@3.2.0",
+        "lodash@4.18.1",
+        "query-string@7.1.3",
+        "react-dropzone@14.4.1",
+        "react-error-boundary@4.1.2",
+        "react-hotkeys-hook@5.3.3",
+        "react-transition-group@4.4.5"
+      ],
+      "ref": "ra-ui-materialui@5.15.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "react@19.3.0"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "react-dom@19.3.0",
+        "@emotion/react@11.14.0",
+        "@emotion/styled@11.14.1",
+        "@mui/icons-material@7.3.11",
+        "@mui/material@7.3.11",
+        "@tanstack/react-query@5.103.2",
+        "ra-core@5.15.4",
+        "ra-i18n-polyglot@5.15.4",
+        "ra-language-english@5.15.4",
+        "ra-ui-materialui@5.15.4",
+        "react-hook-form@7.76.1",
+        "react-router@7.18.4",
+        "react-router-dom@7.18.4"
+      ],
+      "ref": "react-admin@5.15.4"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "scheduler@0.28.0"
+      ],
+      "ref": "react-dom@19.3.0"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "attr-accept@2.2.5",
+        "file-selector@2.1.2",
+        "prop-types@15.8.1"
+      ],
+      "ref": "react-dropzone@14.4.1"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "@babel/runtime@7.29.7"
+      ],
+      "ref": "react-error-boundary@4.1.2"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0"
+      ],
+      "ref": "react-hook-form@7.76.1"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "react-dom@19.3.0"
+      ],
+      "ref": "react-hotkeys-hook@5.3.3"
+    },
+    {
+      "dependsOn": [],
+      "ref": "react-is@19.2.7"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "react-dom@19.3.0",
+        "cookie@1.1.1",
+        "set-cookie-parser@2.7.2"
+      ],
+      "ref": "react-router@7.18.4"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "react-dom@19.3.0",
+        "react-router@7.18.4"
+      ],
+      "ref": "react-router-dom@7.18.4"
+    },
+    {
+      "dependsOn": [
+        "react@19.3.0",
+        "react-dom@19.3.0",
+        "@babel/runtime@7.29.7",
+        "dom-helpers@5.2.1",
+        "loose-envify@1.4.0",
+        "prop-types@15.8.1"
+      ],
+      "ref": "react-transition-group@4.4.5"
+    },
+    {
+      "dependsOn": [],
+      "ref": "remove-accents@0.4.4"
+    },
+    {
+      "dependsOn": [
+        "es-errors@1.3.0",
+        "is-core-module@2.17.0",
+        "path-parse@1.0.7",
+        "supports-preserve-symlinks-flag@1.0.0"
+      ],
+      "ref": "resolve@1.22.12"
+    },
+    {
+      "dependsOn": [],
+      "ref": "scheduler@0.28.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "seroval@1.5.6"
+    },
+    {
+      "dependsOn": [
+        "seroval@1.5.6"
+      ],
+      "ref": "seroval-plugins@1.5.6"
+    },
+    {
+      "dependsOn": [],
+      "ref": "set-cookie-parser@2.7.2"
+    },
+    {
+      "dependsOn": [
+        "define-data-property@1.1.4",
+        "es-errors@1.3.0",
+        "function-bind@1.1.2",
+        "get-intrinsic@1.3.0",
+        "gopd@1.2.0",
+        "has-property-descriptors@1.0.2"
+      ],
+      "ref": "set-function-length@1.2.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "size-sensor@1.0.2"
+    },
+    {
+      "dependsOn": [
+        "seroval@1.5.6",
+        "seroval-plugins@1.5.6"
+      ],
+      "ref": "solid-js@1.9.15"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@corvu/utils@0.4.2"
+      ],
+      "ref": "solid-presence@0.2.0"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@corvu/utils@0.4.2"
+      ],
+      "ref": "solid-prevent-scroll@0.1.11"
+    },
+    {
+      "dependsOn": [
+        "solid-js@1.9.15",
+        "@solid-primitives/refs@1.1.4",
+        "@solid-primitives/transition-group@1.1.2"
+      ],
+      "ref": "solid-transition-group@0.2.3"
+    },
+    {
+      "dependsOn": [],
+      "ref": "source-map@0.5.7"
+    },
+    {
+      "dependsOn": [],
+      "ref": "strict-uri-encode@2.0.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "stylis@4.2.0"
+    },
+    {
+      "dependsOn": [
+        "copy-anything@4.1.1"
+      ],
+      "ref": "superjson@2.2.6"
+    },
+    {
+      "dependsOn": [],
+      "ref": "supports-preserve-symlinks-flag@1.0.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "tslib@2.3.0"
+    },
+    {
+      "dependsOn": [
+        "loose-envify@1.4.0"
+      ],
+      "ref": "warning@4.0.3"
+    },
+    {
+      "dependsOn": [
+        "tslib@2.3.0"
+      ],
+      "ref": "zrender@6.1.0"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "mwx-isp-web@0.1.0",
+      "externalReferences": [],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "web",
+      "properties": [],
+      "purl": "pkg:npm/mwx-isp-web@0.1.0",
+      "scope": "required",
+      "type": "library",
+      "version": "0.1.0"
+    },
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": [
+      {
+        "name": "cli",
+        "vendor": "npm"
+      }
+    ]
+  },
+  "specVersion": "1.5",
+  "version": 1
+}
