@@ -31,7 +31,26 @@ the current tree.
 
 ## Progress
 
-Done: 34 / 100.
+Done: 35 / 100.
+
+- `ENG-040` (2026-10-29, `dev` @ `925aad0`): accounting retention and query-plan
+  study. `tools/acctbench` seeds synthetic session volume into a scratch
+  PostgreSQL database, runs the statements behind `ListAccounting` and the daily
+  retention delete, and records `EXPLAIN (ANALYZE, BUFFERS)` plus p50/p95, so an
+  index or partitioning decision rests on plans. At 1M and 5M rows the default
+  list page stays at 0.05 ms (eight buffers), page 201 at 1.5 ms, and the
+  retention cutoff at 0.1 ms on `acct_stop_time`; the heavy statement is the
+  7-day count, 6 ms at 1M and 42 ms at 5M rows where one tenant holds 625k rows.
+  Two candidates were measured and rejected: `(tenant_id, acct_start_time DESC)`
+  is never chosen (1.00–1.08x for +8.3% size) and `pg_trgm` on `username` is
+  3.7x slower at 1M rows and equal at 5M for +250 MB, because common trigrams
+  scan as many index pages as the tenant's heap. Decision: no index, no
+  partitioning, and no archive pipeline — the window stays configurable through
+  `radius.AccountingHistoryDays` (0 disables) and backups, not a second table,
+  cover deleted history; revisit triggers are recorded in
+  `docs/accounting-retention-query-plan.md`. One measurement pitfall is
+  documented too: pgx caches one prepared plan per SQL text per connection, so a
+  reused pool hides the effect of a new index.
 
 - `ENG-016` (2026-10-29, `dev` @ `985908e`): periodic fork/upstream check of the
   RADIUS codec library. The build resolves `layeh.com/radius` through the
@@ -559,7 +578,6 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 - [ ] `ENG-058` TR-F031 P2 — Label confidence dan mapping pada NOC impact UI · LOKAL · dep ENG-055 · PROPOSED_VERIFICATION
 - [ ] `ENG-036` TR-F033 P2 — Jejak scheduler FUP terpisah per tenant sesudah perbaikan · LOKAL · dep ENG-019 · PROPOSED_VERIFICATION
-- [ ] `ENG-040` TR-F011 P2 — Studi archival accounting retention dan query plan · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-054` TR-F023 P2 — Rekonsiliasi ID/EN seluruh status tagihan dan insiden · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-057` TR-F015 P2 — Audit grafik dashboard konsistensi timezone dan nominal · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-059` TR-F007 P2 — Audit import RADIUS user dengan preview dry-run saja · LOKAL · PROPOSED_VERIFICATION
@@ -582,6 +600,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ECO-002` TR-F029 P2 — Ukur waktu tugas operator sebelum/sesudah MWX-ISP · RISET+ASET · dep ECO-001 · PROPOSED_VERIFICATION
 - [ ] `ECO-007` TR-F030 P2 — Pengendalian biaya telemetri dan alert whatsmeow · RISET+ASET · dep ENG-048 · PROPOSED_VERIFICATION
 - [x] `ENG-016` TR-F021 P2 — Pemeriksaan berkala perbedaan fork layeh dan upstream · LOKAL · PROPOSED_VERIFICATION · commit `985908e`
+- [x] `ENG-040` TR-F011 P2 — Studi archival accounting retention dan query plan · LOKAL · PROPOSED_VERIFICATION · commit `925aad0`
 
 ## Wave 3 — 23 item (LOKAL 2 · RISET 21)
 
@@ -626,9 +645,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-040` — accounting retention and query-plan study.
-2. `ENG-054` — ID/EN reconciliation of billing and incident status tags.
-3. `ENG-057` — dashboard chart timezone and nominal consistency audit.
+1. `ENG-054` — ID/EN reconciliation of billing and incident status tags.
+2. `ENG-057` — dashboard chart timezone and nominal consistency audit.
+3. `ENG-059` — RADIUS user import dry-run preview audit.
 
 `ENG-064` and `ENG-058` stay parked: their dependencies (`ENG-013` real-NAS
 pilot, `ENG-049` SNMPv3 hardware) are ASET items without a claimed host.
