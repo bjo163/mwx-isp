@@ -31,7 +31,27 @@ the current tree.
 
 ## Progress
 
-Done: 32 / 100.
+Done: 33 / 100.
+
+- `ENG-063` (2026-10-29, `dev` @ `9ea95b8`): API response contract, pagination
+  and error testing. The collection endpoints the React Admin dataProvider maps
+  were exercised against the documented grammar and three real breaks surfaced.
+  Sessions, accounting and profiles ignored `pageSize` entirely (only `perPage`
+  was parsed) and reset an oversized `perPage` to 10 instead of clamping it to
+  the cap; they now share `parsePaginationWith` with a 10/100 compact profile
+  while the rest of the API keeps 20/1000. `paged()` passed a nil slice straight
+  to the encoder, so a page past the end (or any empty result) returned
+  `"data": null` — a payload React Admin calls array methods on; the envelope now
+  normalizes nil slices to `[]`. The users list counted through
+  `Session{NewDB:true}`, which dropped the filters, so `meta.total` reported the
+  unfiltered row count for every filtered user search; the count now runs on an
+  independently built filtered query. `api_contract_test.go` seeds five rows per
+  model and pins the success/error envelopes, pageSize-over-perPage precedence,
+  per-endpoint defaults and caps, empty pages as `[]`, filter totals, sort
+  injection falling back to the documented order without leaking passwords, and
+  the 401/403/400/404 and validation mappings; a contract lint parses
+  `resourcePathMap` and fails when a mapped UI resource has no case. The
+  contract is documented in `docs/api-contract.md`.
 
 - `ENG-039` (2026-10-29, `dev` @ `ca7afdc`): demo-marker protection during
   clean-up. Cleanup was exercised against real records parked next to sample
@@ -505,7 +525,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-029` TR-F029 P2 — PNG branding parser dan metadata validation · LOKAL · PROPOSED_VERIFICATION · commit `4af4425`
 - [x] `ENG-039` TR-F032 P2 — Perlindungan marker demo data saat clean-up · LOKAL · PROPOSED_VERIFICATION · commit `ca7afdc`
 - [x] `ENG-051` TR-F029 P2 — Test fungsional website editor yang masih kurang coverage · LOKAL · VERIFIED_GAP · commit `5add7af`
-- [ ] `ENG-063` TR-F012 P2 — Contract testing respons API, paginasi dan error · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-063` TR-F012 P2 — Contract testing respons API, paginasi dan error · LOKAL · PROPOSED_VERIFICATION · commit `9ea95b8`
 - [ ] `ENG-013` TR-F010 P1 — Pilot RFC 5176 CoA/Disconnect pada NAS nyata · ASET · PROPOSED_VERIFICATION
 - [ ] `ENG-002` TR-F004 P1 — Matriks interoperabilitas EAP-TLS 1.2/1.3 dengan supplicant nyata · ASET · dep ENG-001 · PROPOSED_VERIFICATION
 - [ ] `ENG-043` TR-F020 P1 — Drill pemulihan seluruh volume VPS dari backup · ASET · dep ENG-041 · VERIFIED_GAP
@@ -585,6 +605,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-063` — API contract, pagination and error testing.
-2. `ENG-064` — session-action queue dead-letter and alert.
-3. `ENG-058` — Wave 2 hardening (next locally executable item).
+1. `ENG-016` — periodic fork/upstream `layeh.com/radius` diff check.
+2. `ENG-040` — accounting retention and query-plan study.
+3. `ENG-054` — ID/EN reconciliation of billing and incident status tags.
+
+`ENG-064` and `ENG-058` stay parked: their dependencies (`ENG-013` real-NAS
+pilot, `ENG-049` SNMPv3 hardware) are ASET items without a claimed host.
