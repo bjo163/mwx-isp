@@ -2,13 +2,16 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/bjo163/mwx-isp/config"
 	"github.com/bjo163/mwx-isp/internal/billing"
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"github.com/bjo163/mwx-isp/internal/notify"
 	"github.com/bjo163/mwx-isp/internal/sessionqueue"
 	"github.com/bjo163/mwx-isp/internal/tenancy"
 	"github.com/glebarez/sqlite"
@@ -401,6 +404,77 @@ func TestSchedFUPCheckScopesUsageEventsAndDisconnectsPerTenant(t *testing.T) {
 	}
 	assert.ElementsMatch(t, []int64{10, 30}, eventTenantIDs, "FUP audit events must belong to the affected tenants")
 	assert.ElementsMatch(t, []int64{10, 30}, disconnectedTenantIDs, "only throttled tenants may be disconnected")
+}
+
+func TestSchedFUPCheckIsolatesTenantFailuresWithBoundedTelemetry(t *testing.T) {
+	db := newFUPDB(t)
+	require.NoError(t, db.AutoMigrate(&domain.NotificationSettings{}, &domain.NotificationOutbox{}))
+
+	// Tenants 10 and 20 will fail before touching their data; 30 and 40 are
+	// over quota and must still be throttled in the same run, proving a broken
+	// tenant does not abort the scheduler for the tenants queued after it.
+	const failingA, failingB, overA, overB int64 = 10, 20, 30, 40
+	fixtures := make(map[int64]fupFixture, 4)
+	for _, tenantID := range []int64{failingA, failingB, overA, overB} {
+		fixtures[tenantID] = seedFUPFixture(t, db, tenantID)
+		seedFUPOnline(t, db, tenantID, fmt.Sprintf("session-%d", tenantID), 2<<30)
+	}
+
+	acknowledged := time.Now()
+	require.NoError(t, db.Create(&domain.NotificationSettings{
+		WhatsAppEnabled: true, RiskAcknowledgedAt: &acknowledged,
+		EventsJSON: `["scheduler.failure"]`, RecipientsJSON: `["+628111111111"]`,
+	}).Error)
+
+	a := &Application{gormDB: db, notificationOutbox: notify.NewDispatcher(db, nil)}
+	before := GetSystemMetrics()
+
+	const hook = "test:inject_tenant_query_failure"
+	require.NoError(t, db.Callback().Query().Before("gorm:query").Register(hook, func(tx *gorm.DB) {
+		tenantID, ok := tenancy.TenantID(tx.Statement.Context)
+		if ok && (tenantID == failingA || tenantID == failingB) {
+			_ = tx.AddError(errors.New("injected tenant query failure"))
+		}
+	}))
+
+	a.SchedFUPCheckTask()
+
+	require.NoError(t, db.Callback().Query().Remove(hook))
+
+	for _, tenantID := range []int64{overA, overB} {
+		f := fixtures[tenantID]
+		tdb := db.WithContext(tenancy.WithTenantID(context.Background(), tenantID))
+		var sub domain.Subscription
+		require.NoError(t, tdb.First(&sub, f.sub.ID).Error)
+		require.True(t, sub.FupTriggered, "tenant %d must be throttled after two earlier tenants failed", tenantID)
+		var user domain.RadiusUser
+		require.NoError(t, tdb.First(&user, f.user.ID).Error)
+		require.Equal(t, 256, user.UpRate)
+		require.Equal(t, 512, user.DownRate)
+	}
+	for _, tenantID := range []int64{failingA, failingB} {
+		f := fixtures[tenantID]
+		tdb := db.WithContext(tenancy.WithTenantID(context.Background(), tenantID))
+		var sub domain.Subscription
+		require.NoError(t, tdb.First(&sub, f.sub.ID).Error)
+		require.False(t, sub.FupTriggered, "a failed tenant must be left untouched")
+		var user domain.RadiusUser
+		require.NoError(t, tdb.First(&user, f.user.ID).Error)
+		require.Equal(t, 2048, user.UpRate)
+	}
+
+	after := GetSystemMetrics()
+	require.Len(t, after, 2, "the metric label set is fixed and must not grow with tenants")
+	require.EqualValues(t, int64(4), after["fup_scheduler_tenant_attempts_total"]-before["fup_scheduler_tenant_attempts_total"],
+		"every active tenant is attempted even when earlier ones fail")
+	require.EqualValues(t, int64(2), after["fup_scheduler_tenant_failures_total"]-before["fup_scheduler_tenant_failures_total"])
+
+	var notes []domain.NotificationOutbox
+	require.NoError(t, db.Find(&notes).Error)
+	require.Len(t, notes, 1, "failures in the same minute share one dedupe key instead of one key per tenant")
+	require.True(t, strings.HasPrefix(notes[0].DedupeKey, "scheduler:isp-fup:"), "dedupe key: %s", notes[0].DedupeKey)
+	require.NotContains(t, notes[0].DedupeKey, "tenant", "the dedupe key must not carry a tenant identifier")
+	require.Contains(t, notes[0].Body, "tenant 10")
 }
 
 func TestSchedFUPCheckResetIsPeriodAwareAndIdempotent(t *testing.T) {
