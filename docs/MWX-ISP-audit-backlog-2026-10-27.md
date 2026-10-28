@@ -31,7 +31,23 @@ the current tree.
 
 ## Progress
 
-Done: 29 / 100.
+Done: 30 / 100.
+
+- `ENG-008` (2026-10-29, `dev` @ `5b934ae`): EAP-OTP cannot be enabled without
+  a validator. The handler already rejected every response after the hardcoded
+  `123456` accept was removed, but the surrounding configuration could still
+  route traffic at it. Four independent guards are now pinned by tests: the
+  handler answers `ErrOTPNotConfigured` and is never registered, `eap-otp` is
+  absent from the `radius.EapMethod` enum so the settings API refuses it, and
+  `buildAllowedEAPHandlers` filters `radius.EapEnabledHandlers` against
+  `registry.EAPHandlerNames()` — an unknown name is logged and dropped, and if
+  nothing usable remains the allowlist becomes the reserved
+  `eap.MethodUnavailable`, which the coordinator rejects. That last change closes
+  the silent-widening hole where a misspelled allowlist fell back to
+  `eap-md5`. `docs/eap-otp-contract.md` states the seven properties a real OTP
+  backend must satisfy (issuance bound to State and identity, single use,
+  expiry, constant-time compare, attempt limit, out-of-band delivery, no silent
+  fallback) and the checklist to follow before the method can be registered.
 
 - `ENG-027` (2026-10-28, `dev` @ `82bc7be`): network diagnostic SSRF hardening.
   The diagnostics ping endpoint already refused hostnames and required private
@@ -446,7 +462,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-053` TR-F013 P2 — Navigasi keyboard pada data-grid dan dialog kritis · LOKAL · PROPOSED_VERIFICATION · commit `4404b1b`
 - [x] `ENG-004` TR-F003 P2 — Kesiapan rotasi sertifikat RadSec dan EAP · LOKAL · PROPOSED_VERIFICATION · commit `3cf307c`
 - [x] `ENG-030` TR-F022 P2 — Inventory SBOM backend/frontend serta lisensi · LOKAL · PROPOSED_VERIFICATION · commit `bf4b18e`
-- [ ] `ENG-008` TR-F004 P2 — Pastikan EAP-OTP tak dapat diaktifkan tanpa validator · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-008` TR-F004 P2 — Pastikan EAP-OTP tak dapat diaktifkan tanpa validator · LOKAL · PROPOSED_VERIFICATION · commit `5b934ae`
 - [ ] `ENG-029` TR-F029 P2 — PNG branding parser dan metadata validation · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-039` TR-F032 P2 — Perlindungan marker demo data saat clean-up · LOKAL · PROPOSED_VERIFICATION
 - [x] `ENG-051` TR-F029 P2 — Test fungsional website editor yang masih kurang coverage · LOKAL · VERIFIED_GAP · commit `5add7af`
@@ -530,6 +546,6 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-008` — EAP-OTP cannot be enabled without a validator.
-2. `ENG-029` — PNG branding parser and metadata validation.
-3. `ENG-039` — demo-data markers survive clean-up.
+1. `ENG-029` — PNG branding parser and metadata validation.
+2. `ENG-039` — demo-data markers survive clean-up.
+3. `ENG-063` — API contract, pagination and error testing.
