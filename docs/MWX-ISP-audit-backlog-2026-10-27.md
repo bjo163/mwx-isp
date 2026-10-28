@@ -31,7 +31,27 @@ the current tree.
 
 ## Progress
 
-Done: 35 / 100.
+Done: 36 / 100.
+
+- `ENG-054` (2026-10-29, `dev` @ `ef3c286`): ID/EN reconciliation of billing and
+  incident status tags. `StatusChip` rendered the raw enum uppercased, so every
+  customer, package, subscription, invoice and payment status stayed English
+  under `id-ID`, and the billing dropdowns hardcoded English `name` strings;
+  ticket chips carried their own per-page copy of the same labels. The values
+  now live in one vocabulary, `web/src/i18n/status.ts` (billing lifecycle,
+  ticket lifecycle, priorities, connectivity), rendered through a `status.*`
+  namespace in `en-US.ts` and `indonesian-overrides.ts`. Both dictionaries are
+  typed as a complete `StatusMessages` map, so `tsc` — which `npm run build`
+  runs in CI — fails when a value lacks an Indonesian label instead of silently
+  falling back to English. `StatusChip` translates through `useTranslate` with
+  the uppercase enum as its default, `useStatusChoices` feeds the
+  customer/package/subscription/invoice `SelectInput` filters and forms, and
+  the ticket table chip now uses the shared catalog (same wording as the
+  previous page map: Terbuka, Terjadwal, Dalam Proses, Selesai, Tertutup).
+  `npm run type-check` and `npm run build` pass. Limit: this verifies the
+  catalogs compile, not how the operator sees them; the local ESLint run is
+  broken by the repo's TypeScript 7 / `@typescript-eslint` 7 mismatch
+  (pre-existing, CI gates the web build instead).
 
 - `ENG-040` (2026-10-29, `dev` @ `925aad0`): accounting retention and query-plan
   study. `tools/acctbench` seeds synthetic session volume into a scratch
@@ -578,7 +598,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 - [ ] `ENG-058` TR-F031 P2 — Label confidence dan mapping pada NOC impact UI · LOKAL · dep ENG-055 · PROPOSED_VERIFICATION
 - [ ] `ENG-036` TR-F033 P2 — Jejak scheduler FUP terpisah per tenant sesudah perbaikan · LOKAL · dep ENG-019 · PROPOSED_VERIFICATION
-- [ ] `ENG-054` TR-F023 P2 — Rekonsiliasi ID/EN seluruh status tagihan dan insiden · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-054` TR-F023 P2 — Rekonsiliasi ID/EN seluruh status tagihan dan insiden · LOKAL · PROPOSED_VERIFICATION · commit `ef3c286`
 - [ ] `ENG-057` TR-F015 P2 — Audit grafik dashboard konsistensi timezone dan nominal · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-059` TR-F007 P2 — Audit import RADIUS user dengan preview dry-run saja · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-062` TR-F022 P2 — Sistem upgrade dependency dengan ratchet keamanan · LOKAL · dep ENG-030 · PROPOSED_VERIFICATION
@@ -645,9 +665,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-054` — ID/EN reconciliation of billing and incident status tags.
-2. `ENG-057` — dashboard chart timezone and nominal consistency audit.
-3. `ENG-059` — RADIUS user import dry-run preview audit.
+1. `ENG-057` — dashboard chart timezone and nominal consistency audit.
+2. `ENG-059` — RADIUS user import dry-run preview audit.
+3. `ENG-003` — EAP-TLS certificate revocation policy mapping.
 
 `ENG-064` and `ENG-058` stay parked: their dependencies (`ENG-013` real-NAS
 pilot, `ENG-049` SNMPv3 hardware) are ASET items without a claimed host.
