@@ -31,7 +31,25 @@ the current tree.
 
 ## Progress
 
-Done: 31 / 100.
+Done: 32 / 100.
+
+- `ENG-039` (2026-10-29, `dev` @ `ca7afdc`): demo-marker protection during
+  clean-up. Cleanup was exercised against real records parked next to sample
+  data and one data-loss path surfaced: a sample subscription reparented to a
+  real customer was still found through its marker event under the old sample
+  customer, its sample invoices were deleted first, and the subscription then
+  disappeared with them — and the next seed run would have reused that marker
+  for a sample customer. The loop now loads the subscription, treats a
+  non-sample owner as adoption (keep the subscription, drop only the seed link)
+  and deletes the marker event even when the subscription survives.
+  `cleanup_protection_test.go` adds three fixtures: an operator record set that
+  points at sample inventory (a real user keeps its sample profile and node, a
+  real subscription keeps its sample package, a sample customer with a real
+  invoice keeps both) and reads back recovered credentials unchanged; the
+  adopted-subscription case including regeneration on the next seed run; and a
+  two-tenant inventory where cleaning tenant A removes its unreferenced node,
+  NAS, profile, user and accounting rows while tenant B and both tenants' real
+  credentials stay untouched.
 
 - `ENG-029` (2026-10-29, `dev` @ `4af4425`): PNG branding upload validation.
   The upload path was exercised against the four failure shapes the issue named —
@@ -485,7 +503,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-030` TR-F022 P2 — Inventory SBOM backend/frontend serta lisensi · LOKAL · PROPOSED_VERIFICATION · commit `bf4b18e`
 - [x] `ENG-008` TR-F004 P2 — Pastikan EAP-OTP tak dapat diaktifkan tanpa validator · LOKAL · PROPOSED_VERIFICATION · commit `5b934ae`
 - [x] `ENG-029` TR-F029 P2 — PNG branding parser dan metadata validation · LOKAL · PROPOSED_VERIFICATION · commit `4af4425`
-- [ ] `ENG-039` TR-F032 P2 — Perlindungan marker demo data saat clean-up · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-039` TR-F032 P2 — Perlindungan marker demo data saat clean-up · LOKAL · PROPOSED_VERIFICATION · commit `ca7afdc`
 - [x] `ENG-051` TR-F029 P2 — Test fungsional website editor yang masih kurang coverage · LOKAL · VERIFIED_GAP · commit `5add7af`
 - [ ] `ENG-063` TR-F012 P2 — Contract testing respons API, paginasi dan error · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-013` TR-F010 P1 — Pilot RFC 5176 CoA/Disconnect pada NAS nyata · ASET · PROPOSED_VERIFICATION
@@ -567,6 +585,6 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-039` — demo-data markers survive clean-up.
-2. `ENG-063` — API contract, pagination and error testing.
-3. `ENG-064` — session-action queue dead-letter and alert.
+1. `ENG-063` — API contract, pagination and error testing.
+2. `ENG-064` — session-action queue dead-letter and alert.
+3. `ENG-058` — Wave 2 hardening (next locally executable item).
