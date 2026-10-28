@@ -2,7 +2,6 @@ package adminapi
 
 import (
 	"errors"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/bjo163/mwx-isp/internal/app"
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"github.com/bjo163/mwx-isp/internal/networkmonitor"
 	"github.com/bjo163/mwx-isp/internal/securestore"
 	"github.com/bjo163/mwx-isp/internal/webserver"
 	"github.com/labstack/echo/v4"
@@ -143,12 +143,8 @@ func validateMonitorInput(in *monitorTargetInput, secretConfigured bool) error {
 	if in.Name == "" || len(in.Name) > 120 {
 		return errors.New("name must contain 1 to 120 characters")
 	}
-	ip := net.ParseIP(in.Address)
-	if ip == nil || ip.IsUnspecified() || ip.IsMulticast() {
-		return errors.New("address must be one explicit unicast IP address")
-	}
-	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-		return errors.New("address must not be link-local")
+	if err := networkmonitor.CheckTargetAddress(in.Address); err != nil {
+		return err
 	}
 	if in.Kind == "" {
 		in.Kind = "router"

@@ -16,10 +16,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gosnmp/gosnmp"
-	probing "github.com/prometheus-community/pro-bing"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/securestore"
+	"github.com/gosnmp/gosnmp"
+	probing "github.com/prometheus-community/pro-bing"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -149,6 +149,11 @@ func (m *Monitor) checkTarget(ctx context.Context, target domain.NetMonitorTarge
 	if !target.Enabled {
 		return errors.New("target is disabled")
 	}
+	// Re-check the stored address at egress: a row can predate the current
+	// policy, and this is the last point before the daemon opens a connection.
+	if err := CheckTargetAddress(target.Address); err != nil {
+		return fmt.Errorf("target address is not allowed: %w", err)
+	}
 	probeCtx, cancel := context.WithTimeout(ctx, time.Duration(target.TimeoutMilliseconds+3000)*time.Millisecond)
 	defer cancel()
 	result := m.probe.Check(probeCtx, target, m.keyMaterial)
@@ -230,6 +235,20 @@ func safeError(value string) string {
 	return value
 }
 
+// newProbeHTTPClient builds the client used by the HTTP probe. Redirects are
+// not followed: the Location header is an address the operator never validated,
+// so following it would let a monitored device pivot the probe to any host the
+// daemon can reach. A 3xx response still counts as reachable, which is what the
+// status check already treats it as.
+func newProbeHTTPClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Timeout: timeout,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+}
+
 type systemProbe struct{}
 
 func (systemProbe) Check(ctx context.Context, target domain.NetMonitorTarget, key string) ProbeResult {
@@ -294,15 +313,7 @@ func (systemProbe) Check(ctx context.Context, target domain.NetMonitorTarget, ke
 		}
 		req.Header.Set("User-Agent", "MWX-ISP-Monitor/1.0")
 		started := time.Now()
-		client := &http.Client{
-			Timeout: timeout,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if len(via) >= 5 {
-					return errors.New("stopped after 5 redirects")
-				}
-				return nil
-			},
-		}
+		client := newProbeHTTPClient(timeout)
 		resp, err := client.Do(req)
 		if err != nil {
 			return ProbeResult{Error: "HTTP connection failed", PacketLossPercent: 100}

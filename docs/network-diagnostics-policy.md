@@ -4,7 +4,9 @@
 probe: it opens a TCP connection to one target and reports latency and loss.
 Without limits it would be a general port scanner running inside the MWX-ISP
 host, able to reach loopback services, cloud metadata addresses, and any
-network the host can route to. This policy defines what it may probe.
+network the host can route to. This policy defines what it may probe, and the
+same address rules govern the scheduled **monitor targets** that poll a device
+on an interval.
 
 ## Accepted input
 
@@ -27,8 +29,9 @@ These are refused for every role, whatever the inventory says
 | Class | Example | Why |
 | --- | --- | --- |
 | Unspecified | `0.0.0.0`, `::` | Not a destination |
-| Loopback | `127.0.0.1`, `::1` | Would probe services on the MWX-ISP host |
-| Link-local | `169.254.169.254`, `fe80::1` | Cloud metadata and APIPA; the classic SSRF target |
+| This network / broadcast | `0.10.0.1`, `255.255.255.255` | Reserved, never a device |
+| Loopback | `127.0.0.1`, `::1`, `::ffff:127.0.0.1` | Would probe services on the MWX-ISP host |
+| Link-local | `169.254.169.254`, `fe80::1`, `fe80::1%eth0` | Cloud metadata and APIPA; the classic SSRF target |
 | Multicast / interface-local | `224.0.0.1`, `ff02::1` | Not probeable by connect |
 
 ## Private and public destinations
@@ -59,17 +62,41 @@ the inventory rule above, it cannot be driven as a scanner.
 
 ## Monitor target registration
 
-The same rules apply when a monitor target is created or updated: the address
-must be one explicit unicast IP, link-local addresses are refused, and
-unspecified or multicast addresses were already refused. Loopback remains
-valid here because registration is itself the explicit operator decision, and
-a local service check is a legitimate use (unlike an ad-hoc probe of an
-arbitrary host).
+A monitor target polls on a schedule, so its address is a standing instruction
+rather than a one-off request, and it follows the same rules:
+
+- **Input** (`POST`/`PUT /api/v1/network/monitor-targets`, `INVALID_TARGET`)
+  applies the table above: an explicit IP literal only — a hostname would be
+  resolved at probe time (DNS rebinding) — and no unspecified, "this network",
+  broadcast, loopback, link-local, or multicast address.
+- **Loopback is refused here as well.** Registration decides *which device* is
+  polled; it does not decide whether the probe may reach the daemon's own
+  listeners. A local service is reachable through the host's LAN address, which
+  is part of the registered inventory. (An earlier revision allowed loopback for
+  this case; ENG-027 closed it.)
+- **The address is re-checked at egress**, immediately before each probe. Rows
+  written before this rule existed are therefore refused rather than dialed: the
+  poller logs a warning, the manual check returns `CHECK_FAILED`, and a refusal
+  does not record a "down" sample or open an incident.
+- **The HTTP probe never follows a redirect.** The `Location` header is an
+  address no operator validated, so a monitored device could otherwise pivot the
+  probe to any host the daemon can reach. The first response decides the result,
+  and a 3xx counts as reachable, which is what a redirected check used to report.
+
+## Not a scanner
+
+Nothing in the monitor accepts a range or a list: one target is one address, one
+probe type (`icmp`, `tcp`, `snmp`, or `http`), and one port. The quick check
+endpoint checks a single registered target on demand, an admin can register at
+most 500 targets, and the poller runs at most eight probes concurrently on the
+configured 30–3600 second interval. There is no port sweep, topology discovery,
+or arbitrary payload; the HTTP probe issues one `GET` and reads no body.
 
 ## Verification
 
 ```bash
-go test ./internal/adminapi/ -run 'TestParseProbeTarget|TestAuthorizeProbeTarget|TestMonitorTargetRejectsLinkLocal|TestLivePing' -count=1
+go test ./internal/adminapi/ -run 'TestParseProbeTarget|TestAuthorizeProbeTarget|TestMonitorTargetRejectsLinkLocal|TestCreateMonitorTargetEnforcesAddressPolicy|TestLivePing' -count=1
+go test ./internal/networkmonitor/ -run 'TestCheckTargetAddress|TestMonitorCheckTargetRefusesStoredLoopback|TestHTTPProbeDoesNotFollowRedirects' -count=1
 ```
 
 - `TestParseProbeTargetRejectsMalformedAndUnsafeInputs` covers hostnames
@@ -80,7 +107,14 @@ go test ./internal/adminapi/ -run 'TestParseProbeTarget|TestAuthorizeProbeTarget
   IPAM pool, a NAS record, and a monitor target.
 - `TestLivePingRejectsUnsafeTargets` drives the HTTP handler and asserts the
   API error codes; `TestLivePingIsRateLimited` pins the limiter.
-- `TestMonitorTargetRejectsLinkLocalAddress` pins the registration rule.
+- `TestMonitorTargetRejectsLinkLocalAddress` pins the registration rule, and
+  `TestCreateMonitorTargetEnforcesAddressPolicy` drives the create handler with
+  loopback, metadata, a hostname, the unspecified address, and a private address.
+- `TestCheckTargetAddress` is the policy table (allowed private/public/ULA,
+  refused loopback, link-local, multicast, "this network", broadcast, hostnames,
+  URLs, and `ip:port`); `TestMonitorCheckTargetRefusesStoredLoopback` proves a
+  legacy row is refused at egress without fabricating an outage; and
+  `TestHTTPProbeDoesNotFollowRedirects` pins the redirect policy.
 
 ## Limits
 
@@ -90,3 +124,8 @@ go test ./internal/adminapi/ -run 'TestParseProbeTarget|TestAuthorizeProbeTarget
 - The check is a TCP connect, not ICMP; the probe cannot send payloads.
 - Revoking an IPAM pool or monitor target removes it from the authorised set on
   the next request; there is no cached allowlist to expire.
+- The monitor's SNMP and TCP probes resolve no names either: with hostnames
+  refused, there is no DNS step to rebind.
+- Rejecting loopback is a policy decision, not a technical limit: an operator who
+  genuinely needs to monitor a service on the MWX-ISP host can point the target
+  at the host's LAN address.

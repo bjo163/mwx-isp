@@ -107,9 +107,11 @@ func TestMonitorTargetRejectsLinkLocalAddress(t *testing.T) {
 	input.Address = "fe80::1"
 	require.ErrorContains(t, validateMonitorInput(&input, false), "link-local")
 
-	// Loopback stays available for an explicitly registered local service.
+	// Loopback is refused for monitor targets too: it aims the periodic probe at
+	// the daemon's own listeners, and a local service is reachable through the
+	// host's LAN address, which is part of the registered inventory.
 	input.Address = "127.0.0.1"
-	require.NoError(t, validateMonitorInput(&input, false))
+	require.ErrorContains(t, validateMonitorInput(&input, false), "loopback")
 }
 
 func TestLivePingRejectsUnsafeTargets(t *testing.T) {
