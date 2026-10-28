@@ -871,13 +871,30 @@ const ImportUsersButton = () => {
         throw new Error(payload?.message || translate('resources.radius/users.import.failed', { _: 'Import failed' }));
       }
       const result = payload?.data ?? payload;
+      const failed = result?.failed ?? 0;
+      const succeeded = result?.success ?? 0;
+      // The API imports all-or-nothing: any failed row rejects the file and
+      // leaves the user table untouched, so this is not a partial success.
+      const firstError = Array.isArray(result?.errors) ? result.errors[0] : undefined;
+      if (succeeded === 0 && failed > 0) {
+        notify(
+          translate('resources.radius/users.import.rejected', {
+            _: 'Import rejected: %{failed} row(s) have errors, nothing was imported. First error (row %{row}): %{message}',
+            failed,
+            row: firstError?.row ?? '-',
+            message: firstError?.message ?? '',
+          }),
+          { type: 'error' }
+        );
+        return;
+      }
       notify(
         translate('resources.radius/users.import.result', {
           _: 'Import complete: %{success} succeeded, %{failed} failed',
-          success: result?.success ?? 0,
-          failed: result?.failed ?? 0,
+          success: succeeded,
+          failed,
         }),
-        { type: (result?.failed ?? 0) > 0 ? 'warning' : 'success' }
+        { type: failed > 0 ? 'warning' : 'success' }
       );
       refresh();
     } catch (error) {

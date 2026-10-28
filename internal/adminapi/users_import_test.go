@@ -11,7 +11,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"github.com/bjo163/mwx-isp/pkg/common"
 )
 
 // newUploadRequest builds a multipart request carrying a single "upload" file.
@@ -158,7 +161,138 @@ func TestImportRadiusUsers_Errors(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &result))
 
 	assert.Equal(t, 5, result.Total)
-	assert.Equal(t, 1, result.Success)
+	// One bad row rejects the whole payload: nothing is written, so the valid
+	// row is not imported either.
+	assert.Equal(t, 0, result.Success)
 	assert.Equal(t, 4, result.Failed)
 	assert.Len(t, result.Errors, 4)
+
+	var count int64
+	db.Model(&domain.RadiusUser{}).Count(&count)
+	assert.Equal(t, int64(1), count, "only the pre-existing dup_user may remain")
+	var validRows int64
+	require.NoError(t, db.Model(&domain.RadiusUser{}).Where("username = ?", "ok_user").Count(&validRows).Error)
+	assert.Equal(t, int64(0), validRows, "the valid row must not be written when the file is rejected")
+}
+
+// importJSON builds a newline-delimited JSON payload from the given rows.
+func importJSON(t *testing.T, lines []map[string]interface{}) []byte {
+	t.Helper()
+	var content bytes.Buffer
+	for _, l := range lines {
+		bs, err := json.Marshal(l)
+		require.NoError(t, err)
+		content.Write(bs)
+		content.WriteByte('\n')
+	}
+	return content.Bytes()
+}
+
+// runImport executes the handler against a JSON payload and decodes the result.
+func runImport(t *testing.T, db *gorm.DB, content []byte) ImportUserResult {
+	t.Helper()
+	appCtx := setupTestApp(t, db)
+	req, rec := newUploadRequest("users.json", content)
+	e := setupTestEcho()
+	c := CreateTestContext(e, db, req, rec, appCtx)
+	require.NoError(t, importRadiusUsers(c))
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp Response
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	data, err := json.Marshal(resp.Data)
+	require.NoError(t, err)
+	var result ImportUserResult
+	require.NoError(t, json.Unmarshal(data, &result))
+	return result
+}
+
+// TestImportRadiusUsers_RejectsDuplicateRowsWithinFile pins in-file duplicate
+// detection. The duplicate check used to rely on the previous insert having
+// committed, which only worked because the importer wrote row by row.
+func TestImportRadiusUsers_RejectsDuplicateRowsWithinFile(t *testing.T) {
+	db := setupTestDB(t)
+	profile := createTestProfile(db, "import-dup-profile")
+
+	content := importJSON(t, []map[string]interface{}{
+		{"username": "same_user", "password": "secret123", "profile_id": profile.ID},
+		{"username": "same_user", "password": "secret456", "profile_id": profile.ID},
+	})
+	result := runImport(t, db, content)
+
+	assert.Equal(t, 2, result.Total)
+	assert.Equal(t, 0, result.Success)
+	assert.Equal(t, 1, result.Failed)
+	require.Len(t, result.Errors, 1)
+	assert.Equal(t, 2, result.Errors[0].Row)
+	assert.Equal(t, "same_user", result.Errors[0].Username)
+	assert.Contains(t, result.Errors[0].Message, "duplicates row 1")
+
+	var count int64
+	db.Model(&domain.RadiusUser{}).Count(&count)
+	assert.Equal(t, int64(0), count)
+}
+
+// TestImportRadiusUsers_RejectsUnusableValues covers rows the old importer
+// either accepted silently or reported with a misleading message.
+func TestImportRadiusUsers_RejectsUnusableValues(t *testing.T) {
+	db := setupTestDB(t)
+	profile := createTestProfile(db, "import-values-profile")
+
+	cases := []struct {
+		name    string
+		row     map[string]interface{}
+		message string
+	}{
+		{
+			name:    "non numeric profile id",
+			row:     map[string]interface{}{"username": "bad_profile", "password": "secret123", "profile_id": "abc"},
+			message: "Billing profile id must be a positive integer",
+		},
+		{
+			name:    "unknown status would import an enabled user",
+			row:     map[string]interface{}{"username": "bad_status", "password": "secret123", "profile_id": profile.ID, "status": "nonaktif"},
+			message: "Status must be enabled or disabled",
+		},
+		{
+			name:    "non numeric node id",
+			row:     map[string]interface{}{"username": "bad_node", "password": "secret123", "profile_id": profile.ID, "node_id": "edge-1"},
+			message: "Network node id must be a positive integer",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := runImport(t, db, importJSON(t, []map[string]interface{}{tc.row}))
+
+			assert.Equal(t, 1, result.Total)
+			assert.Equal(t, 0, result.Success)
+			assert.Equal(t, 1, result.Failed)
+			require.Len(t, result.Errors, 1)
+			assert.Contains(t, result.Errors[0].Message, tc.message)
+
+			var count int64
+			db.Model(&domain.RadiusUser{}).Count(&count)
+			assert.Equal(t, int64(0), count)
+		})
+	}
+}
+
+// TestImportRadiusUsers_AcceptsDisabledStatus keeps the one non-default status
+// the auth checker understands importable.
+func TestImportRadiusUsers_AcceptsDisabledStatus(t *testing.T) {
+	db := setupTestDB(t)
+	profile := createTestProfile(db, "import-disabled-profile")
+
+	result := runImport(t, db, importJSON(t, []map[string]interface{}{
+		{"username": "disabled_user", "password": "secret123", "profile_id": profile.ID, "status": "Disabled"},
+	}))
+
+	assert.Equal(t, 1, result.Total)
+	assert.Equal(t, 1, result.Success)
+	assert.Equal(t, 0, result.Failed)
+
+	var user domain.RadiusUser
+	require.NoError(t, db.Where("username = ?", "disabled_user").First(&user).Error)
+	assert.Equal(t, common.DISABLED, user.Status)
 }
