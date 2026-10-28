@@ -31,7 +31,29 @@ the current tree.
 
 ## Progress
 
-Done: 28 / 100.
+Done: 29 / 100.
+
+- `ENG-027` (2026-10-28, `dev` @ `82bc7be`): network diagnostic SSRF hardening.
+  The diagnostics ping endpoint already refused hostnames and required private
+  targets to be registered, but the scheduled monitor targets did not: they
+  accepted loopback, so an admin-authored target could point the poller at the
+  daemon's own listeners, and the HTTP probe followed up to five redirects,
+  whose `Location` header is an address no operator validated — a monitored
+  device could pivot the probe anywhere the host can reach. `CheckTargetAddress`
+  now holds one policy (explicit IP literal only, so no DNS step exists to
+  rebind; no unspecified, "this network", broadcast, loopback, link-local, or
+  multicast destination; private IPv4 and IPv6 unique-local still allowed
+  because that is where an ISP's devices live). The API applies it on create and
+  update, and `Monitor.checkTarget` re-applies it at egress so a row written
+  before the rule is refused — logged, no fabricated down sample, no incident.
+  The HTTP probe stops at the first response with `http.ErrUseLastResponse`,
+  keeping the existing "3xx counts as reachable" result. The policy doc gained
+  the monitor-target section, a "not a scanner" section (one address, one probe
+  type, one port, 500-target cap, eight concurrent polls), and the tests:
+  address table, egress refusal for a stored loopback row, redirect pin, and a
+  handler test for loopback/metadata/hostname/private. The previous deliberate
+  "loopback stays available for a local service" allowance is reversed and
+  documented; a local service remains reachable through the host's LAN address.
 
 - `ENG-030` (2026-10-28, `dev` @ `bf4b18e`): SBOM and license inventory.
   `tools/sbom` writes CycloneDX 1.5 for the Go module graph (`go list -m all`,
@@ -414,7 +436,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-023` TR-F018 P1 — Validasi rate limiting saat reverse proxy multi-hop · LOKAL · PROPOSED_VERIFICATION · commit `818c331`
 - [x] `ENG-024` TR-F031 P1 — Runbook rotasi secret SNMP dan encrypted community · LOKAL · PROPOSED_VERIFICATION · commit `db08c5f`
 - [x] `ENG-025` TR-F030 P1 — Audit perlindungan kredensial koneksi WhatsApp · LOKAL · PROPOSED_VERIFICATION · commit `aef2150`
-- [ ] `ENG-027` TR-F031 P1 — Hardening diagnostik jaringan terhadap SSRF · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-027` TR-F031 P1 — Hardening diagnostik jaringan terhadap SSRF · LOKAL · PROPOSED_VERIFICATION · commit `82bc7be`
 - [x] `ENG-035` TR-F027 P1 — Konsistensi status Subscription dan RadiusUser saat transisi · LOKAL · PROPOSED_VERIFICATION · commit `c070535`
 - [x] `ENG-037` TR-F028 P1 — Validasi integer IDR dan batas invoice items · LOKAL · PROPOSED_VERIFICATION · commit `e8da24f`
 - [x] `ENG-038` TR-F007 P1 — Voucher terminal-state concurrency regressions · LOKAL · PROPOSED_VERIFICATION · commit `7c2e06e`
@@ -508,6 +530,6 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-027` — network diagnostic SSRF hardening.
-2. `ENG-008` — EAP-OTP cannot be enabled without a validator.
-3. `ENG-029` — the next item in the Wave 1 LOKAL set.
+1. `ENG-008` — EAP-OTP cannot be enabled without a validator.
+2. `ENG-029` — PNG branding parser and metadata validation.
+3. `ENG-039` — demo-data markers survive clean-up.
