@@ -1,4 +1,4 @@
-# RadSec and EAP certificate rotation (TR-F003 / ENG-004)
+# RadSec and EAP certificate rotation (TR-F003 / ENG-004 / ENG-009)
 
 RadSec (RADIUS over TLS) used to load its key pair and client CA bundle once at
 startup, so replacing a certificate meant restarting the daemon and dropping
@@ -76,6 +76,24 @@ two steps so no client loses access:
 2. Migrate clients to the new CA, then drop the old block from the bundle. The
    removal also takes effect on the next handshake.
 
+## Client authentication policy
+
+The policy is fixed and the rotation path above never loosens it. Every
+handshake uses `tls.VerifyClientCertIfGiven` with a minimum of TLS 1.2 and the
+snapshot's client CA pool:
+
+| Peer presents | Result |
+| --- | --- |
+| A certificate issued by a CA in the bundle, `clientAuth` usage, in date | Accepted; the packet reaches the RADIUS handler |
+| A certificate from an unknown CA, expired, or without `clientAuth` usage | Handshake rejected; no packet reaches the handler |
+| No certificate | Accepted (see the known limit below) |
+| TLS 1.0 / 1.1 | Rejected by the version floor |
+
+A failed handshake closes the connection. `Serve` performs the handshake
+explicitly and returns on error, so a rejected peer cannot leave a goroutine
+spinning on a dead TLS connection; only a frame whose attributes were fully
+consumed is skipped and the stream continues.
+
 ## Rollback
 
 Restore the backed-up files with the same atomic rename. The next handshake
@@ -119,20 +137,37 @@ before removing the old trust anchor.
 | `TestRadsecTLSFiles_KeepsLastGoodOnExpiredReload` | Rotating to an already expired leaf is refused; the valid certificate keeps serving |
 | `TestRadsecTLSFiles_ClientCAAOverlap` | An old+new CA bundle accepts client certificates from both CAs, including while the bundle is rewritten under concurrent handshakes |
 | `TestSettingsTLSConfigProvider_RotatesBetweenHandshakes` | EAP material switches serial `101` → `202` → `101` between provider calls, with no caching |
+| `TestRadsecHandshake_TrustedClientAccepted` | Positive half: a client certificate from the configured CA authenticates and its Access-Request is handled |
+| `TestRadsecHandshake_UntrustedClientRejected` | A certificate from a foreign CA fails the handshake and no packet is handled |
+| `TestRadsecHandshake_ExpiredClientRejected` | An expired client certificate fails the handshake and no packet is handled |
+| `TestRadsecHandshake_WrongKeyUsageRejected` | A `serverAuth`-only certificate presented as a client certificate is rejected |
+| `TestRadsecHandshake_ClientWithoutCertificateAccepted` | Pins the current `VerifyClientCertIfGiven` policy: a peer with no certificate still authenticates |
+| `TestRadsecHandshake_TLSVersionFloor` | TLS 1.0 and 1.1 clients are rejected and never reach the handler |
+| `TestRadsecHandshake_FailedHandshakeReleasesConnection` | A rejected handshake releases its connection; the server reports no active connections afterwards |
+| `TestRadsecTLSConfig_DoesNotRelaxClientAuth` | The per-handshake snapshot keeps `VerifyClientCertIfGiven`, TLS 1.2 floor, a non-nil client CA pool and a single certificate |
 
 Verification commands:
 
 ```sh
 go test ./internal/radiusd/ -run 'TestRadsecTLSFiles' -count=1
+go test ./internal/radiusd/ -run 'TestRadsecHandshake|TestRadsecTLSConfig' -count=1
 go test ./internal/radiusd/plugins/eap/handlers/ -run TestSettingsTLSConfigProvider_RotatesBetweenHandshakes -count=1
 ```
 
+The matrix runs the real `RadsecPacketServer` behind a TLS listener built by
+`initTLSConfig`, so it exercises the same configuration and connection handling
+as production. `go test ./internal/radiusd/... -count=1` is the full-package run.
+
 ## Known limits
 
-- Client certificates are still optional in the RadSec TLS policy
-  (`tls.VerifyClientCertIfGiven`), so a client that presents none is not
-  rejected. Untrusted-certificate rejection is a separate regression
-  (ENG-009) and is not changed here.
+- Client certificates remain optional (`tls.VerifyClientCertIfGiven`): a peer
+  that presents none is accepted, and the policy is pinned by
+  `TestRadsecHandshake_ClientWithoutCertificateAccepted`. Untrusted, expired and
+  wrong-usage certificates are rejected. If a deployment must refuse certificate-
+  less peers, that is a `RequireAndVerifyClientCert` policy change with its own
+  deployment impact — it is not switched on here.
+- A missing `radsec_ca_cert` file is not an error; the server logs a warning that
+  client certificates are not required, because no trust anchor is configured.
 - No OCSP or CRL checking: a revoked certificate keeps working until it is
   replaced or its CA is removed from the bundle.
 - Change detection is modification time plus size, so an in-place rewrite that
