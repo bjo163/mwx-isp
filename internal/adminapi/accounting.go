@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo/v4"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/webserver"
+	"github.com/labstack/echo/v4"
 )
 
 // allowedAcctSortFields is the allowlist of sortable columns for the accounting
@@ -22,7 +22,8 @@ var allowedAcctSortFields = map[string]bool{
 
 // ListAccounting handles GET /api/v1/accounting and returns a paginated
 // accounting-record page in the standard [Response] envelope. It accepts page
-// and perPage (perPage is clamped to 1..100, default 10), optional sort/order
+// and pageSize/perPage (default 10, clamped to 1..100; pageSize wins when both
+// are sent), optional sort/order
 // (validated against allowedAcctSortFields to protect ORDER BY from injection),
 // and optional fuzzy filters for username, NAS address, session ID, IPv4/IPv6,
 // MAC, and delegated-prefix fields.
@@ -55,14 +56,7 @@ var allowedAcctSortFields = map[string]bool{
 func ListAccounting(c echo.Context) error {
 	db := GetDB(c)
 
-	page, _ := strconv.Atoi(c.QueryParam("page"))
-	perPage, _ := strconv.Atoi(c.QueryParam("perPage"))
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 100 {
-		perPage = 10
-	}
+	page, perPage := parsePaginationWith(c, compactListPageSize, compactListMaxPageSize)
 
 	sortField, order := parseSort(c, allowedAcctSortFields, "acct_start_time", "DESC")
 

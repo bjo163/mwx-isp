@@ -298,9 +298,13 @@ func listRadiusUsers(c echo.Context) error {
 
 	base = applyUserFilters(base, c)
 
+	// Count from an independently built filtered query: the row query carries a
+	// join and a custom select that a COUNT cannot reuse, and reusing it through
+	// Session{NewDB:true} silently dropped the filters, so a filtered list
+	// reported the unfiltered total to the paginated UI.
 	var total int64
-	countQuery := base.Session(&gorm.Session{NewDB: true})
-	if err := countQuery.Model(&domain.RadiusUser{}).Count(&total).Error; err != nil {
+	countQuery := applyUserFilters(GetDB(c).Model(&domain.RadiusUser{}), c)
+	if err := countQuery.Count(&total).Error; err != nil {
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to query users", err.Error())
 	}
 

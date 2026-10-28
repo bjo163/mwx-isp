@@ -32,8 +32,9 @@ var allowedProfileSortFields = map[string]bool{
 
 // ListProfiles handles GET /api/v1/radius-profiles, returning a paginated page
 // of RADIUS profiles (the rate, address-pool, and binding plans assigned to
-// users). It accepts the page and perPage query parameters (perPage is clamped
-// to 1..100, default 10) and optional name, status, addr_pool, and domain
+// users). It accepts the page and pageSize/perPage query parameters (default 10,
+// clamped to 1..100; pageSize wins when both are sent) and optional name,
+// status, addr_pool, and domain
 // filters; name, addr_pool, and domain match case-insensitively while status
 // matches exactly. The sort and order parameters are validated against
 // allowedProfileSortFields so the ORDER BY clause cannot be used for SQL
@@ -52,14 +53,7 @@ var allowedProfileSortFields = map[string]bool{
 func ListProfiles(c echo.Context) error {
 	db := GetDB(c)
 
-	page, _ := strconv.Atoi(c.QueryParam("page"))
-	perPage, _ := strconv.Atoi(c.QueryParam("perPage"))
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 || perPage > 100 {
-		perPage = 10
-	}
+	page, perPage := parsePaginationWith(c, compactListPageSize, compactListMaxPageSize)
 
 	sortField, order := parseSort(c, allowedProfileSortFields, "id", "DESC")
 

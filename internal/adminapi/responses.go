@@ -3,6 +3,7 @@ package adminapi
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -43,13 +44,26 @@ func ok(c echo.Context, data interface{}) error {
 
 func paged(c echo.Context, data interface{}, total int64, page, pageSize int) error {
 	return c.JSON(http.StatusOK, Response{
-		Data: data,
+		Data: normalizeListData(data),
 		Meta: &Meta{
 			Total:    total,
 			Page:     page,
 			PageSize: pageSize,
 		},
 	})
+}
+
+// normalizeListData serializes a nil slice as an empty JSON array. A query that
+// matches nothing (or a page past the end) leaves the destination slice nil, and
+// encoding a nil slice inside interface{} yields "data": null, which breaks every
+// client that treats the list payload as an array (React Admin calls array
+// methods on it). Handlers therefore do not need to pre-allocate their results.
+func normalizeListData(data interface{}) interface{} {
+	v := reflect.ValueOf(data)
+	if v.IsValid() && v.Kind() == reflect.Slice && v.IsNil() {
+		return reflect.MakeSlice(v.Type(), 0, 0).Interface()
+	}
+	return data
 }
 
 func fail(c echo.Context, status int, code, message string, details interface{}) error {

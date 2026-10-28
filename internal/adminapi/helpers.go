@@ -9,19 +9,30 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// parsePagination reads page/pageSize from the query string.
-// The React Admin dataProvider sends `perPage`; some older clients send
-// `pageSize`. Accept both. Values above maxPageSize are clamped (not reset),
-// so a client asking for 1000 items still gets the full first page up to the cap
-// instead of silently falling back to 20 (which truncated system settings and
-// broke bulk save on the system config page — see #583).
-func parsePagination(c echo.Context) (int, int) {
-	const (
-		defaultPage     = 1
-		defaultPageSize = 20
-		maxPageSize     = 1000
-	)
+// List pagination bounds. The default list page is 20 with a 1000-row cap
+// (system settings can legitimately return more than 20 items and bulk save
+// broke when an oversized request was silently reset to 20 — see #583). Live
+// sessions, accounting and profiles keep a smaller page and cap because their
+// rows are the widest the API returns.
+const (
+	defaultPage            = 1
+	defaultPageSize        = 20
+	maxPageSize            = 1000
+	compactListPageSize    = 10
+	compactListMaxPageSize = 100
+)
 
+// parsePagination applies the shared grammar with the default list bounds.
+func parsePagination(c echo.Context) (int, int) {
+	return parsePaginationWith(c, defaultPageSize, maxPageSize)
+}
+
+// parsePaginationWith applies the shared pagination grammar with a per-endpoint
+// default and cap. Every list handler must accept both `pageSize` and React
+// Admin's `perPage` (pageSize wins when both are present), keep page >= 1, fall
+// back to defaultSize for unparsable input, and clamp an oversized request to
+// maxSize rather than silently returning a different small page.
+func parsePaginationWith(c echo.Context, defaultSize, maxSize int) (int, int) {
 	page, err := strconv.Atoi(c.QueryParam("page"))
 	if err != nil || page < 1 {
 		page = defaultPage
@@ -34,9 +45,9 @@ func parsePagination(c echo.Context) (int, int) {
 	}
 	pageSize, err := strconv.Atoi(rawSize)
 	if err != nil || pageSize < 1 {
-		pageSize = defaultPageSize
-	} else if pageSize > maxPageSize {
-		pageSize = maxPageSize
+		pageSize = defaultSize
+	} else if pageSize > maxSize {
+		pageSize = maxSize
 	}
 	return page, pageSize
 }
