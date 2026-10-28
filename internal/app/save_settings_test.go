@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bjo163/mwx-isp/config"
+	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/bjo163/mwx-isp/config"
-	"github.com/bjo163/mwx-isp/internal/domain"
 	"gorm.io/gorm"
 )
 
@@ -93,6 +93,13 @@ func TestSaveSettings_UnknownAndInvalidValuesRejected(t *testing.T) {
 
 	// Enum violation is rejected and leaves the previous value untouched.
 	err = app.SaveSettings(map[string]interface{}{"radius.EapMethod": "eap-bogus"})
+	require.Error(t, err)
+	assert.Equal(t, "eap-md5", app.GetSettingsStringValue("radius", "EapMethod"))
+
+	// EAP-OTP has no validation backend, so it is not in the enum and cannot be
+	// selected at all (ENG-008); a configured EAP method must always be one the
+	// coordinator can dispatch to a registered handler.
+	err = app.SaveSettings(map[string]interface{}{"radius.EapMethod": "eap-otp"})
 	require.Error(t, err)
 	assert.Equal(t, "eap-md5", app.GetSettingsStringValue("radius", "EapMethod"))
 }

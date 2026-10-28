@@ -308,6 +308,26 @@ func TestGetAllEAPHandlers(t *testing.T) {
 
 // Tests for Registry methods
 
+func TestEAPHandlerNames(t *testing.T) {
+	ResetForTest()
+
+	RegisterEAPHandler(&mockEAPHandler{name: "eap-md5", eapType: 4})
+	RegisterEAPHandler(&mockEAPHandler{name: "eap-mschapv2", eapType: 26})
+
+	names := EAPHandlerNames()
+	if len(names) != 2 {
+		t.Fatalf("expected 2 method names, got %d", len(names))
+	}
+	for _, want := range []string{"eap-md5", "eap-mschapv2"} {
+		if _, ok := names[want]; !ok {
+			t.Errorf("expected %q in %v", want, names)
+		}
+	}
+	if _, ok := names["eap-otp"]; ok {
+		t.Error("an unregistered method must not appear in the name set")
+	}
+}
+
 func TestRegistry_GetHandler(t *testing.T) {
 	ResetForTest()
 

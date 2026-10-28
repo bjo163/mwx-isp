@@ -164,6 +164,19 @@ func GetAllEAPHandlers() map[uint8]eap.EAPHandler {
 	return handlers
 }
 
+// EAPHandlerNames returns the method name of every registered EAP handler. It is
+// the set of methods the coordinator can actually dispatch, so configuration
+// that enables a method by name can be checked against it.
+func EAPHandlerNames() map[string]struct{} {
+	globalRegistry.mu.RLock()
+	defer globalRegistry.mu.RUnlock()
+	names := make(map[string]struct{}, len(globalRegistry.eapHandlers))
+	for _, handler := range globalRegistry.eapHandlers {
+		names[handler.Name()] = struct{}{}
+	}
+	return names
+}
+
 // GetHandler implements the eap.HandlerRegistry interface
 func (r *Registry) GetHandler(eapType uint8) (eap.EAPHandler, bool) {
 	r.mu.RLock()
