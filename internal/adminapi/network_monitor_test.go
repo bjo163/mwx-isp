@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/require"
-	"github.com/bjo163/mwx-isp/internal/domain"
 )
 
 func TestCreateMonitorTargetValidatesAddressAndHidesSNMPCredentials(t *testing.T) {
@@ -43,6 +43,32 @@ func TestCreateMonitorTargetValidatesAddressAndHidesSNMPCredentials(t *testing.T
 	require.NoError(t, db.First(&stored).Error)
 	require.NotEmpty(t, stored.SNMPCommunityEncrypted)
 	require.NotContains(t, string(stored.SNMPCommunityEncrypted), "private")
+}
+
+func TestCreateMonitorTargetEnforcesAddressPolicy(t *testing.T) {
+	db, e, appCtx := CreateTestAppContext(t)
+	require.NoError(t, db.AutoMigrate(&domain.NetMonitorTarget{}, &domain.NetMonitorSample{}))
+
+	request := func(address string) (echo.Context, *httptest.ResponseRecorder) {
+		body := `{"name":"probe-` + address + `","address":"` + address + `","probe_type":"icmp","interval_seconds":60,"timeout_milliseconds":1000,"failure_threshold":2}`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/network/monitor-targets", strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		return CreateTestContext(e, db, req, rec, appCtx), rec
+	}
+
+	// Loopback reaches the daemon's own management port, link-local reaches the
+	// cloud metadata endpoint, and a hostname would be resolved at probe time.
+	for _, address := range []string{"127.0.0.1", "::1", "169.254.169.254", "core-router.lan", "0.0.0.0"} {
+		c, rec := request(address)
+		require.NoError(t, createMonitorTarget(c))
+		require.Equal(t, http.StatusBadRequest, rec.Code, "address %q must be refused", address)
+	}
+
+	// The devices an ISP monitors live in private ranges, so those stay allowed.
+	c, rec := request("10.10.10.10")
+	require.NoError(t, createMonitorTarget(c))
+	require.Equal(t, http.StatusCreated, rec.Code)
 }
 
 func TestListMonitorTargetsHasPaginationMetadata(t *testing.T) {
