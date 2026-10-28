@@ -31,7 +31,28 @@ the current tree.
 
 ## Progress
 
-Done: 39 / 100.
+Done: 40 / 100.
+
+- `ENG-062` (2026-10-29, `dev` @ `5173519`): dependency upgrade ratchet. The
+  acceptance asked for a script that fails on a genuinely applicable advisory
+  and still offers a reasoned exception path. `tools/depratchet` reads the
+  `govulncheck -json` stream and separates symbol-level findings — the
+  vulnerable function is called — from package/module findings, where the
+  dependency is present but no vulnerable symbol is reachable; only the former
+  fail. Against the 2026-10-29 scan (v1.9.0, DB 2026-10-27, go1.27.0) it exits 1
+  with 11 called advisories and 6 leads when the register is empty, and exits 0
+  once each called advisory has an entry. The register
+  (`docs/security-exceptions.json`) is machine-checked: reason of at least a
+  sentence, ticket and expiry are required; duplicates, unknown fields,
+  expired entries and entries for non-called advisories all fail. The eleven
+  entries mirror the inventory's "toolchain" status — fixed by Go 1.27.2 or
+  1.27.3 — and expire 2026-11-30 so the toolchain bump cannot slip silently.
+  Unit tests cover the pass, fail and malformed-register paths.
+  `docs/dependency-upgrade-policy.md` adds the Go/npm cadence, PR risk tiers
+  T0–T3 and exception lifetimes. No CI lane is added: the gate runs at release
+  and on dependency PRs. Limits: `npm audit` is not ingested (package presence
+  without call paths), govulncheck traces remain conservative, and the scan has
+  to run under the shipping toolchain before release claims are made from it.
 
 - `ENG-003` (2026-10-29, `dev` @ `d463ec4`): EAP-TLS certificate revocation
   policy. The premise the item asked to test is confirmed: the engine verifies
@@ -685,7 +706,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-054` TR-F023 P2 — Rekonsiliasi ID/EN seluruh status tagihan dan insiden · LOKAL · PROPOSED_VERIFICATION · commit `ef3c286`
 - [x] `ENG-057` TR-F015 P2 — Audit grafik dashboard konsistensi timezone dan nominal · LOKAL · PROPOSED_VERIFICATION · commit `e308244`
 - [x] `ENG-059` TR-F007 P2 — Audit import RADIUS user dengan preview dry-run saja · LOKAL · PROPOSED_VERIFICATION · commit `06e7ae4`
-- [ ] `ENG-062` TR-F022 P2 — Sistem upgrade dependency dengan ratchet keamanan · LOKAL · dep ENG-030 · PROPOSED_VERIFICATION
+- [x] `ENG-062` TR-F022 P2 — Sistem upgrade dependency dengan ratchet keamanan · LOKAL · dep ENG-030 · PROPOSED_VERIFICATION · commit `5173519`
 - [x] `ENG-003` TR-F004 P2 — Pemetaan kebijakan pencabutan sertifikat EAP-TLS · LOKAL · PROPOSED_VERIFICATION · commit `d463ec4`
 - [ ] `ENG-005` TR-F004 P2 — Evaluasi dukungan inner EAP-TTLS CHAP dan MS-CHAP · LOKAL · dep ENG-002 · PROPOSED_VERIFICATION
 - [ ] `ENG-026` TR-F020 P2 — Evaluasi parameter KDF dan envelope backup · LOKAL · PROPOSED_VERIFICATION
@@ -749,9 +770,11 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-062` — dependency upgrade system with a security ratchet.
-2. `ENG-036` — per-tenant FUP scheduler trail (dependency ENG-019 is done).
-3. `ENG-026` — backup KDF and envelope parameter evaluation.
+1. `ENG-036` — per-tenant FUP scheduler trail (dependency ENG-019 is done).
+2. `ENG-026` — backup KDF and envelope parameter evaluation.
+3. `ENG-034` — operator payment correction (dependency ENG-033 is done).
+4. `ENG-060` — redacted support bundle study (dependency ENG-028 is done).
 
-`ENG-064` and `ENG-058` stay parked: their dependencies (`ENG-013` real-NAS
-pilot, `ENG-049` SNMPv3 hardware) are ASET items without a claimed host.
+`ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
+`ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
+`ENG-013`) are ASET items without a claimed host.
