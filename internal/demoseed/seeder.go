@@ -3,6 +3,7 @@ package demoseed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -155,6 +156,10 @@ func (s *demoSeeder) cleanup(tx *gorm.DB) error {
 		if err := tx.Where("customer_id IN ? AND type = ? AND description = ?", customerIDs, "demo_seed", demoMarker).Find(&demoSubscriptions).Error; err != nil {
 			return err
 		}
+		demoCustomerIDs := make(map[int64]struct{}, len(demoCustomers))
+		for _, customer := range demoCustomers {
+			demoCustomerIDs[customer.ID] = struct{}{}
+		}
 		// Read the marker events before deleting them so only seeded subscriptions
 		// are removed; a later operator-created subscription for a sample customer
 		// is preserved.
@@ -162,12 +167,29 @@ func (s *demoSeeder) cleanup(tx *gorm.DB) error {
 			subscriptionIDs := make([]int64, 0, len(demoSubscriptions))
 			markerEventIDs := make([]int64, 0, len(demoSubscriptions))
 			for _, event := range demoSubscriptions {
+				var subscription domain.Subscription
+				err := tx.First(&subscription, event.SubscriptionID).Error
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					markerEventIDs = append(markerEventIDs, event.ID)
+					continue
+				}
+				if err != nil {
+					return err
+				}
+				if _, sampleOwned := demoCustomerIDs[subscription.CustomerID]; !sampleOwned {
+					// The operator reparented this sample subscription to a real
+					// customer, which adopts it. Keep the subscription and drop only
+					// the seed link so the next run does not reuse it for a sample
+					// customer.
+					markerEventIDs = append(markerEventIDs, event.ID)
+					continue
+				}
 				var remainingInvoices int64
-				if err := tx.Model(&domain.Invoice{}).Where("subscription_id = ?", event.SubscriptionID).Count(&remainingInvoices).Error; err != nil {
+				if err := tx.Model(&domain.Invoice{}).Where("subscription_id = ?", subscription.ID).Count(&remainingInvoices).Error; err != nil {
 					return err
 				}
 				if remainingInvoices == 0 {
-					subscriptionIDs = append(subscriptionIDs, event.SubscriptionID)
+					subscriptionIDs = append(subscriptionIDs, subscription.ID)
 					markerEventIDs = append(markerEventIDs, event.ID)
 				}
 			}
@@ -175,6 +197,8 @@ func (s *demoSeeder) cleanup(tx *gorm.DB) error {
 				if err := tx.Where("id IN ?", subscriptionIDs).Delete(&domain.Subscription{}).Error; err != nil {
 					return err
 				}
+			}
+			if len(markerEventIDs) > 0 {
 				if err := tx.Where("id IN ?", markerEventIDs).Delete(&domain.BillingEvent{}).Error; err != nil {
 					return err
 				}
