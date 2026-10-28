@@ -31,7 +31,28 @@ the current tree.
 
 ## Progress
 
-Done: 30 / 100.
+Done: 31 / 100.
+
+- `ENG-029` (2026-10-29, `dev` @ `4af4425`): PNG branding upload validation.
+  The upload path was exercised against the four failure shapes the issue named —
+  content-type mismatch, an oversized file, a pixel bomb, and unusual PNG
+  encodings — and one real gap fell out: `readBrandLogo` used
+  `png.DecodeConfig`, which stops after the IHDR chunk, so a 33-byte file
+  claiming a legal 8×8 canvas was accepted, stored, and served from
+  `/api/v1/public/branding/logo` as an image no browser can render. The reader
+  now decodes the whole stream after the dimension check; the 1 MiB file cap and
+  the 2048×2048 cap bound that work, so a crafted header cannot turn it into a
+  decompression bomb. `branding_upload_test.go` pins the rest: JPEG/SVG/HTML/gzip
+  bytes and empty files are refused whatever filename or part content type they
+  declare; a 1 MiB+1 file and a 2 MiB body are refused; IHDR-only bombs at
+  2049×8, 8×2049, 4096×4096, 100000×100000 and the uint32 maximum are refused by
+  the dimension policy; grayscale, paletted, RGBA and 16-bit NRGBA PNGs are
+  accepted and served byte-identical as `image/png` with `nosniff`. Ownership is
+  pinned too: a tenant-scoped request still writes the single global branding
+  row, every public read sees it, and a tenant administrator is refused by
+  `requirePlatformAdmin`. A valid PNG declared as `image/svg+xml` is stored
+  deliberately — the bytes decide, and the response type never follows the
+  client's label.
 
 - `ENG-008` (2026-10-29, `dev` @ `5b934ae`): EAP-OTP cannot be enabled without
   a validator. The handler already rejected every response after the hardcoded
@@ -463,7 +484,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-004` TR-F003 P2 — Kesiapan rotasi sertifikat RadSec dan EAP · LOKAL · PROPOSED_VERIFICATION · commit `3cf307c`
 - [x] `ENG-030` TR-F022 P2 — Inventory SBOM backend/frontend serta lisensi · LOKAL · PROPOSED_VERIFICATION · commit `bf4b18e`
 - [x] `ENG-008` TR-F004 P2 — Pastikan EAP-OTP tak dapat diaktifkan tanpa validator · LOKAL · PROPOSED_VERIFICATION · commit `5b934ae`
-- [ ] `ENG-029` TR-F029 P2 — PNG branding parser dan metadata validation · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-029` TR-F029 P2 — PNG branding parser dan metadata validation · LOKAL · PROPOSED_VERIFICATION · commit `4af4425`
 - [ ] `ENG-039` TR-F032 P2 — Perlindungan marker demo data saat clean-up · LOKAL · PROPOSED_VERIFICATION
 - [x] `ENG-051` TR-F029 P2 — Test fungsional website editor yang masih kurang coverage · LOKAL · VERIFIED_GAP · commit `5add7af`
 - [ ] `ENG-063` TR-F012 P2 — Contract testing respons API, paginasi dan error · LOKAL · PROPOSED_VERIFICATION
@@ -546,6 +567,6 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-029` — PNG branding parser and metadata validation.
-2. `ENG-039` — demo-data markers survive clean-up.
-3. `ENG-063` — API contract, pagination and error testing.
+1. `ENG-039` — demo-data markers survive clean-up.
+2. `ENG-063` — API contract, pagination and error testing.
+3. `ENG-064` — session-action queue dead-letter and alert.
