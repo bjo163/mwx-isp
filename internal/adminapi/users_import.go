@@ -1,12 +1,15 @@
 package adminapi
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/cast"
+	"gorm.io/gorm"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/webserver"
@@ -27,6 +30,8 @@ type ImportUserError struct {
 //
 // Success and Failed are per-row counts and Errors carries only failed rows so
 // callers can present actionable feedback without re-reading the source file.
+// The import is all-or-nothing, so a nonzero Failed always means Success is 0
+// and nothing was written.
 type ImportUserResult struct {
 	Total   int               `json:"total"`
 	Success int               `json:"success"`
@@ -50,86 +55,130 @@ func importMapString(item map[string]interface{}, keys ...string) string {
 
 // importRadiusUsers handles batch import of RADIUS users from an uploaded file.
 // Supported formats: Excel (.xlsx), CSV (.csv) and line-delimited JSON (.json).
+//
+// The import is atomic: every row is validated before the first write, and the
+// accepted rows are inserted in one transaction. A payload with any invalid row
+// is rejected with per-row errors and leaves the user table untouched, so a bad
+// file cannot leave a half-imported batch behind.
 func importRadiusUsers(c echo.Context) error {
 	items, err := webserver.ImportData(c, "Sheet1")
 	if err != nil {
 		return fail(c, http.StatusBadRequest, "INVALID_FILE", "Unable to read import file", err.Error())
 	}
 
-	result := ImportUserResult{Errors: make([]ImportUserError, 0)}
 	db := GetDB(c)
+	users, rowErrors := planUserImport(db, items)
+	result := ImportUserResult{Total: len(items), Failed: len(rowErrors), Errors: rowErrors}
+	if len(rowErrors) > 0 {
+		return ok(c, result)
+	}
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		for _, user := range users {
+			if err := tx.Create(user).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return fail(c, http.StatusInternalServerError, "IMPORT_FAILED",
+			"Import failed and was rolled back; no users were created", err.Error())
+	}
+
+	result.Success = len(users)
+	return ok(c, result)
+}
+
+// planUserImport validates every row and builds the users to insert without
+// touching the database. It returns one error entry per rejected row; callers
+// must not write anything when that slice is non-empty.
+func planUserImport(db *gorm.DB, items []map[string]interface{}) ([]*domain.RadiusUser, []ImportUserError) {
+	users := make([]*domain.RadiusUser, 0, len(items))
+	errs := make([]ImportUserError, 0)
+	seen := make(map[string]int, len(items))
+	now := time.Now()
+	defaultExpire := now.AddDate(1, 0, 0)
 
 	for idx, item := range items {
-		result.Total++
+		row := idx + 1
+		reject := func(username, message string) {
+			errs = append(errs, ImportUserError{Row: row, Username: username, Message: message})
+		}
+
 		username := importMapString(item, "username", "Username", "USERNAME")
 		if username == "" {
-			result.Failed++
-			result.Errors = append(result.Errors, ImportUserError{
-				Row:     idx + 1,
-				Message: "Username is required",
-			})
+			reject("", "Username is required")
 			continue
 		}
+		if first, duplicate := seen[username]; duplicate {
+			reject(username, fmt.Sprintf("Username duplicates row %d", first))
+			continue
+		}
+		seen[username] = row
 
 		password := importMapString(item, "password", "Password", "PASSWORD")
 		if password == "" {
-			result.Failed++
-			result.Errors = append(result.Errors, ImportUserError{
-				Row:      idx + 1,
-				Username: username,
-				Message:  "Password is required",
-			})
+			reject(username, "Password is required")
 			continue
 		}
 
-		profileID := cast.ToInt64(importMapString(item, "profile_id", "profileid", "ProfileId", "profile"))
-		if profileID == 0 {
-			result.Failed++
-			result.Errors = append(result.Errors, ImportUserError{
-				Row:      idx + 1,
-				Username: username,
-				Message:  "Billing profile is required",
-			})
+		profileRaw := importMapString(item, "profile_id", "profileid", "ProfileId", "profile")
+		if profileRaw == "" {
+			reject(username, "Billing profile is required")
+			continue
+		}
+		profileID, convErr := strconv.ParseInt(profileRaw, 10, 64)
+		if convErr != nil || profileID <= 0 {
+			reject(username, "Billing profile id must be a positive integer")
 			continue
 		}
 
 		var profile domain.RadiusProfile
 		if err := db.Where("id = ?", profileID).First(&profile).Error; err != nil {
-			result.Failed++
-			result.Errors = append(result.Errors, ImportUserError{
-				Row:      idx + 1,
-				Username: username,
-				Message:  "Associated billing profile not found",
-			})
+			reject(username, "Associated billing profile not found")
 			continue
 		}
 
 		var exists int64
-		db.Model(&domain.RadiusUser{}).Where("username = ?", username).Count(&exists)
+		if err := db.Model(&domain.RadiusUser{}).Where("username = ?", username).Count(&exists).Error; err != nil {
+			reject(username, "Unable to check for an existing username")
+			continue
+		}
 		if exists > 0 {
-			result.Failed++
-			result.Errors = append(result.Errors, ImportUserError{
-				Row:      idx + 1,
-				Username: username,
-				Message:  "Username already exists",
-			})
+			reject(username, "Username already exists")
 			continue
 		}
 
-		expire, err := parseTimeInput(importMapString(item, "expire_time", "ExpireTime"), time.Now().AddDate(1, 0, 0))
+		expire, err := parseTimeInput(importMapString(item, "expire_time", "ExpireTime"), defaultExpire)
 		if err != nil {
-			result.Failed++
-			result.Errors = append(result.Errors, ImportUserError{
-				Row:      idx + 1,
-				Username: username,
-				Message:  "Invalid expire time format",
-			})
+			reject(username, "Invalid expire time format")
 			continue
 		}
 
 		status := strings.ToLower(importMapString(item, "status", "Status"))
 		if status == "" {
 			status = common.ENABLED
+		}
+		// The auth checker only rejects common.DISABLED, so any other unknown
+		// value would silently import an enabled user.
+		if status != common.ENABLED && status != common.DISABLED {
+			reject(username, "Status must be enabled or disabled")
+			continue
+		}
+
+		nodeID := int64(0)
+		if nodeRaw := importMapString(item, "node_id", "NodeId"); nodeRaw != "" {
+			parsed, convErr := strconv.ParseInt(nodeRaw, 10, 64)
+			if convErr != nil || parsed <= 0 {
+				reject(username, "Network node id must be a positive integer")
+				continue
+			}
+			nodeID = parsed
+			var node domain.NetNode
+			if err := db.First(&node, nodeID).Error; err != nil {
+				reject(username, "Associated network node not found")
+				continue
+			}
 		}
 
 		addrPool := importMapString(item, "addr_pool", "AddrPool")
@@ -145,16 +194,7 @@ func importRadiusUsers(c echo.Context) error {
 			radiusClass = profile.RadiusClass
 		}
 
-		nodeID := cast.ToInt64(importMapString(item, "node_id", "NodeId"))
-		if nodeID > 0 {
-			var node domain.NetNode
-			if err := db.First(&node, nodeID).Error; err != nil {
-				result.Failed++
-				result.Errors = append(result.Errors, ImportUserError{Row: idx + 1, Username: username, Message: "Associated network node not found"})
-				continue
-			}
-		}
-		user := &domain.RadiusUser{
+		users = append(users, &domain.RadiusUser{
 			ID:              common.UUIDint64(),
 			NodeId:          nodeID,
 			ProfileId:       profileID,
@@ -181,21 +221,10 @@ func importRadiusUsers(c echo.Context) error {
 			ExpireTime:      expire,
 			Status:          status,
 			Remark:          importMapString(item, "remark", "Remark"),
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
-		}
-
-		if err := db.Create(user).Error; err != nil {
-			result.Failed++
-			result.Errors = append(result.Errors, ImportUserError{
-				Row:      idx + 1,
-				Username: username,
-				Message:  err.Error(),
-			})
-			continue
-		}
-		result.Success++
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		})
 	}
 
-	return ok(c, result)
+	return users, errs
 }
