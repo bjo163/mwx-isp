@@ -1,0 +1,2652 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "tools": [
+      {
+        "vendor": "bjo163",
+        "name": "tools/sbom"
+      }
+    ],
+    "component": {
+      "bom-ref": "pkg:golang/github.com/bjo163/mwx-isp",
+      "type": "application",
+      "name": "github.com/bjo163/mwx-isp",
+      "version": "(devel)",
+      "purl": "pkg:golang/github.com/bjo163/mwx-isp",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "pkg:golang/filippo.io/edwards25519@v1.2.0",
+      "type": "library",
+      "name": "filippo.io/edwards25519",
+      "version": "v1.2.0",
+      "purl": "pkg:golang/filippo.io/edwards25519@v1.2.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/360EntSecGroup-Skylar/excelize@v1.4.1",
+      "type": "library",
+      "name": "github.com/360EntSecGroup-Skylar/excelize",
+      "version": "v1.4.1",
+      "purl": "pkg:golang/github.com/360EntSecGroup-Skylar/excelize@v1.4.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/Azure/go-ntlmssp@v0.1.1",
+      "type": "library",
+      "name": "github.com/Azure/go-ntlmssp",
+      "version": "v0.1.1",
+      "purl": "pkg:golang/github.com/Azure/go-ntlmssp@v0.1.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/DATA-DOG/go-sqlmock@v1.5.2",
+      "type": "library",
+      "name": "github.com/DATA-DOG/go-sqlmock",
+      "version": "v1.5.2",
+      "purl": "pkg:golang/github.com/DATA-DOG/go-sqlmock@v1.5.2",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/agnivade/levenshtein@v1.2.1",
+      "type": "library",
+      "name": "github.com/agnivade/levenshtein",
+      "version": "v1.2.1",
+      "purl": "pkg:golang/github.com/agnivade/levenshtein@v1.2.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/alexbrainman/sspi@v0.0.0-20250919150558-7d374ff0d59e",
+      "type": "library",
+      "name": "github.com/alexbrainman/sspi",
+      "version": "v0.0.0-20250919150558-7d374ff0d59e",
+      "purl": "pkg:golang/github.com/alexbrainman/sspi@v0.0.0-20250919150558-7d374ff0d59e",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/andreyvit/diff@v0.0.0-20170406064948-c7f18ee00883",
+      "type": "library",
+      "name": "github.com/andreyvit/diff",
+      "version": "v0.0.0-20170406064948-c7f18ee00883",
+      "purl": "pkg:golang/github.com/andreyvit/diff@v0.0.0-20170406064948-c7f18ee00883",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/araddon/dateparse@v0.0.0-20210429162001-6b43995a97de",
+      "type": "library",
+      "name": "github.com/araddon/dateparse",
+      "version": "v0.0.0-20210429162001-6b43995a97de",
+      "purl": "pkg:golang/github.com/araddon/dateparse@v0.0.0-20210429162001-6b43995a97de",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/beeper/argo-go@v1.1.2",
+      "type": "library",
+      "name": "github.com/beeper/argo-go",
+      "version": "v1.1.2",
+      "purl": "pkg:golang/github.com/beeper/argo-go@v1.1.2",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/bwmarrin/snowflake@v0.3.0",
+      "type": "library",
+      "name": "github.com/bwmarrin/snowflake",
+      "version": "v0.3.0",
+      "purl": "pkg:golang/github.com/bwmarrin/snowflake@v0.3.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/coder/websocket@v1.8.15",
+      "type": "library",
+      "name": "github.com/coder/websocket",
+      "version": "v1.8.15",
+      "purl": "pkg:golang/github.com/coder/websocket@v1.8.15",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/coreos/go-systemd/v22@v22.7.0",
+      "type": "library",
+      "name": "github.com/coreos/go-systemd/v22",
+      "version": "v22.7.0",
+      "purl": "pkg:golang/github.com/coreos/go-systemd/v22@v22.7.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/davecgh/go-spew@v1.1.1",
+      "type": "library",
+      "name": "github.com/davecgh/go-spew",
+      "version": "v1.1.1",
+      "purl": "pkg:golang/github.com/davecgh/go-spew@v1.1.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/dustin/go-humanize@v1.0.1",
+      "type": "library",
+      "name": "github.com/dustin/go-humanize",
+      "version": "v1.0.1",
+      "purl": "pkg:golang/github.com/dustin/go-humanize@v1.0.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/ebitengine/purego@v0.10.2",
+      "type": "library",
+      "name": "github.com/ebitengine/purego",
+      "version": "v0.10.2",
+      "purl": "pkg:golang/github.com/ebitengine/purego@v0.10.2",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/elliotchance/orderedmap/v3@v3.1.0",
+      "type": "library",
+      "name": "github.com/elliotchance/orderedmap/v3",
+      "version": "v3.1.0",
+      "purl": "pkg:golang/github.com/elliotchance/orderedmap/v3@v3.1.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/frankban/quicktest@v1.14.6",
+      "type": "library",
+      "name": "github.com/frankban/quicktest",
+      "version": "v1.14.6",
+      "purl": "pkg:golang/github.com/frankban/quicktest@v1.14.6",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/gabriel-vasile/mimetype@v1.4.15",
+      "type": "library",
+      "name": "github.com/gabriel-vasile/mimetype",
+      "version": "v1.4.15",
+      "purl": "pkg:golang/github.com/gabriel-vasile/mimetype@v1.4.15",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/glebarez/go-sqlite@v1.22.0",
+      "type": "library",
+      "name": "github.com/glebarez/go-sqlite",
+      "version": "v1.22.0",
+      "purl": "pkg:golang/github.com/glebarez/go-sqlite@v1.22.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/glebarez/sqlite@v1.11.0",
+      "type": "library",
+      "name": "github.com/glebarez/sqlite",
+      "version": "v1.11.0",
+      "purl": "pkg:golang/github.com/glebarez/sqlite@v1.11.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/go-asn1-ber/asn1-ber@v1.5.8",
+      "type": "library",
+      "name": "github.com/go-asn1-ber/asn1-ber",
+      "version": "v1.5.8",
+      "purl": "pkg:golang/github.com/go-asn1-ber/asn1-ber@v1.5.8",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/go-ldap/ldap/v3@v3.4.14",
+      "type": "library",
+      "name": "github.com/go-ldap/ldap/v3",
+      "version": "v3.4.14",
+      "purl": "pkg:golang/github.com/go-ldap/ldap/v3@v3.4.14",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/go-ole/go-ole@v1.2.6",
+      "type": "library",
+      "name": "github.com/go-ole/go-ole",
+      "version": "v1.2.6",
+      "purl": "pkg:golang/github.com/go-ole/go-ole@v1.2.6",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/go-playground/assert/v2@v2.2.0",
+      "type": "library",
+      "name": "github.com/go-playground/assert/v2",
+      "version": "v2.2.0",
+      "purl": "pkg:golang/github.com/go-playground/assert/v2@v2.2.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/go-playground/locales@v0.14.1",
+      "type": "library",
+      "name": "github.com/go-playground/locales",
+      "version": "v0.14.1",
+      "purl": "pkg:golang/github.com/go-playground/locales@v0.14.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/go-playground/universal-translator@v0.18.1",
+      "type": "library",
+      "name": "github.com/go-playground/universal-translator",
+      "version": "v0.18.1",
+      "purl": "pkg:golang/github.com/go-playground/universal-translator@v0.18.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/go-playground/validator/v10@v10.30.5",
+      "type": "library",
+      "name": "github.com/go-playground/validator/v10",
+      "version": "v10.30.5",
+      "purl": "pkg:golang/github.com/go-playground/validator/v10@v10.30.5",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/gocarina/gocsv@v0.0.0-20230616125104-99d496ca653d",
+      "type": "library",
+      "name": "github.com/gocarina/gocsv",
+      "version": "v0.0.0-20230616125104-99d496ca653d",
+      "purl": "pkg:golang/github.com/gocarina/gocsv@v0.0.0-20230616125104-99d496ca653d",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1",
+      "type": "library",
+      "name": "github.com/golang-jwt/jwt/v5",
+      "version": "v5.3.1",
+      "purl": "pkg:golang/github.com/golang-jwt/jwt/v5@v5.3.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/golang/mock@v1.6.0",
+      "type": "library",
+      "name": "github.com/golang/mock",
+      "version": "v1.6.0",
+      "purl": "pkg:golang/github.com/golang/mock@v1.6.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/golang/protobuf@v1.5.0",
+      "type": "library",
+      "name": "github.com/golang/protobuf",
+      "version": "v1.5.0",
+      "purl": "pkg:golang/github.com/golang/protobuf@v1.5.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/google/go-cmp@v0.7.0",
+      "type": "library",
+      "name": "github.com/google/go-cmp",
+      "version": "v0.7.0",
+      "purl": "pkg:golang/github.com/google/go-cmp@v0.7.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/google/pprof@v0.0.0-20250317173921-a4b03ec1a45e",
+      "type": "library",
+      "name": "github.com/google/pprof",
+      "version": "v0.0.0-20250317173921-a4b03ec1a45e",
+      "purl": "pkg:golang/github.com/google/pprof@v0.0.0-20250317173921-a4b03ec1a45e",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/google/uuid@v1.6.0",
+      "type": "library",
+      "name": "github.com/google/uuid",
+      "version": "v1.6.0",
+      "purl": "pkg:golang/github.com/google/uuid@v1.6.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/gosnmp/gosnmp@v1.45.0",
+      "type": "library",
+      "name": "github.com/gosnmp/gosnmp",
+      "version": "v1.45.0",
+      "purl": "pkg:golang/github.com/gosnmp/gosnmp@v1.45.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/hashicorp/go-uuid@v1.0.3",
+      "type": "library",
+      "name": "github.com/hashicorp/go-uuid",
+      "version": "v1.0.3",
+      "purl": "pkg:golang/github.com/hashicorp/go-uuid@v1.0.3",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MPL-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/hashicorp/golang-lru/v2@v2.0.7",
+      "type": "library",
+      "name": "github.com/hashicorp/golang-lru/v2",
+      "version": "v2.0.7",
+      "purl": "pkg:golang/github.com/hashicorp/golang-lru/v2@v2.0.7",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MPL-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jackc/pgpassfile@v1.0.0",
+      "type": "library",
+      "name": "github.com/jackc/pgpassfile",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com/jackc/pgpassfile@v1.0.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jackc/pgservicefile@v0.0.0-20240606120523-5a60cdf6a761",
+      "type": "library",
+      "name": "github.com/jackc/pgservicefile",
+      "version": "v0.0.0-20240606120523-5a60cdf6a761",
+      "purl": "pkg:golang/github.com/jackc/pgservicefile@v0.0.0-20240606120523-5a60cdf6a761",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jackc/pgx/v5@v5.11.0",
+      "type": "library",
+      "name": "github.com/jackc/pgx/v5",
+      "version": "v5.11.0",
+      "purl": "pkg:golang/github.com/jackc/pgx/v5@v5.11.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jackc/puddle/v2@v2.2.2",
+      "type": "library",
+      "name": "github.com/jackc/puddle/v2",
+      "version": "v2.2.2",
+      "purl": "pkg:golang/github.com/jackc/puddle/v2@v2.2.2",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jcmturner/aescts/v2@v2.0.0",
+      "type": "library",
+      "name": "github.com/jcmturner/aescts/v2",
+      "version": "v2.0.0",
+      "purl": "pkg:golang/github.com/jcmturner/aescts/v2@v2.0.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jcmturner/dnsutils/v2@v2.0.0",
+      "type": "library",
+      "name": "github.com/jcmturner/dnsutils/v2",
+      "version": "v2.0.0",
+      "purl": "pkg:golang/github.com/jcmturner/dnsutils/v2@v2.0.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jcmturner/gofork@v1.7.6",
+      "type": "library",
+      "name": "github.com/jcmturner/gofork",
+      "version": "v1.7.6",
+      "purl": "pkg:golang/github.com/jcmturner/gofork@v1.7.6",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jcmturner/goidentity/v6@v6.0.1",
+      "type": "library",
+      "name": "github.com/jcmturner/goidentity/v6",
+      "version": "v6.0.1",
+      "purl": "pkg:golang/github.com/jcmturner/goidentity/v6@v6.0.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jcmturner/gokrb5/v8@v8.4.4",
+      "type": "library",
+      "name": "github.com/jcmturner/gokrb5/v8",
+      "version": "v8.4.4",
+      "purl": "pkg:golang/github.com/jcmturner/gokrb5/v8@v8.4.4",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jcmturner/rpc/v2@v2.0.3",
+      "type": "library",
+      "name": "github.com/jcmturner/rpc/v2",
+      "version": "v2.0.3",
+      "purl": "pkg:golang/github.com/jcmturner/rpc/v2@v2.0.3",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jinzhu/inflection@v1.0.0",
+      "type": "library",
+      "name": "github.com/jinzhu/inflection",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com/jinzhu/inflection@v1.0.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/jinzhu/now@v1.1.5",
+      "type": "library",
+      "name": "github.com/jinzhu/now",
+      "version": "v1.1.5",
+      "purl": "pkg:golang/github.com/jinzhu/now@v1.1.5",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/kballard/go-shellquote@v0.0.0-20180428030007-95032a82bc51",
+      "type": "library",
+      "name": "github.com/kballard/go-shellquote",
+      "version": "v0.0.0-20180428030007-95032a82bc51",
+      "purl": "pkg:golang/github.com/kballard/go-shellquote@v0.0.0-20180428030007-95032a82bc51",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/kr/pretty@v0.3.1",
+      "type": "library",
+      "name": "github.com/kr/pretty",
+      "version": "v0.3.1",
+      "purl": "pkg:golang/github.com/kr/pretty@v0.3.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/kr/text@v0.2.0",
+      "type": "library",
+      "name": "github.com/kr/text",
+      "version": "v0.2.0",
+      "purl": "pkg:golang/github.com/kr/text@v0.2.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/labstack/echo-jwt/v4@v4.4.0",
+      "type": "library",
+      "name": "github.com/labstack/echo-jwt/v4",
+      "version": "v4.4.0",
+      "purl": "pkg:golang/github.com/labstack/echo-jwt/v4@v4.4.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/labstack/echo/v4@v4.15.4",
+      "type": "library",
+      "name": "github.com/labstack/echo/v4",
+      "version": "v4.15.4",
+      "purl": "pkg:golang/github.com/labstack/echo/v4@v4.15.4",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/labstack/gommon@v0.5.0",
+      "type": "library",
+      "name": "github.com/labstack/gommon",
+      "version": "v0.5.0",
+      "purl": "pkg:golang/github.com/labstack/gommon@v0.5.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/leodido/go-urn@v1.5.0",
+      "type": "library",
+      "name": "github.com/leodido/go-urn",
+      "version": "v1.5.0",
+      "purl": "pkg:golang/github.com/leodido/go-urn@v1.5.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/lufia/plan9stats@v0.0.0-20211012122336-39d0f177ccd0",
+      "type": "library",
+      "name": "github.com/lufia/plan9stats",
+      "version": "v0.0.0-20211012122336-39d0f177ccd0",
+      "purl": "pkg:golang/github.com/lufia/plan9stats@v0.0.0-20211012122336-39d0f177ccd0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mattn/go-colorable@v0.1.15",
+      "type": "library",
+      "name": "github.com/mattn/go-colorable",
+      "version": "v0.1.15",
+      "purl": "pkg:golang/github.com/mattn/go-colorable@v0.1.15",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mattn/go-isatty@v0.0.22",
+      "type": "library",
+      "name": "github.com/mattn/go-isatty",
+      "version": "v0.0.22",
+      "purl": "pkg:golang/github.com/mattn/go-isatty@v0.0.22",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mattn/go-runewidth@v0.0.10",
+      "type": "library",
+      "name": "github.com/mattn/go-runewidth",
+      "version": "v0.0.10",
+      "purl": "pkg:golang/github.com/mattn/go-runewidth@v0.0.10",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mattn/go-sqlite3@v1.14.52",
+      "type": "library",
+      "name": "github.com/mattn/go-sqlite3",
+      "version": "v1.14.52",
+      "purl": "pkg:golang/github.com/mattn/go-sqlite3@v1.14.52",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/mohae/deepcopy@v0.0.0-20170929034955-c48cc78d4826",
+      "type": "library",
+      "name": "github.com/mohae/deepcopy",
+      "version": "v0.0.0-20170929034955-c48cc78d4826",
+      "purl": "pkg:golang/github.com/mohae/deepcopy@v0.0.0-20170929034955-c48cc78d4826",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/ncruces/go-strftime@v1.0.0",
+      "type": "library",
+      "name": "github.com/ncruces/go-strftime",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com/ncruces/go-strftime@v1.0.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/panjf2000/ants/v2@v2.12.1",
+      "type": "library",
+      "name": "github.com/panjf2000/ants/v2",
+      "version": "v2.12.1",
+      "purl": "pkg:golang/github.com/panjf2000/ants/v2@v2.12.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/petermattis/goid@v0.0.0-20260820044319-269ab09b5261",
+      "type": "library",
+      "name": "github.com/petermattis/goid",
+      "version": "v0.0.0-20260820044319-269ab09b5261",
+      "purl": "pkg:golang/github.com/petermattis/goid@v0.0.0-20260820044319-269ab09b5261",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/pkg/errors@v0.9.1",
+      "type": "library",
+      "name": "github.com/pkg/errors",
+      "version": "v0.9.1",
+      "purl": "pkg:golang/github.com/pkg/errors@v0.9.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0",
+      "type": "library",
+      "name": "github.com/pmezard/go-difflib",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/power-devops/perfstat@v0.0.0-20240221224432-82ca36839d55",
+      "type": "library",
+      "name": "github.com/power-devops/perfstat",
+      "version": "v0.0.0-20240221224432-82ca36839d55",
+      "purl": "pkg:golang/github.com/power-devops/perfstat@v0.0.0-20240221224432-82ca36839d55",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/prometheus-community/pro-bing@v0.9.1",
+      "type": "library",
+      "name": "github.com/prometheus-community/pro-bing",
+      "version": "v0.9.1",
+      "purl": "pkg:golang/github.com/prometheus-community/pro-bing@v0.9.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/remyoudompheng/bigfft@v0.0.0-20230129092748-24d4a6f8daec",
+      "type": "library",
+      "name": "github.com/remyoudompheng/bigfft",
+      "version": "v0.0.0-20230129092748-24d4a6f8daec",
+      "purl": "pkg:golang/github.com/remyoudompheng/bigfft@v0.0.0-20230129092748-24d4a6f8daec",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/rivo/uniseg@v0.1.0",
+      "type": "library",
+      "name": "github.com/rivo/uniseg",
+      "version": "v0.1.0",
+      "purl": "pkg:golang/github.com/rivo/uniseg@v0.1.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/robfig/cron/v3@v3.0.1",
+      "type": "library",
+      "name": "github.com/robfig/cron/v3",
+      "version": "v3.0.1",
+      "purl": "pkg:golang/github.com/robfig/cron/v3@v3.0.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/rogpeppe/go-internal@v1.11.0",
+      "type": "library",
+      "name": "github.com/rogpeppe/go-internal",
+      "version": "v1.11.0",
+      "purl": "pkg:golang/github.com/rogpeppe/go-internal@v1.11.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/rs/xid@v1.6.0",
+      "type": "library",
+      "name": "github.com/rs/xid",
+      "version": "v1.6.0",
+      "purl": "pkg:golang/github.com/rs/xid@v1.6.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/rs/zerolog@v1.35.1",
+      "type": "library",
+      "name": "github.com/rs/zerolog",
+      "version": "v1.35.1",
+      "purl": "pkg:golang/github.com/rs/zerolog@v1.35.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/scylladb/termtables@v0.0.0-20191203121021-c4c0b6d42ff4",
+      "type": "library",
+      "name": "github.com/scylladb/termtables",
+      "version": "v0.0.0-20191203121021-c4c0b6d42ff4",
+      "purl": "pkg:golang/github.com/scylladb/termtables@v0.0.0-20191203121021-c4c0b6d42ff4",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/sergi/go-diff@v1.3.1",
+      "type": "library",
+      "name": "github.com/sergi/go-diff",
+      "version": "v1.3.1",
+      "purl": "pkg:golang/github.com/sergi/go-diff@v1.3.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/shirou/gopsutil/v4@v4.26.8",
+      "type": "library",
+      "name": "github.com/shirou/gopsutil/v4",
+      "version": "v4.26.8",
+      "purl": "pkg:golang/github.com/shirou/gopsutil/v4@v4.26.8",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/skip2/go-qrcode@v0.0.0-20200617195104-da1b6568686e",
+      "type": "library",
+      "name": "github.com/skip2/go-qrcode",
+      "version": "v0.0.0-20200617195104-da1b6568686e",
+      "purl": "pkg:golang/github.com/skip2/go-qrcode@v0.0.0-20200617195104-da1b6568686e",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/spf13/cast@v1.10.0",
+      "type": "library",
+      "name": "github.com/spf13/cast",
+      "version": "v1.10.0",
+      "purl": "pkg:golang/github.com/spf13/cast@v1.10.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/stretchr/objx@v0.5.3",
+      "type": "library",
+      "name": "github.com/stretchr/objx",
+      "version": "v0.5.3",
+      "purl": "pkg:golang/github.com/stretchr/objx@v0.5.3",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/stretchr/testify@v1.12.1",
+      "type": "library",
+      "name": "github.com/stretchr/testify",
+      "version": "v1.12.1",
+      "purl": "pkg:golang/github.com/stretchr/testify@v1.12.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/talkincode/radius@v0.1.0",
+      "type": "library",
+      "name": "github.com/talkincode/radius",
+      "version": "v0.1.0",
+      "purl": "pkg:golang/github.com/talkincode/radius@v0.1.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MPL-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:replaces",
+          "value": "layeh.com/radius@v0.0.0-20231213012653-1006025d24f8"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/tklauser/go-sysconf@v0.3.16",
+      "type": "library",
+      "name": "github.com/tklauser/go-sysconf",
+      "version": "v0.3.16",
+      "purl": "pkg:golang/github.com/tklauser/go-sysconf@v0.3.16",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/tklauser/numcpus@v0.11.0",
+      "type": "library",
+      "name": "github.com/tklauser/numcpus",
+      "version": "v0.11.0",
+      "purl": "pkg:golang/github.com/tklauser/numcpus@v0.11.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/valyala/bytebufferpool@v1.0.0",
+      "type": "library",
+      "name": "github.com/valyala/bytebufferpool",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com/valyala/bytebufferpool@v1.0.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/valyala/fasttemplate@v1.2.2",
+      "type": "library",
+      "name": "github.com/valyala/fasttemplate",
+      "version": "v1.2.2",
+      "purl": "pkg:golang/github.com/valyala/fasttemplate@v1.2.2",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/vektah/gqlparser/v2@v2.5.27",
+      "type": "library",
+      "name": "github.com/vektah/gqlparser/v2",
+      "version": "v2.5.27",
+      "purl": "pkg:golang/github.com/vektah/gqlparser/v2@v2.5.27",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/yuin/goldmark@v1.4.13",
+      "type": "library",
+      "name": "github.com/yuin/goldmark",
+      "version": "v1.4.13",
+      "purl": "pkg:golang/github.com/yuin/goldmark@v1.4.13",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/github.com/yusufpapurcu/wmi@v1.2.4",
+      "type": "library",
+      "name": "github.com/yusufpapurcu/wmi",
+      "version": "v1.2.4",
+      "purl": "pkg:golang/github.com/yusufpapurcu/wmi@v1.2.4",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/go.mau.fi/libsignal@v0.2.2",
+      "type": "library",
+      "name": "go.mau.fi/libsignal",
+      "version": "v0.2.2",
+      "purl": "pkg:golang/go.mau.fi/libsignal@v0.2.2",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-3.0-only"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/go.mau.fi/util@v0.10.1",
+      "type": "library",
+      "name": "go.mau.fi/util",
+      "version": "v0.10.1",
+      "purl": "pkg:golang/go.mau.fi/util@v0.10.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MPL-2.0"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/go.mau.fi/whatsmeow@v0.0.0-20260929112325-8b41cfe6d9c4",
+      "type": "library",
+      "name": "go.mau.fi/whatsmeow",
+      "version": "v0.0.0-20260929112325-8b41cfe6d9c4",
+      "purl": "pkg:golang/go.mau.fi/whatsmeow@v0.0.0-20260929112325-8b41cfe6d9c4",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MPL-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/go.uber.org/goleak@v1.3.0",
+      "type": "library",
+      "name": "go.uber.org/goleak",
+      "version": "v1.3.0",
+      "purl": "pkg:golang/go.uber.org/goleak@v1.3.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/go.uber.org/multierr@v1.11.0",
+      "type": "library",
+      "name": "go.uber.org/multierr",
+      "version": "v1.11.0",
+      "purl": "pkg:golang/go.uber.org/multierr@v1.11.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/go.uber.org/zap@v1.28.0",
+      "type": "library",
+      "name": "go.uber.org/zap",
+      "version": "v1.28.0",
+      "purl": "pkg:golang/go.uber.org/zap@v1.28.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5",
+      "type": "library",
+      "name": "go.yaml.in/yaml/v3",
+      "version": "v3.0.5",
+      "purl": "pkg:golang/go.yaml.in/yaml/v3@v3.0.5",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/crypto@v0.57.0",
+      "type": "library",
+      "name": "golang.org/x/crypto",
+      "version": "v0.57.0",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.57.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/exp@v0.0.0-20260908205506-85c1c2202aba",
+      "type": "library",
+      "name": "golang.org/x/exp",
+      "version": "v0.0.0-20260908205506-85c1c2202aba",
+      "purl": "pkg:golang/golang.org/x/exp@v0.0.0-20260908205506-85c1c2202aba",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/mod@v0.41.0",
+      "type": "library",
+      "name": "golang.org/x/mod",
+      "version": "v0.41.0",
+      "purl": "pkg:golang/golang.org/x/mod@v0.41.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/net@v0.60.0",
+      "type": "library",
+      "name": "golang.org/x/net",
+      "version": "v0.60.0",
+      "purl": "pkg:golang/golang.org/x/net@v0.60.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/sync@v0.23.0",
+      "type": "library",
+      "name": "golang.org/x/sync",
+      "version": "v0.23.0",
+      "purl": "pkg:golang/golang.org/x/sync@v0.23.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/sys@v0.48.0",
+      "type": "library",
+      "name": "golang.org/x/sys",
+      "version": "v0.48.0",
+      "purl": "pkg:golang/golang.org/x/sys@v0.48.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/term@v0.46.0",
+      "type": "library",
+      "name": "golang.org/x/term",
+      "version": "v0.46.0",
+      "purl": "pkg:golang/golang.org/x/term@v0.46.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/text@v0.42.0",
+      "type": "library",
+      "name": "golang.org/x/text",
+      "version": "v0.42.0",
+      "purl": "pkg:golang/golang.org/x/text@v0.42.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/time@v0.16.0",
+      "type": "library",
+      "name": "golang.org/x/time",
+      "version": "v0.16.0",
+      "purl": "pkg:golang/golang.org/x/time@v0.16.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/tools@v0.50.0",
+      "type": "library",
+      "name": "golang.org/x/tools",
+      "version": "v0.50.0",
+      "purl": "pkg:golang/golang.org/x/tools@v0.50.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/tools/go/expect@v0.1.1-deprecated",
+      "type": "library",
+      "name": "golang.org/x/tools/go/expect",
+      "version": "v0.1.1-deprecated",
+      "purl": "pkg:golang/golang.org/x/tools/go/expect@v0.1.1-deprecated",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/tools/go/packages/packagestest@v0.1.1-deprecated",
+      "type": "library",
+      "name": "golang.org/x/tools/go/packages/packagestest",
+      "version": "v0.1.1-deprecated",
+      "purl": "pkg:golang/golang.org/x/tools/go/packages/packagestest@v0.1.1-deprecated",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/golang.org/x/xerrors@v0.0.0-20231012003039-104605ab7028",
+      "type": "library",
+      "name": "golang.org/x/xerrors",
+      "version": "v0.0.0-20231012003039-104605ab7028",
+      "purl": "pkg:golang/golang.org/x/xerrors@v0.0.0-20231012003039-104605ab7028",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/google.golang.org/protobuf@v1.36.12",
+      "type": "library",
+      "name": "google.golang.org/protobuf",
+      "version": "v1.36.12",
+      "purl": "pkg:golang/google.golang.org/protobuf@v1.36.12",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/gopkg.in/check.v1@v1.0.0-20201130134442-10cb98267c6c",
+      "type": "library",
+      "name": "gopkg.in/check.v1",
+      "version": "v1.0.0-20201130134442-10cb98267c6c",
+      "purl": "pkg:golang/gopkg.in/check.v1@v1.0.0-20201130134442-10cb98267c6c",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/gopkg.in/natefinch/lumberjack.v2@v2.2.1",
+      "type": "library",
+      "name": "gopkg.in/natefinch/lumberjack.v2",
+      "version": "v2.2.1",
+      "purl": "pkg:golang/gopkg.in/natefinch/lumberjack.v2@v2.2.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+      "type": "library",
+      "name": "gopkg.in/yaml.v3",
+      "version": "v3.0.1",
+      "purl": "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/gorm.io/driver/postgres@v1.6.3",
+      "type": "library",
+      "name": "gorm.io/driver/postgres",
+      "version": "v1.6.3",
+      "purl": "pkg:golang/gorm.io/driver/postgres@v1.6.3",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/gorm.io/driver/sqlite@v1.6.0",
+      "type": "library",
+      "name": "gorm.io/driver/sqlite",
+      "version": "v1.6.0",
+      "purl": "pkg:golang/gorm.io/driver/sqlite@v1.6.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/gorm.io/gorm@v1.31.2",
+      "type": "library",
+      "name": "gorm.io/gorm",
+      "version": "v1.31.2",
+      "purl": "pkg:golang/gorm.io/gorm@v1.31.2",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/lukechampine.com/uint128@v1.3.0",
+      "type": "library",
+      "name": "lukechampine.com/uint128",
+      "version": "v1.3.0",
+      "purl": "pkg:golang/lukechampine.com/uint128@v1.3.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/cc/v3@v3.41.0",
+      "type": "library",
+      "name": "modernc.org/cc/v3",
+      "version": "v3.41.0",
+      "purl": "pkg:golang/modernc.org/cc/v3@v3.41.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/cc/v4@v4.27.1",
+      "type": "library",
+      "name": "modernc.org/cc/v4",
+      "version": "v4.27.1",
+      "purl": "pkg:golang/modernc.org/cc/v4@v4.27.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/ccgo/v3@v3.16.15",
+      "type": "library",
+      "name": "modernc.org/ccgo/v3",
+      "version": "v3.16.15",
+      "purl": "pkg:golang/modernc.org/ccgo/v3@v3.16.15",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/ccgo/v4@v4.30.1",
+      "type": "library",
+      "name": "modernc.org/ccgo/v4",
+      "version": "v4.30.1",
+      "purl": "pkg:golang/modernc.org/ccgo/v4@v4.30.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/fileutil@v1.3.40",
+      "type": "library",
+      "name": "modernc.org/fileutil",
+      "version": "v1.3.40",
+      "purl": "pkg:golang/modernc.org/fileutil@v1.3.40",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/gc/v2@v2.6.5",
+      "type": "library",
+      "name": "modernc.org/gc/v2",
+      "version": "v2.6.5",
+      "purl": "pkg:golang/modernc.org/gc/v2@v2.6.5",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/gc/v3@v3.1.1",
+      "type": "library",
+      "name": "modernc.org/gc/v3",
+      "version": "v3.1.1",
+      "purl": "pkg:golang/modernc.org/gc/v3@v3.1.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/goabi0@v0.2.0",
+      "type": "library",
+      "name": "modernc.org/goabi0",
+      "version": "v0.2.0",
+      "purl": "pkg:golang/modernc.org/goabi0@v0.2.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/libc@v1.67.1",
+      "type": "library",
+      "name": "modernc.org/libc",
+      "version": "v1.67.1",
+      "purl": "pkg:golang/modernc.org/libc@v1.67.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/mathutil@v1.7.1",
+      "type": "library",
+      "name": "modernc.org/mathutil",
+      "version": "v1.7.1",
+      "purl": "pkg:golang/modernc.org/mathutil@v1.7.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/memory@v1.11.0",
+      "type": "library",
+      "name": "modernc.org/memory",
+      "version": "v1.11.0",
+      "purl": "pkg:golang/modernc.org/memory@v1.11.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/opt@v0.1.4",
+      "type": "library",
+      "name": "modernc.org/opt",
+      "version": "v0.1.4",
+      "purl": "pkg:golang/modernc.org/opt@v0.1.4",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/sortutil@v1.2.1",
+      "type": "library",
+      "name": "modernc.org/sortutil",
+      "version": "v1.2.1",
+      "purl": "pkg:golang/modernc.org/sortutil@v1.2.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/sqlite@v1.40.1",
+      "type": "library",
+      "name": "modernc.org/sqlite",
+      "version": "v1.40.1",
+      "purl": "pkg:golang/modernc.org/sqlite@v1.40.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/strutil@v1.2.1",
+      "type": "library",
+      "name": "modernc.org/strutil",
+      "version": "v1.2.1",
+      "purl": "pkg:golang/modernc.org/strutil@v1.2.1",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:golang/modernc.org/token@v1.1.0",
+      "type": "library",
+      "name": "modernc.org/token",
+      "version": "v1.1.0",
+      "purl": "pkg:golang/modernc.org/token@v1.1.0",
+      "scope": "required",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "go:indirect",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}
