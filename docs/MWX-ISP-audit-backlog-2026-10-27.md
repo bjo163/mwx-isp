@@ -31,7 +31,32 @@ the current tree.
 
 ## Progress
 
-Done: 38 / 100.
+Done: 39 / 100.
+
+- `ENG-003` (2026-10-29, `dev` @ `d463ec4`): EAP-TLS certificate revocation
+  policy. The premise the item asked to test is confirmed: the engine verifies
+  the client chain with `RequireAndVerifyClientCert` and a `ClientCAs` pool, and
+  Go's TLS stack never evaluates CRLs or OCSP, so a **revoked client
+  certificate is accepted until it expires** — the same holds for RadSec
+  (`VerifyClientCertIfGiven`). `docs/eap-tls-revocation-policy.md` records the
+  threat model (leaked credential versus compromised CA), coverage per identity
+  (EAP-TLS chain yes, PEAP/TTLS n/a, RadSec out of scope, server cert out of
+  scope), the CRL-over-OCSP decision (no network round trip on the RADIUS hot
+  path), the freshness rule (`ThisUpdate`..`NextUpdate`, no grace), and the
+  fail-mode table: stale / unsigned / not-yet-valid CRL rejects the handshake,
+  an issuer without a CRL is accepted and that is the load-bearing coverage
+  limit. The proof of concept adds one optional `Config.VerifyConnection` hook
+  to the engine (nil keeps current behaviour) and exercises four real
+  handshakes in `revocation_poc_test.go`: the current engine accepts a revoked
+  certificate, the proposed verifier rejects it, a stale CRL fails closed, and
+  an issuer without a CRL is accepted. `go build ./...`,
+  `go test ./internal/radiusd/plugins/eap/...` and
+  `golangci-lint run ./internal/radiusd/plugins/eap/tlsengine/` pass
+  (`docs/feature-checklist.md` TR-F004 updated). **Not wired into production**
+  and not claimed as deployed: enabling it needs CRL material in the managed
+  certificate store, a config schema entry, a refresh policy and UI. Limits:
+  no OCSP, no RadSec wiring, no cross-signed/delegated-CRL coverage, and no
+  per-handshake benchmark.
 
 - `ENG-059` (2026-10-29, `dev` @ `06e7ae4`): RADIUS user import row errors and
   rollback. The importer wrote row by row with no transaction, so a file with
@@ -661,7 +686,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-057` TR-F015 P2 — Audit grafik dashboard konsistensi timezone dan nominal · LOKAL · PROPOSED_VERIFICATION · commit `e308244`
 - [x] `ENG-059` TR-F007 P2 — Audit import RADIUS user dengan preview dry-run saja · LOKAL · PROPOSED_VERIFICATION · commit `06e7ae4`
 - [ ] `ENG-062` TR-F022 P2 — Sistem upgrade dependency dengan ratchet keamanan · LOKAL · dep ENG-030 · PROPOSED_VERIFICATION
-- [ ] `ENG-003` TR-F004 P2 — Pemetaan kebijakan pencabutan sertifikat EAP-TLS · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-003` TR-F004 P2 — Pemetaan kebijakan pencabutan sertifikat EAP-TLS · LOKAL · PROPOSED_VERIFICATION · commit `d463ec4`
 - [ ] `ENG-005` TR-F004 P2 — Evaluasi dukungan inner EAP-TTLS CHAP dan MS-CHAP · LOKAL · dep ENG-002 · PROPOSED_VERIFICATION
 - [ ] `ENG-026` TR-F020 P2 — Evaluasi parameter KDF dan envelope backup · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-034` TR-F028 P2 — Pembetulan transaksi payment operator yang salah input · LOKAL · dep ENG-033 · PROPOSED_VERIFICATION
@@ -724,9 +749,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-003` — EAP-TLS certificate revocation policy mapping.
-2. `ENG-062` — dependency upgrade system with a security ratchet.
-3. `ENG-036` — per-tenant FUP scheduler trail (dependency ENG-019 is done).
+1. `ENG-062` — dependency upgrade system with a security ratchet.
+2. `ENG-036` — per-tenant FUP scheduler trail (dependency ENG-019 is done).
+3. `ENG-026` — backup KDF and envelope parameter evaluation.
 
 `ENG-064` and `ENG-058` stay parked: their dependencies (`ENG-013` real-NAS
 pilot, `ENG-049` SNMPv3 hardware) are ASET items without a claimed host.
