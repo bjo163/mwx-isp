@@ -146,6 +146,12 @@ func (c *Coordinator) HandleEAPRequest(
 	return false, false, fmt.Errorf("unsupported EAP code: %d", eapMsg.Code)
 }
 
+// MethodUnavailable is the reserved method name used when the configured
+// allowlist names no method with a registered handler. The coordinator rejects
+// it, so a misconfigured allowlist denies EAP instead of silently enabling a
+// method the operator did not list.
+const MethodUnavailable = "eap-method-unavailable"
+
 // handleIdentityResponse processes EAP-Response/Identity and sends the configured challenge
 func (c *Coordinator) handleIdentityResponse(ctx *EAPContext, configuredMethod string) (bool, bool, error) {
 	// Select the handler for the configured method
@@ -164,6 +170,8 @@ func (c *Coordinator) handleIdentityResponse(ctx *EAPContext, configuredMethod s
 		handler, _ = c.handlerRegistry.GetHandler(TypeTTLS)
 	case "eap-peap":
 		handler, _ = c.handlerRegistry.GetHandler(TypePEAP)
+	case MethodUnavailable:
+		return false, false, fmt.Errorf("no configured EAP method has a registered handler")
 	default:
 		// Default to MD5
 		handler, _ = c.handlerRegistry.GetHandler(TypeMD5Challenge)

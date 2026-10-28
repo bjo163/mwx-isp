@@ -10,6 +10,7 @@ import (
 	radiuserrors "github.com/bjo163/mwx-isp/internal/radiusd/errors"
 	eap "github.com/bjo163/mwx-isp/internal/radiusd/plugins/eap"
 	vendorparsers "github.com/bjo163/mwx-isp/internal/radiusd/plugins/vendorparsers"
+	"github.com/bjo163/mwx-isp/internal/radiusd/registry"
 	"go.uber.org/zap"
 	"layeh.com/radius"
 	"layeh.com/radius/rfc2865"
@@ -449,6 +450,11 @@ func (s *AuthService) buildAllowedEAPHandlers() []string {
 		return nil
 	}
 
+	// A name without a registered handler can never be dispatched (EAP-OTP is the
+	// standing example: its handler has no validation backend), so listing it in
+	// the allowlist must not make it, or the fallback, the effective method.
+	registered := registry.EAPHandlerNames()
+
 	parts := strings.Split(raw, ",")
 	ordered := make([]string, 0, len(parts))
 	seen := make(map[string]struct{})
@@ -461,11 +467,25 @@ func (s *AuthService) buildAllowedEAPHandlers() []string {
 		if name == "*" {
 			return nil
 		}
+		if _, ok := registered[name]; !ok {
+			zap.L().Warn("configured EAP method has no registered handler and is ignored",
+				zap.String("namespace", "radius"),
+				zap.String("method", name),
+			)
+			continue
+		}
 		if _, ok := seen[name]; ok {
 			continue
 		}
 		seen[name] = struct{}{}
 		ordered = append(ordered, name)
+	}
+
+	if len(ordered) == 0 {
+		// The allowlist named methods and none of them is usable. Enabling every
+		// registered method instead would widen the policy the operator asked for,
+		// so the reserved name makes every EAP method unavailable.
+		return []string{eap.MethodUnavailable}
 	}
 
 	return ordered

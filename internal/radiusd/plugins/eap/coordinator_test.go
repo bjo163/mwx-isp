@@ -307,6 +307,35 @@ func TestHandleEAPRequest_IdentityResponse_MSCHAPv2(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestHandleEAPRequest_IdentityResponse_UnavailableMethod proves the reserved
+// name produced by an allowlist with no usable entry is rejected instead of
+// falling through to the default EAP-MD5 handler.
+func TestHandleEAPRequest_IdentityResponse_UnavailableMethod(t *testing.T) {
+	registry := newMockHandlerRegistry()
+	registry.Register(&mockEAPHandler{
+		name:             "eap-md5",
+		eapType:          TypeMD5Challenge,
+		canHandle:        true,
+		handleIdentityOk: true,
+	})
+
+	coordinator := NewCoordinator(newMockStateManager(), &mockPasswordProvider{}, registry, false)
+	writer := &mockResponseWriter{}
+
+	packet := createEAPIdentityResponse(1, "testuser")
+	req := &radius.Request{Packet: packet}
+	response := req.Response(radius.CodeAccessAccept)
+
+	handled, success, err := coordinator.HandleEAPRequest(
+		writer, req, &domain.RadiusUser{}, &domain.NetNas{}, response, "secret", false, MethodUnavailable,
+	)
+
+	assert.False(t, handled)
+	assert.False(t, success)
+	assert.ErrorContains(t, err, "no configured EAP method")
+	assert.Nil(t, writer.response, "an unavailable method must not send a challenge")
+}
+
 func TestHandleEAPRequest_IdentityResponse_OTP(t *testing.T) {
 	registry := newMockHandlerRegistry()
 	registry.Register(&mockEAPHandler{

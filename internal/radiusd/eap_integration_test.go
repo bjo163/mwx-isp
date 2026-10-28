@@ -265,10 +265,86 @@ func (c *eapTestClient) sendMSCHAPv2Response(t *testing.T, challenge *eap.EAPMes
 	return resp
 }
 
+// sendIdentityExpectReject performs the identity round and returns the reply,
+// failing when the server issues a challenge instead of rejecting.
+func (c *eapTestClient) sendIdentityExpectReject(t *testing.T) *radius.Packet {
+	t.Helper()
+
+	identity := &eap.EAPMessage{
+		Code:       eap.CodeResponse,
+		Identifier: 1,
+		Type:       eap.TypeIdentity,
+		Data:       []byte(c.username),
+	}
+	packet := c.newAccessRequest()
+	eap.SetEAPMessageAndAuth(packet, identity.Encode(), c.secret)
+
+	resp, err := c.exchange(t, packet)
+	if err != nil {
+		t.Fatalf("identity exchange failed: %v", err)
+	}
+	if resp.Code == radius.CodeAccessChallenge {
+		t.Fatal("server issued a challenge; an unavailable EAP method must reject at the identity round")
+	}
+	if resp.Code != radius.CodeAccessReject {
+		t.Fatalf("expected Access-Reject, got %v", resp.Code)
+	}
+	if eapAttr := rfc2869.EAPMessage_Get(resp); len(eapAttr) > 0 && eapAttr[0] == eap.CodeSuccess {
+		t.Fatal("EAP-Success was returned for an unavailable method")
+	}
+	return resp
+}
+
+// TestEAPAllowlistIgnoresUnavailableMethod keeps the rest of EAP working: an
+// allowlist that mixes a registered method with EAP-OTP must still serve the
+// registered method.
+func TestEAPAllowlistIgnoresUnavailableMethod(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	client, rs := startEAPTestServerWithSettings(t, map[string]string{
+		"radius.EapEnabledHandlers": "eap-otp,eap-md5",
+		"radius.EapMethod":          "eap-md5",
+	})
+	seedEAPUser(t, rs, "eapuser", "eappass")
+	client.username = "eapuser"
+
+	challenge, _ := client.sendIdentity(t)
+	if challenge.Type != eap.TypeMD5Challenge {
+		t.Fatalf("expected an EAP-MD5 challenge, got EAP type %d", challenge.Type)
+	}
+}
+
+// TestEAPAllowlistWithoutUsableMethodDeniesEAPEndToEnd pins fail-closed behavior
+// over the wire: when the allowlist names only EAP-OTP, the server must not fall
+// back to the configured EAP-MD5 and must deny the handshake instead.
+func TestEAPAllowlistWithoutUsableMethodDeniesEAPEndToEnd(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	client, rs := startEAPTestServerWithSettings(t, map[string]string{
+		"radius.EapEnabledHandlers": "eap-otp",
+		"radius.EapMethod":          "eap-md5",
+	})
+	seedEAPUser(t, rs, "eapuser", "eappass")
+	client.username = "eapuser"
+
+	client.sendIdentityExpectReject(t)
+}
+
 // startEAPTestServer boots a live auth server backed by an in-memory SQLite DB
 // and returns a configured EAP test client plus the database handle so callers
 // can seed users and NAS records.
 func startEAPTestServer(t *testing.T) (*eapTestClient, *RadiusService) {
+	t.Helper()
+	return startEAPTestServerWithSettings(t, nil)
+}
+
+// startEAPTestServerWithSettings is startEAPTestServer plus config values that
+// must be in place before the auth service snapshots them at construction.
+func startEAPTestServerWithSettings(t *testing.T, settings map[string]string) (*eapTestClient, *RadiusService) {
 	t.Helper()
 
 	appCtx, cfg := setupTestEnv(t)
@@ -277,6 +353,16 @@ func startEAPTestServer(t *testing.T) (*eapTestClient, *RadiusService) {
 	registry.ResetForTest()
 	t.Cleanup(registry.ResetForTest)
 	reRegisterVendorParsers()
+
+	for key, value := range settings {
+		section, name, found := strings.Cut(key, ".")
+		if !found {
+			t.Fatalf("setting %q must be section.name", key)
+		}
+		if err := appCtx.ConfigMgr().Set(section, name, value); err != nil {
+			t.Fatalf("failed to set %s=%s: %v", key, value, err)
+		}
+	}
 
 	radiusService := NewRadiusService(appCtx)
 	t.Cleanup(radiusService.Release)
