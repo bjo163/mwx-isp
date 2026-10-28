@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { Box, Button, Card, Chip, LinearProgress, Stack, Typography, alpha, useTheme } from '@mui/material';
 import type { ChipProps } from '@mui/material';
+import { useTranslate } from 'react-admin';
 import { fontStacks } from '../theme';
+import type { StatusValue } from '../i18n/status';
 
 /** PageHeader is the standard manga-enterprise page title bar: overline crumb, condensed title, actions. */
 export const PageHeader = ({ section, title, subtitle, actions }: { section?: string; title: string; subtitle?: string; actions?: ReactNode }) => (
@@ -70,10 +72,18 @@ const statusTone: Record<string, ChipProps['color']> = {
 
 /** StatusChip renders a consistent semantic chip for any status/priority string. */
 export const StatusChip = ({ value, status, label }: { value?: string; status?: string; label?: string }) => {
+  const translate = useTranslate();
   const raw = status || value || 'unknown';
   const v = raw.toLowerCase();
-  const text = label || v.replace(/_/g, ' ').toUpperCase();
+  const fallback = v.replace(/_/g, ' ').toUpperCase();
+  const text = label || translate(`status.${v}`, { _: fallback }).toUpperCase();
   return <Chip label={text} color={statusTone[v] ?? 'default'} variant="outlined" sx={{ fontFamily: fontStacks.mono }} />;
+};
+
+/** useStatusChoices builds translated SelectInput choices for the shared status vocabulary. */
+export const useStatusChoices = (values: readonly StatusValue[]) => {
+  const translate = useTranslate();
+  return values.map((id) => ({ id, name: translate(`status.${id}`, { _: id.replace(/_/g, ' ') }) }));
 };
 
 /** Mono renders technical identifiers (IP, MAC, ticket/voucher codes) in monospace. */

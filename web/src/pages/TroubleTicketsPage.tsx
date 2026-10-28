@@ -385,7 +385,7 @@ export const TroubleTicketsPage: React.FC = () => {
                       {t.category.replace(/_/g, ' ')}
                     </TableCell>
                     <TableCell>{getPriorityChip(t.priority)}</TableCell>
-                    <TableCell><StatusChip value={t.status} label={translate('pages.tickets.status.' + t.status, { _: t.status }).toUpperCase()} /></TableCell>
+                    <TableCell><StatusChip value={t.status} /></TableCell>
                     <TableCell>
                       {t.assigned_technician ? (
                         <span>{t.assigned_technician}</span>

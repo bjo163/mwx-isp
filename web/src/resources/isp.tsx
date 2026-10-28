@@ -23,7 +23,8 @@ import { apiRequest } from '../utils/apiClient';
 import { useIsAdmin } from '../hooks/useIsAdmin';
 import { CustomerTimeline } from '../components/CustomerTimeline';
 import { MrtgTrafficGraph } from '../components/MrtgTrafficGraph';
-import { Mono, StatusChip, PageHeader, KpiStrip, KpiTile, Panel } from '../components/Enterprise';
+import { Mono, StatusChip, PageHeader, KpiStrip, KpiTile, Panel, useStatusChoices } from '../components/Enterprise';
+import type { StatusValue } from '../i18n/status';
 
 const AdminListActions = () => {
   const isAdmin = useIsAdmin();
@@ -103,16 +104,21 @@ const generateWhatsAppReceiptLink = (payment: any, customerPhone?: string) => {
   return phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
 };
 
-const customerStatusChoices = [
-  { id: 'pending', name: 'Pending' },
-  { id: 'active', name: 'Active' }, { id: 'inactive', name: 'Inactive' },
-  { id: 'suspended', name: 'Suspended' }, { id: 'terminated', name: 'Terminated' },
-];
-const billingStatusChoices = [
-  { id: 'draft', name: 'Draft' }, { id: 'issued', name: 'Issued' },
-  { id: 'partial', name: 'Partial' }, { id: 'paid', name: 'Paid' },
-  { id: 'overdue', name: 'Overdue' }, { id: 'void', name: 'Void' },
-];
+const customerStatusValues: StatusValue[] = ['pending', 'active', 'inactive', 'suspended', 'terminated'];
+const packageStatusValues: StatusValue[] = ['active', 'inactive'];
+const subscriptionStatusValues: StatusValue[] = ['pending', 'active', 'suspended', 'terminated'];
+const subscriptionCreateStatusValues: StatusValue[] = ['pending', 'active'];
+const invoiceStatusValues: StatusValue[] = ['draft', 'issued', 'partial', 'paid', 'overdue', 'void'];
+
+const StatusSelectInput = ({ source = 'status', values, defaultValue, alwaysOn }: {
+  source?: string;
+  values: readonly StatusValue[];
+  defaultValue?: string;
+  alwaysOn?: boolean;
+}) => {
+  const choices = useStatusChoices(values);
+  return <SelectInput source={source} choices={choices} defaultValue={defaultValue} alwaysOn={alwaysOn} />;
+};
 
 const MoneyField = ({ source }: { source: string }) => <NumberField source={source} options={idrOptions} />;
 
@@ -172,7 +178,7 @@ const CustomerListHeader = () => {
   );
 };
 
-const customerFilters = [<SearchInput source="q" alwaysOn key="q" />, <SelectInput source="status" choices={customerStatusChoices} key="status" />];
+const customerFilters = [<SearchInput source="q" alwaysOn key="q" />, <StatusSelectInput values={customerStatusValues} key="status" />];
 export const CustomerList = () => (
   <List actions={<AdminListActions />} empty={<RoleAwareEmpty />} filters={customerFilters} perPage={25} title="Customers">
     <CustomerListHeader />
@@ -211,7 +217,7 @@ export const CustomerList = () => (
 const CustomerForm = () => <SimpleForm>
   <TextInput source="name" isRequired /><TextInput source="phone" /><TextInput source="email" type="email" />
   <TextInput source="address" multiline /><TextInput source="city" /><TextInput source="province" />
-  <TextInput source="identity_no" /><SelectInput source="status" choices={customerStatusChoices} defaultValue="active" />
+  <TextInput source="identity_no" /><StatusSelectInput values={customerStatusValues} defaultValue="active" />
   <TextInput source="odp_code" label="ODP Code" helperText="Fiber distribution splitter enclosure" />
   <NumberInput source="odp_port" label="ODP Drop Port Number" min={1} max={64} defaultValue={1} />
   <NumberInput source="latitude" label="GPS Latitude" step={0.000001} />
@@ -411,7 +417,7 @@ const PackageListHeader = () => {
   );
 };
 
-const packageFilters = [<SelectInput source="status" choices={[{ id: 'active', name: 'Active' }, { id: 'inactive', name: 'Inactive' }]} alwaysOn key="status" />];
+const packageFilters = [<StatusSelectInput values={packageStatusValues} alwaysOn key="status" />];
 export const PackageList = () => {
   const isAdmin = useIsAdmin();
   return (
@@ -451,7 +457,7 @@ const PackageForm = () => <SimpleForm>
   <NumberInput source="fup_limit_gb" label="FUP Quota Limit (GB, 0 = unlimited)" min={0} defaultValue={0} />
   <NumberInput source="fup_rate_down" label="FUP Down Rate (Kbps, 0 = disabled)" min={0} defaultValue={0} />
   <NumberInput source="fup_rate_up" label="FUP Up Rate (Kbps, 0 = disabled)" min={0} defaultValue={0} />
-  <SelectInput source="status" choices={[{ id: 'active', name: 'Active' }, { id: 'inactive', name: 'Inactive' }]} defaultValue="active" />
+  <StatusSelectInput values={packageStatusValues} defaultValue="active" />
 </SimpleForm>;
 export const PackageCreate = () => <Create title="Create internet package"><PackageForm /></Create>;
 export const PackageEdit = () => <Edit title="Edit internet package"><PackageForm /></Edit>;
@@ -566,7 +572,7 @@ const SubscriptionListHeader = () => {
 };
 
 const subscriptionFilters = [
-  <SelectInput source="status" choices={[{ id: 'pending', name: 'Pending' }, { id: 'active', name: 'Active' }, { id: 'suspended', name: 'Suspended' }, { id: 'terminated', name: 'Terminated' }]} key="status" />,
+  <StatusSelectInput values={subscriptionStatusValues} key="status" />,
   <ReferenceInput source="customer_id" reference="isp/customers" key="customer_id"><SelectInput optionText="name" /></ReferenceInput>,
 ];
 export const SubscriptionList = () => (
@@ -605,7 +611,7 @@ export const SubscriptionCreate = () => <Create title="Create subscription"><Sim
   <TextInput source="password" type="password" />
   <NumberInput source="billing_day" min={1} max={28} defaultValue={1} isRequired />
   <NumberInput source="grace_days" min={0} max={60} defaultValue={3} isRequired />
-  <SelectInput source="status" choices={[{ id: 'pending', name: 'Pending' }, { id: 'active', name: 'Active' }]} defaultValue="pending" />
+  <StatusSelectInput values={subscriptionCreateStatusValues} defaultValue="pending" />
 </SimpleForm></Create>;
 export const SubscriptionShow = () => <Show title="Subscription details"><SimpleShowLayout>
   <TextField source="subscription_no" /><TextField source="customer_name" /><ReferenceField source="customer_id" reference="isp/customers" link="show"><TextField source="customer_no" /></ReferenceField>
@@ -685,7 +691,7 @@ const InvoiceListHeader = () => {
 const invoiceFilters = [
   <TextInput source="invoice_no" alwaysOn key="invoice_no" />,
   <ReferenceInput source="customer_id" reference="isp/customers" key="customer_id"><SelectInput optionText="name" /></ReferenceInput>,
-  <SelectInput source="status" choices={billingStatusChoices} key="status" />,
+  <StatusSelectInput values={invoiceStatusValues} key="status" />,
 ];
 export const InvoiceList = () => (
   <List filters={invoiceFilters} perPage={25} title="Invoices">

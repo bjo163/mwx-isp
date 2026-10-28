@@ -1,6 +1,10 @@
+import type { StatusMessages } from './status';
+
 // Indonesian overrides for the shared catalog. Any key omitted here falls back
 // to the English message, so a partially translated locale never renders a raw
-// key path.
+// key path. The `status` namespace is the exception: it is typed as a complete
+// StatusMessages map so `tsc` fails when a status value lacks an Indonesian
+// label.
 export const indonesianOverrides: Record<string, unknown> = {
   app: {
     title: 'Manajemen ISP',
@@ -1058,6 +1062,39 @@ export const indonesianOverrides: Record<string, unknown> = {
     no: 'Tidak',
     loading: 'Memuat...',
   },
+  status: {
+    pending: 'Menunggu',
+    active: 'Aktif',
+    inactive: 'Nonaktif',
+    suspended: 'Ditangguhkan',
+    terminated: 'Dihentikan',
+    billing_overdue: 'Tunggakan Billing',
+    draft: 'Draf',
+    issued: 'Diterbitkan',
+    partial: 'Sebagian',
+    paid: 'Lunas',
+    overdue: 'Jatuh Tempo',
+    void: 'Dibatalkan',
+    received: 'Diterima',
+    open: 'Terbuka',
+    scheduled: 'Terjadwal',
+    assigned: 'Ditugaskan',
+    in_progress: 'Dalam Proses',
+    resolved: 'Selesai',
+    closed: 'Tertutup',
+    low: 'Rendah',
+    normal: 'Normal',
+    medium: 'Sedang',
+    high: 'Tinggi',
+    urgent: 'Mendesak',
+    critical: 'Kritis',
+    up: 'Normal',
+    down: 'Gangguan',
+    online: 'Online',
+    offline: 'Offline',
+    unknown: 'Tidak Diketahui',
+    failed: 'Gagal',
+  } satisfies StatusMessages,
   error: {
     connectivity_title: 'Masalah Koneksi',
     general_title: 'Terjadi Kesalahan',
