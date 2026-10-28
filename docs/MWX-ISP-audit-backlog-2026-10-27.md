@@ -31,7 +31,27 @@ the current tree.
 
 ## Progress
 
-Done: 27 / 100.
+Done: 28 / 100.
+
+- `ENG-030` (2026-10-28, `dev` @ `bf4b18e`): SBOM and license inventory.
+  `tools/sbom` writes CycloneDX 1.5 for the Go module graph (`go list -m all`,
+  plus `go mod download -json` for the modules `go list` leaves unextracted) and
+  for the frontend's production dependencies (`npm sbom --omit=dev`), then
+  removes every field npm and Go regenerate per run: no timestamp, no random
+  serial number, no tool version, no module-cache path, all lists sorted. The
+  result is 134 Go and 150 npm components in `sbom/`, and `-check` fails only
+  when the dependency set really changed. Licenses are fingerprinted from the
+  module's own text, with MPL and the GPL family matched against the header only
+  because MPL 2.0 §3.3 names the AGPL in its body; one npm package
+  (`css-mediaquery`) ships no license field and stays `NOASSERTION` as a review
+  gap. `docs/dependency-inventory.md` records the license summary, the copyleft
+  review items — `go.mau.fi/libsignal` is GPL-3.0-only and reachable through
+  whatsmeow, and the `talkincode/radius` fork is MPL-2.0, not MIT — and a
+  17-row advisory register that marks each govulncheck hit as
+  investigated/not-affected with its reason. The 11 reachable findings are all
+  stdlib issues fixed in go1.27.2, which also exposed a CI mismatch: the workflow
+  pins `GO_VERSION: 1.26` while the local toolchain is go1.27.0, so CI compiles
+  against a different stdlib than the one checked here.
 
 - `ENG-009` (2026-10-28, `dev` @ `3e05648`): RadSec peer-verification regression.
   The negative matrix found a real defect: `Serve` reported a rejected TLS
@@ -403,7 +423,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-064` TR-F010 P1 — Pemeriksaan session-action queue dead-letter dan alert · LOKAL · dep ENG-013 · PROPOSED_VERIFICATION
 - [x] `ENG-053` TR-F013 P2 — Navigasi keyboard pada data-grid dan dialog kritis · LOKAL · PROPOSED_VERIFICATION · commit `4404b1b`
 - [x] `ENG-004` TR-F003 P2 — Kesiapan rotasi sertifikat RadSec dan EAP · LOKAL · PROPOSED_VERIFICATION · commit `3cf307c`
-- [ ] `ENG-030` TR-F022 P2 — Inventory SBOM backend/frontend serta lisensi · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-030` TR-F022 P2 — Inventory SBOM backend/frontend serta lisensi · LOKAL · PROPOSED_VERIFICATION · commit `bf4b18e`
 - [ ] `ENG-008` TR-F004 P2 — Pastikan EAP-OTP tak dapat diaktifkan tanpa validator · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-029` TR-F029 P2 — PNG branding parser dan metadata validation · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ENG-039` TR-F032 P2 — Perlindungan marker demo data saat clean-up · LOKAL · PROPOSED_VERIFICATION
@@ -488,6 +508,6 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-030` — SBOM and license inventory for backend/frontend.
-2. `ENG-027` — network diagnostic SSRF hardening.
-3. `ENG-008` — EAP-OTP cannot be enabled without a validator.
+1. `ENG-027` — network diagnostic SSRF hardening.
+2. `ENG-008` — EAP-OTP cannot be enabled without a validator.
+3. `ENG-029` — the next item in the Wave 1 LOKAL set.
