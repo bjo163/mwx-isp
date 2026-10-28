@@ -3,22 +3,17 @@ package radiusd
 import (
 	"bufio"
 	"context"
-	"crypto/rand"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"sync"
 	"sync/atomic"
-	"time"
 	"unsafe"
 
 	"github.com/bjo163/mwx-isp/internal/app"
-	"github.com/bjo163/mwx-isp/pkg/common"
 	"go.uber.org/zap"
 	"layeh.com/radius"
 )
@@ -384,29 +379,15 @@ func (s *RadsecPacketServer) Serve(conn net.Conn) error {
 	}
 }
 
-// initTLSConfig initializes a tls.Config with the given certificate and key
+// initTLSConfig builds the RadSec TLS configuration from the configured paths.
+// The returned configuration re-reads those files on each handshake when one
+// changed, so a rotated key pair or CA bundle is picked up without a restart.
 func (s *RadsecPacketServer) initTLSConfig(capath, crtfile, keyfile string) (*tls.Config, error) {
-	crt, err := tls.LoadX509KeyPair(crtfile, keyfile)
+	files, err := newRadsecTLSFiles(capath, crtfile, keyfile)
 	if err != nil {
 		return nil, err
 	}
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{crt},
-		Time:         time.Now,
-		Rand:         rand.Reader,
-		ClientAuth:   tls.VerifyClientCertIfGiven,
-		MinVersion:   tls.VersionTLS12,
-	}
-
-	if common.FileExists(capath) {
-		cabytes, _ := os.ReadFile(capath) //nolint:gosec // G304: path is from validated config
-		pool := x509.NewCertPool()
-		pool.AppendCertsFromPEM(cabytes)
-		tlsConfig.ClientCAs = pool
-	}
-
-	return tlsConfig, nil
+	return files.baseConfig(), nil
 }
 
 // ListenAndServe starts a RADIUS server on the address given in s.
