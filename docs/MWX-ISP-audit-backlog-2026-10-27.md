@@ -31,7 +31,22 @@ the current tree.
 
 ## Progress
 
-Done: 26 / 100.
+Done: 27 / 100.
+
+- `ENG-009` (2026-10-28, `dev` @ `3e05648`): RadSec peer-verification regression.
+  The negative matrix found a real defect: `Serve` reported a rejected TLS
+  handshake as a recoverable packet-parse error and re-entered the read loop, so
+  a peer with an untrusted certificate left the goroutine spinning on a dead
+  connection (CPU burn, connection never released, `Shutdown` blocked). `Serve`
+  now completes the handshake explicitly before any per-peer lookup, returns on
+  any transport error, and skips a frame only when its attributes were fully
+  consumed (`errMalformedPacketAttribute`). `radsec_handshake_matrix_test.go`
+  runs the real server behind `initTLSConfig` and pins the policy: trusted client
+  accepted, untrusted/expired/wrong-EKU/TLS 1.0-1.1 peers rejected with zero
+  packets handled, failed handshake releases the connection, and the snapshot
+  keeps `VerifyClientCertIfGiven`, the TLS 1.2 floor and the CA pool. The policy
+  is documented and its known limit stated: a certificate-less peer is still
+  accepted, and a missing CA bundle now logs a warning at load time.
 
 - `ENG-004` (2026-10-28, `dev` @ `3cf307c`): RadSec/EAP certificate rotation.
   RadSec parsed its key pair and client CA bundle once, so any rotation forced a
@@ -372,7 +387,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-031` TR-F028 P1 — Invoice numbering tahan retry setelah crash PostgreSQL · LOKAL · PROPOSED_VERIFICATION · commit `74fa4c1`
 - [x] `ENG-033` TR-F028 P1 — Idempotency pembayaran manual dengan request ulang · LOKAL · PROPOSED_VERIFICATION · commit `c89624d`
 - [x] `ENG-052` TR-F016 P1 — E2E matriks tombol per role operator/admin/super · LOKAL · PROPOSED_VERIFICATION · commit `447c0ad`
-- [ ] `ENG-009` TR-F003 P1 — Regression RadSec mTLS sertifikat tidak tepercaya · LOKAL · dep ENG-004 · PROPOSED_VERIFICATION
+- [x] `ENG-009` TR-F003 P1 — Regression RadSec mTLS sertifikat tidak tepercaya · LOKAL · VERIFIED_GAP · commit `3e05648`
 - [x] `ENG-010` TR-F001 P1 — Audit duplikasi RADIUS retransmission dan replay · LOKAL · PROPOSED_VERIFICATION · commit `54aee93`
 - [x] `ENG-012` TR-F002 P1 — Test accounting Start/Interim/Stop out-of-order · LOKAL · PROPOSED_VERIFICATION · commit `9be97f3`
 - [x] `ENG-022` TR-F016 P1 — Threat-model autentikasi browser dan sesi admin · LOKAL · PROPOSED_VERIFICATION · commit `e093bd0`
@@ -473,6 +488,6 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-009` — RadSec mTLS untrusted-certificate regression (now unblocked).
-2. `ENG-030` — SBOM and license inventory for backend/frontend.
-3. `ENG-027` — network diagnostic SSRF hardening.
+1. `ENG-030` — SBOM and license inventory for backend/frontend.
+2. `ENG-027` — network diagnostic SSRF hardening.
+3. `ENG-008` — EAP-OTP cannot be enabled without a validator.
