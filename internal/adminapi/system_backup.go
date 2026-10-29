@@ -364,6 +364,10 @@ func backupSystem(c echo.Context) error {
 
 	bs, encrypted, err := buildBackupEnvelope(&backup, backupPassphrase(GetAppContext(c).Config()))
 	if err != nil {
+		if errors.Is(err, errBackupPassphraseTooShort) {
+			return fail(c, http.StatusInternalServerError, "BACKUP_PASSPHRASE_TOO_SHORT",
+				"Backup encryption passphrase is too short", err.Error())
+		}
 		return fail(c, http.StatusInternalServerError, "ENCODE_ERROR", "Failed to encode backup", err.Error())
 	}
 
@@ -389,7 +393,9 @@ func backupSystem(c echo.Context) error {
 }
 
 // backupPassphrase returns the configured backup encryption passphrase. An
-// unset or nil config disables encryption.
+// unset or nil config disables encryption. Encrypting a new archive requires at
+// least backupMinPassphraseLength characters; restoring an existing archive does
+// not re-check the policy, so earlier archives stay readable.
 func backupPassphrase(cfg *config.AppConfig) string {
 	if cfg == nil {
 		return ""

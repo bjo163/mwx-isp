@@ -48,6 +48,14 @@ manifest and its digest are authenticated as additional data. The endpoint
 returns a `mwx-isp-backup-<timestamp>.encrypted.json` download and the same
 ciphertext in the response body.
 
+The passphrase must be at least 12 characters to encrypt a new archive; a
+shorter value is refused with `BACKUP_PASSPHRASE_TOO_SHORT`. Restoring does not
+re-check the length, so archives written earlier with a shorter value stay
+readable. Restores accept any recorded iteration count between 600,000 and
+2,400,000, which lets a later release raise the cost for new archives without
+stranding existing ones; measured cost and the full decision are in
+[backup-kdf-evaluation-2026-10-29.md](backup-kdf-evaluation-2026-10-29.md).
+
 The passphrase is never serialized by the API, written to logs, or included in
 the backup. Store it in the deployment secret store or an offline escrow, never
 beside the backup files:

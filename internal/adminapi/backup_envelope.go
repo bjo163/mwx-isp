@@ -15,6 +15,7 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // The backup envelope wraps the versioned SystemBackup payload with a manifest
@@ -28,6 +29,21 @@ const (
 	backupKDFIterations = 600000
 	backupSaltSize      = 16
 	backupKeySize       = 32
+
+	// backupKDFMinIterations is the lowest recorded iteration count accepted on
+	// restore. Restores accept a range instead of exact equality so raising the
+	// write cost never strands archives written by an earlier release, while a
+	// crafted archive cannot ask the server to derive a weaker key than this
+	// release writes.
+	backupKDFMinIterations = backupKDFIterations
+	// backupKDFMaxIterations caps the CPU a single archive can demand before it
+	// is authenticated. Raising backupKDFIterations must stay below this bound.
+	backupKDFMaxIterations = 4 * backupKDFIterations
+
+	// backupMinPassphraseLength applies to newly written encrypted archives.
+	// Restoring is exempt: an archive written before this policy must stay
+	// readable with whatever passphrase encrypted it.
+	backupMinPassphraseLength = 12
 )
 
 var (
@@ -38,6 +54,10 @@ var (
 	// encrypted archive. It intentionally does not distinguish a wrong
 	// passphrase from a corrupted archive.
 	errBackupDecryption = errors.New("backup decryption failed")
+	// errBackupPassphraseTooShort reports that the configured passphrase cannot
+	// protect a new archive. Existing archives with a short passphrase remain
+	// restorable; only writing is refused.
+	errBackupPassphraseTooShort = fmt.Errorf("backup passphrase must be at least %d characters", backupMinPassphraseLength)
 )
 
 // backupManifest describes the payload contained in a backup envelope.
@@ -111,6 +131,10 @@ func backupRecordCounts(b *SystemBackup) map[string]int {
 // passphrase is non-empty the payload is encrypted with AES-256-GCM and a key
 // derived through PBKDF2-SHA256; the passphrase itself is never stored.
 func buildBackupEnvelope(b *SystemBackup, passphrase string) ([]byte, bool, error) {
+	passphrase = strings.TrimSpace(passphrase)
+	if passphrase != "" && utf8.RuneCountInString(passphrase) < backupMinPassphraseLength {
+		return nil, false, errBackupPassphraseTooShort
+	}
 	payload, err := json.MarshalIndent(b, "", "  ")
 	if err != nil {
 		return nil, false, fmt.Errorf("encode backup payload: %w", err)
@@ -127,7 +151,7 @@ func buildBackupEnvelope(b *SystemBackup, passphrase string) ([]byte, bool, erro
 		PayloadSHA256: digest,
 	}
 	envelope := backupEnvelope{Format: backupEnvelopeFormat, Manifest: manifest}
-	encrypted := strings.TrimSpace(passphrase) != ""
+	encrypted := passphrase != ""
 	if encrypted {
 		salt := make([]byte, backupSaltSize)
 		if _, err := io.ReadFull(rand.Reader, salt); err != nil {
@@ -156,9 +180,11 @@ func buildBackupEnvelope(b *SystemBackup, passphrase string) ([]byte, bool, erro
 }
 
 // encryptBackupPayload seals payload with AES-256-GCM. The manifest (excluding
-// the ciphertext itself) is authenticated as additional data.
+// the ciphertext itself) is authenticated as additional data, and its recorded
+// KDFIterations drives the derivation cost so a version bump only has to change
+// the count written for new archives, not the decryption logic.
 func encryptBackupPayload(passphrase string, salt, payload []byte, manifest backupManifest) (string, error) {
-	key, err := pbkdf2.Key(sha256.New, passphrase, salt, backupKDFIterations, backupKeySize)
+	key, err := pbkdf2.Key(sha256.New, passphrase, salt, manifest.KDFIterations, backupKeySize)
 	if err != nil {
 		return "", fmt.Errorf("derive backup key: %w", err)
 	}
@@ -181,8 +207,8 @@ func decryptBackupPayload(passphrase, ciphertext string, manifest backupManifest
 	if manifest.KDF != backupKDFName {
 		return nil, fmt.Errorf("%w: unsupported key derivation %q", errBackupDecryption, manifest.KDF)
 	}
-	if manifest.KDFIterations != backupKDFIterations {
-		return nil, fmt.Errorf("%w: unsupported KDF iteration count", errBackupDecryption)
+	if err := backupKDFIterationCount(manifest.KDFIterations); err != nil {
+		return nil, err
 	}
 	salt, err := base64.StdEncoding.DecodeString(manifest.Salt)
 	if err != nil || len(salt) < backupSaltSize {
@@ -209,6 +235,16 @@ func decryptBackupPayload(passphrase, ciphertext string, manifest backupManifest
 		return nil, errBackupDecryption
 	}
 	return payload, nil
+}
+
+// backupKDFIterationCount validates a manifest-recorded iteration count against
+// the range this release can open without changing the envelope format.
+func backupKDFIterationCount(iterations int) error {
+	if iterations < backupKDFMinIterations || iterations > backupKDFMaxIterations {
+		return fmt.Errorf("%w: KDF iteration count %d is outside the supported range [%d, %d]",
+			errBackupDecryption, iterations, backupKDFMinIterations, backupKDFMaxIterations)
+	}
+	return nil
 }
 
 func newBackupAEAD(key []byte) (cipher.AEAD, error) {

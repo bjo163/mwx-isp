@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -291,4 +292,121 @@ func countRows(t *testing.T, db *gorm.DB, model any) int64 {
 	var count int64
 	require.NoError(t, db.Model(model).Count(&count).Error)
 	return count
+}
+
+// newBackupFixture exports a small but fully-formed backup from a disposable
+// database so encrypted fixtures carry the same tenant metadata a real archive
+// has.
+func newBackupFixture(t *testing.T) SystemBackup {
+	t.Helper()
+	srcDB := setupBackupTestDB(t)
+	srcAppCtx := setupTestApp(t, srcDB)
+	profile := createTestProfile(srcDB, "compat-profile")
+	createTestUser(srcDB, "compat_user", profile.ID)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/backup", nil)
+	rec := httptest.NewRecorder()
+	require.NoError(t, backupSystem(CreateTestContext(setupTestEcho(), srcDB, req, rec, srcAppCtx)))
+	_, backup := decodeBackupEnvelope(t, rec.Body.Bytes())
+	return backup
+}
+
+// buildEncryptedFixtureAtIterations returns an encrypted envelope exactly as a
+// release writing the given KDF cost would have produced, so restore
+// compatibility can be exercised against counts other than the current default.
+func buildEncryptedFixtureAtIterations(t *testing.T, backup *SystemBackup, passphrase string, iterations int) []byte {
+	t.Helper()
+	payload, err := json.MarshalIndent(backup, "", "  ")
+	require.NoError(t, err)
+	digest, err := backupPayloadDigest(backup)
+	require.NoError(t, err)
+	salt := []byte("0123456789abcdef")
+	manifest := backupManifest{
+		FormatVersion: backupEnvelopeVersion,
+		SchemaVersion: backup.Version,
+		CreatedAt:     backup.CreatedAt,
+		Encrypted:     true,
+		RecordCounts:  backupRecordCounts(backup),
+		PayloadSHA256: digest,
+		KDF:           backupKDFName,
+		KDFIterations: iterations,
+		Salt:          base64.StdEncoding.EncodeToString(salt),
+	}
+	ciphertext, err := encryptBackupPayload(passphrase, salt, payload, manifest)
+	require.NoError(t, err)
+	body, err := json.Marshal(backupEnvelope{
+		Format:     backupEnvelopeFormat,
+		Manifest:   manifest,
+		Ciphertext: ciphertext,
+	})
+	require.NoError(t, err)
+	return body
+}
+
+// restoreEncryptedFixture restores body into a fresh database with passphrase
+// configured and returns the recorder.
+func restoreEncryptedFixture(t *testing.T, body []byte, passphrase string) (*httptest.ResponseRecorder, *gorm.DB) {
+	t.Helper()
+	db := setupBackupTestDB(t)
+	appCtx := setupTestApp(t, db)
+	appCtx.Config().Backup.Passphrase = passphrase
+	rreq, rrec := restoreRequest(t, body)
+	require.NoError(t, restoreSystem(CreateTestContext(setupTestEcho(), db, rreq, rrec, appCtx)))
+	return rrec, db
+}
+
+// TestEncryptedBackupRestoresAcrossSupportedIterationCounts pins the envelope
+// compatibility contract: the recorded KDF cost is read from the manifest, so a
+// later release may raise the write cost without making earlier archives
+// undecryptable and without changing the container format.
+func TestEncryptedBackupRestoresAcrossSupportedIterationCounts(t *testing.T) {
+	backup := newBackupFixture(t)
+	for _, iterations := range []int{backupKDFMinIterations, backupKDFIterations + 1, backupKDFMaxIterations} {
+		t.Run(fmt.Sprintf("iterations_%d", iterations), func(t *testing.T) {
+			body := buildEncryptedFixtureAtIterations(t, &backup, backupTestPassphrase, iterations)
+
+			rrec, db := restoreEncryptedFixture(t, body, backupTestPassphrase)
+			require.Equal(t, http.StatusOK, rrec.Code, rrec.Body.String())
+			var restored domain.RadiusUser
+			require.NoError(t, db.Where("username = ?", "compat_user").First(&restored).Error)
+		})
+	}
+}
+
+// TestEncryptedBackupRejectsUnsupportedIterationCounts keeps the accepted range
+// narrow: a crafted archive cannot downgrade the derivation cost or demand
+// unbounded CPU before authentication.
+func TestEncryptedBackupRejectsUnsupportedIterationCounts(t *testing.T) {
+	backup := newBackupFixture(t)
+	for _, iterations := range []int{0, backupKDFMinIterations - 1, backupKDFMaxIterations + 1, 1 << 30} {
+		t.Run(fmt.Sprintf("iterations_%d", iterations), func(t *testing.T) {
+			body := buildEncryptedFixtureAtIterations(t, &backup, backupTestPassphrase, iterations)
+
+			rrec, db := restoreEncryptedFixture(t, body, backupTestPassphrase)
+			assert.Equal(t, http.StatusBadRequest, rrec.Code)
+			assert.Contains(t, rrec.Body.String(), "BACKUP_DECRYPT_FAILED")
+			assert.Zero(t, countRows(t, db, &domain.RadiusUser{}))
+		})
+	}
+}
+
+// TestEncryptedBackupRefusesShortPassphrase pins the write-side policy while
+// ensuring a legacy archive encrypted with a shorter passphrase still restores.
+func TestEncryptedBackupRefusesShortPassphrase(t *testing.T) {
+	backup := newBackupFixture(t)
+
+	srcDB := setupBackupTestDB(t)
+	srcAppCtx := setupTestApp(t, srcDB)
+	srcAppCtx.Config().Backup.Passphrase = "short-pass"
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/system/backup", nil)
+	rec := httptest.NewRecorder()
+	require.NoError(t, backupSystem(CreateTestContext(setupTestEcho(), srcDB, req, rec, srcAppCtx)))
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	assert.Contains(t, rec.Body.String(), "BACKUP_PASSPHRASE_TOO_SHORT")
+
+	legacy := buildEncryptedFixtureAtIterations(t, &backup, "short-pass", backupKDFIterations)
+	rrec, db := restoreEncryptedFixture(t, legacy, "short-pass")
+	require.Equal(t, http.StatusOK, rrec.Code, rrec.Body.String())
+	var restored domain.RadiusUser
+	require.NoError(t, db.Where("username = ?", "compat_user").First(&restored).Error)
 }

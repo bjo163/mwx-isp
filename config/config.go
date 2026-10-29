@@ -155,7 +155,9 @@ type RadiusdConfig struct {
 //
 // Passphrase enables authenticated encryption for application JSON backups.
 // When set, exports are wrapped in an AES-256-GCM envelope with a
-// PBKDF2-SHA256 derived key and restores require the same passphrase. The value
+// PBKDF2-SHA256 derived key and restores require the same passphrase. Values
+// shorter than 12 characters are refused when writing a new archive; archives
+// encrypted earlier with a shorter value remain restorable. The value
 // is never serialized by JSON APIs, logged, or included in backup artifacts;
 // keep it in the deployment secret store, not in the YAML file committed to
 // source control.
