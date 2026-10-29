@@ -1416,8 +1416,9 @@ governance half recorded as no-go) is the eleventh and last — all eleven close
 
 Nothing asset-free is left in Waves 3-4.
 
-The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
-the register below: they are `ASET`/`RISET+ASET`, or they depend on a row that is.
+The other 11 open Wave 3 rows and 5 open Wave 4 rows are recorded row by row, with
+the asset each one waits on, in the blocked register for Waves 3-4 below: they are
+`ASET`/`RISET+ASET`, or they depend on a row that is.
 
 ## Blocked register (Waves 0-2)
 
@@ -1461,3 +1462,47 @@ opt-in test number), `ECO-007` (telemetry and whatsmeow cost control, depends on
 Blocked items do not gate the Wave 0-2 close-out: each one is either an ASET row
 whose asset does not exist, or a LOKAL/RISET row whose only unsatisfied
 dependency is such an ASET row.
+
+## Blocked register (Waves 3-4)
+
+Explicit status for the 16 rows still open after the eleven asset-free ones closed
+2026-10-29 — 11 in Wave 3, 5 in Wave 4, counted from the checkboxes. No-go means the
+same thing as above: repository work cannot close the row as written.
+
+**No-go — needs a live SNMPv3 device (`ENG-049` chain).** `FUT-004` (latency
+anomaly patterns from historical metrics) is measured against the device's own
+history; `FUT-013` (offline read-only NOC snapshot with TTL and encryption),
+`FUT-014` (the field mini-mode built on it), `FUT-003` (an evidenced incident
+summary) and `FUT-005` (a cause-hypothesis graph with uncertainty) wait on `ENG-055`
+and `ENG-058`, which are local rows whose only unsatisfied dependency is `ENG-049`,
+so their staleness, TTL and confidence claims have nothing real to be judged
+against; `FUT-019` (edge collector polling on a constrained link) and `FUT-024`
+(capacity prediction bounded by real SNMP data) are `RISET+ASET` themselves.
+
+**No-go — needs a real NAS in a lab (`ENG-013` chain).** `FUT-008` (preview the
+impact of a CoA on the sessions that are actually up) needs the pilot's answer, and
+`FUT-021` (a firmware-compatibility knowledge base *berbasis bukti uji*) together
+with `ECO-012` (a partner interoperability kit) need `ENG-050`, the tested
+NAS/firmware matrix that sits behind it.
+
+**No-go — needs supplicant hardware.** `FUT-012` (adversarial EAP-TLS fragment
+scheduler experiments) is only a measurement against `ENG-002`'s interoperability
+matrix.
+
+**No-go — needs human respondents.** `ECO-004` (managed-support licence versus
+self-hosted), `ECO-011` (community/open-source distribution strategy) and `ECO-010`
+(churn risk from aggregate operational signals, behind `ECO-002`'s measured operator
+task timings).
+
+**No-go — needs the clean-VPS chain (`ENG-041`).** `ECO-005` (a realistic support
+package and SLA) needs `ENG-045`'s RTO/RPO rehearsal, and `ECO-008` (per-NAS and
+per-subscriber cost allocation) needs `ECO-003`'s TCO model, which needs the same
+rehearsal.
+
+None of this says a research round could not measure something locally — the eleven
+rows closed on 2026-10-29 were RISET rows, and two of them (`FUT-015`, `FUT-020`)
+sat behind dependency chains of their own. What makes these sixteen no-go is that
+each criterion names data or a counterparty the repository does not hold: a device's
+metric history, a NAS's reply to a CoA, an operator's willingness to pay. A census of
+the tree would answer a different question than the row asks, so closing one needs
+the asset or a rewrite of the criterion.
