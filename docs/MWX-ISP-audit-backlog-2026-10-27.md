@@ -31,7 +31,32 @@ the current tree.
 
 ## Progress
 
-Done: 43 / 100.
+Done: 44 / 100.
+
+- `ENG-060` (2026-10-29, `dev` @ `e3e5e57`): redacted support bundle. The log
+  export already redacted its output, but an operator with an incident could
+  still copy raw `mwx-isp.yml` and the raw log by hand, bypassing that pass. The
+  rules now live in `internal/redact` and both `/admin/loki/query` and the new
+  `cmd/support-bundle` call them, so the two cannot drift. Staging and exporting
+  are separate commands: `Stage` writes `config.redacted.yaml`, the log tail
+  (2 MiB, line-aligned), a redaction report with per-class counts and the dotted
+  keys that were redacted, `meta.json`, and a manifest with a sha256 per file
+  plus a bundle checksum, all under `pending_review`. `Approve` is the only path
+  to a `.tar.gz`: it requires a reviewer, re-hashes every staged file, rejects a
+  bundle edited after staging (`ErrChecksumMismatch`), refuses a second approval,
+  and writes a `sha256sum` sidecar. Secrets become `[REDACTED]`, customer
+  identifiers a stable `sha256` pseudonym, and addresses keep only their /24 or
+  /48 prefix; free text is swept for credential assignments, URL userinfo,
+  e-mails, and IPv4 literals. The tool opens no socket, reads no database, and
+  writes only under `-out`. Acceptance: `go test ./internal/redact/
+  ./internal/supportbundle/ ./cmd/support-bundle/` and the existing
+  `adminapi` redaction tests pass, `go build ./...` passes, `golangci-lint run
+  ./internal/redact/... ./internal/supportbundle/... ./cmd/support-bundle/...`
+  reports 0 issues, and a staged→approved demo run produces a six-entry archive.
+  Limits: phone numbers, postal addresses, and IPv6 only by key name, config
+  comments/formatting are lost on re-encode, the sidecar is not a signature, and
+  the tool is not wired into the admin UI. Evidence:
+  [support-bundle-2026-10-29.md](support-bundle-2026-10-29.md).
 
 - `ENG-034` (2026-10-29, `dev` @ `9bc7368`): operator payment correction. No
   correction path existed: `billing.RecordPayment` is append-only and the
@@ -778,7 +803,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-005` TR-F004 P2 — Evaluasi dukungan inner EAP-TTLS CHAP dan MS-CHAP · LOKAL · dep ENG-002 · PROPOSED_VERIFICATION
 - [x] `ENG-026` TR-F020 P2 — Evaluasi parameter KDF dan envelope backup · LOKAL · PROPOSED_VERIFICATION · commit `33c0f5e`
 - [x] `ENG-034` TR-F028 P2 — Pembetulan transaksi payment operator yang salah input · LOKAL · PROPOSED_VERIFICATION · commit `9bc7368`
-- [ ] `ENG-060` TR-F022 P2 — Studi support bundle tersensor untuk insiden operator · LOKAL · dep ENG-028 · PROPOSED_VERIFICATION
+- [x] `ENG-060` TR-F022 P2 — Studi support bundle tersensor untuk insiden operator · LOKAL · dep ENG-028 · PROPOSED_VERIFICATION · commit `e3e5e57`
 - [ ] `ECO-003` TR-F020 P2 — Model total cost of ownership deployment ISP · RISET · dep ENG-045 · PROPOSED_VERIFICATION
 - [ ] `ECO-009` TR-F028 P2 — Audit peluang revenue leakage dari invoice yang sudah ada · RISET · dep ENG-031 · PROPOSED_VERIFICATION
 - [ ] `ENG-049` TR-F031 P2 — UAT SNMPv3 authPriv dengan perangkat sungguhan · ASET · VERIFIED_GAP
@@ -837,7 +862,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-060` — redacted support bundle study (dependency ENG-028 is done).
+1. `FUT-010` — static tenant-scope policy checker from a simple query AST
+   (dependency ENG-019 is done; the tenancy ratchet already enumerates the
+   queries it would classify).
 
 `ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
 `ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
