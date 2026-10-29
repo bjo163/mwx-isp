@@ -39,7 +39,7 @@ Done: 52 / 100.
   identifier in product code and tests 3 negative claims. All 11 confirm and all 3
   gaps stay open: every password path still needs a recomputable secret
   (`md5_handler.go:97`, `mschapv2_handler.go:264`, `ldap_backend.go:120`), neither
-  tunnel can carry a third inner method (`peap_inner.go:62`, `ttls_inner.go:89`),
+  tunnel can carry a third inner method (`peap_inner.go:148`, `ttls_inner.go:89`),
   the type constants stop at EAP-TLV 33 (`interfaces.go:32`), and no `eap-pwd`,
   `TypePWD` or `dragonfly` code exists. Evidence rules follow the ENG-006 study:
   comment-only lines are blanked so a doc comment naming a symbol proves nothing
