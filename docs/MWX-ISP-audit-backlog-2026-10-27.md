@@ -31,8 +31,38 @@ the current tree.
 
 ## Progress
 
-Done: 51 / 100.
+Done: 52 / 100.
 
+- `ENG-007` (2026-10-29, `dev` @ `eff93d1`): EAP-PWD need research for M12,
+  re-derived from the tree rather than recalled. `internal/eappwdneed` (read-only,
+  imported by nothing) pins the 11 statements the need argument rests on to a Go
+  identifier in product code and tests 3 negative claims. All 11 confirm and all 3
+  gaps stay open: every password path still needs a recomputable secret
+  (`md5_handler.go:97`, `mschapv2_handler.go:264`, `ldap_backend.go:120`), neither
+  tunnel can carry a third inner method (`peap_inner.go:62`, `ttls_inner.go:89`),
+  the type constants stop at EAP-TLV 33 (`interfaces.go:32`), and no `eap-pwd`,
+  `TypePWD` or `dragonfly` code exists. Evidence rules follow the ENG-006 study:
+  comment-only lines are blanked so a doc comment naming a symbol proves nothing
+  (`TestCommentMentionsAreNotEvidence`), every citation must land on a code line
+  (`TestEveryRealCitationIsACodeLine`), a moved citation is reported `broken`
+  instead of dropped (`TestMovedFileIsReportedBrokenNotDropped`), and the scan
+  excludes its own package so it cannot refute itself
+  (`TestAbsenceScanIgnoresThePrototypeItself`). The vendoring half carries the
+  finding that matters: the audit reads the number each carried RFC prints about
+  itself and compares it with the numbers this project's own documents cite
+  (`TestEverySpecNumberIsCitedByAProjectDocument`), which leaves **2 findings
+  across 56 files** - RFC 5931 is carried nowhere while
+  `docs/rfcs/rfc7542-eap-pwd.txt` is the Network Access Identifier spec, and
+  `docs/rfcs/rfc3851-eap-md5.txt` is S/MIME although EAP-MD5 is RFC 3748 §5.4.
+  `rfc7170-teap.txt` is kept as a positive control so "missing" and "misnamed"
+  cannot be confused. `docs-site/src/en/rfc-index.md` already records both cases;
+  `docs/rfcs/FILE-NAMING.md` still asserts the wrong pairings, and this round
+  renamed no file and fetched no document - that needs its own decision.
+  Decision: M12 stays Planned, gated on a document rather than on an asset, and no
+  method, enum entry or endpoint was added. Acceptance:
+  `go test ./internal/eappwdneed/` passes 25 cases and
+  `golangci-lint run ./internal/eappwdneed/...` reports 0 issues. Evidence:
+  [eap-pwd-m12-need-2026-10-29.md](eap-pwd-m12-need-2026-10-29.md).
 - `ENG-006` (2026-10-29, `dev` @ `e1ae01e`): TEAP readiness for M11, measured
   instead of remembered. `internal/teapreadiness` (read-only, imported by
   nothing) holds a catalog of the 22 mechanisms RFC 7170 needs and scans the
@@ -988,7 +1018,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 ## Wave 3 — 23 item (LOKAL 2 · RISET 21)
 
 - [x] `ENG-006` TR-F004 P3 — Riset kompatibilitas TEAP terbatas untuk milestone M11 · LOKAL · PROPOSED_VERIFICATION · commit `e1ae01e`
-- [ ] `ENG-007` TR-F004 P3 — Riset kebutuhan EAP-PWD milestone M12 · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-007` TR-F004 P3 — Riset kebutuhan EAP-PWD milestone M12 · LOKAL · PROPOSED_VERIFICATION · commit `eff93d1`
 - [ ] `ECO-004` TR-F020 P2 — Evaluasi lisensi managed support vs self-hosted · RISET · dep ECO-001 · PROPOSED_VERIFICATION
 - [ ] `ECO-005` TR-F020 P2 — Desain paket dukungan & SLA yang realistis · RISET · dep ENG-045 · PROPOSED_VERIFICATION
 - [ ] `ECO-006` TR-F027 P2 — Validasi jasa onboarding dan migrasi pelanggan · RISET · dep ENG-059 · PROPOSED_VERIFICATION
@@ -1046,24 +1076,23 @@ repository work in the blocked register below, so the Wave 0-2 close-out is a
 complete statement: 44 delivered, 23 no-go, none undecided.
 
 Work continues in Waves 3-4, where the rows that need no asset remain. Ordered so
-each step stays executable without hardware — `ENG-006` (TEAP readiness for M11)
-was the first of them, closed 2026-10-29:
-
-1. `ENG-007` — EAP-PWD need research for M12 (`LOKAL`, no dependency).
-2. `ECO-006` — onboarding and migration service validation (`RISET`, dependency
+each step stays executable without hardware; `ENG-006` (TEAP readiness for M11)
+and `ENG-007` (EAP-PWD need for M12) were the first two and both closed
+2026-10-29:
+1. `ECO-006` — onboarding and migration service validation (`RISET`, dependency
    `ENG-059` is done).
-3. `FUT-017` — experimental skin from existing design tokens (`RISET`, dependency
+2. `FUT-017` — experimental skin from existing design tokens (`RISET`, dependency
    `ENG-053` is done).
-4. `FUT-001` — read-only intent search proof of concept (`RISET`, `ENG-052` done).
-5. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
-6. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
+3. `FUT-001` — read-only intent search proof of concept (`RISET`, `ENG-052` done).
+4. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
+5. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
    `ENG-016` done).
-7. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
+6. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
    `ENG-053` done).
-8. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
+7. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
    `ENG-053` done).
-9. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
-10. `FUT-020` — per-tenant private operational statistics from aggregates
+8. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
+9. `FUT-020` — per-tenant private operational statistics from aggregates
     (`RISET`, `ENG-017` done).
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
