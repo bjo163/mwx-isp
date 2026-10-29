@@ -31,7 +31,41 @@ the current tree.
 
 ## Progress
 
-Done: 54 / 100.
+Done: 55 / 100.
+
+- `FUT-001` (2026-10-29, `dev` @ `8f9b85c`): the read-only intent search proof of
+  concept, delivered as a resolver whose safety half is structural rather than
+  promised. The card asked for prompts that navigate menus and compose filters
+  without running a NAS or billing mutation, so the order of the resolver is the
+  result: deny first, then score, then absorb-or-refuse, then compose, and a
+  resolution can only ever name a `GET` registration. `internal/intentsearch`
+  (read-only, imported by nothing) scans the console instead of carrying a
+  hand-written map: **68 read** and **78 mutating** registrations behind **13 menu
+  entries**, **12 declared filter inputs** with their value vocabularies, and the
+  data provider's own menu-name-to-path table (**10** entries, **4** rename a menu
+  name, **4** menu entries are not in it at all). The deny vocabulary is measured
+  too - **9** words from a non-GET route segment plus **5** from the action-value
+  guard at `internal/adminapi/isp.go:1188`, union **12** - because `suspend`, the
+  mutation operators ask for most, never appears in a path, so any list built from
+  paths alone is incomplete by construction. All **20** criterion prompts resolve
+  as expected (**10** navigate, **6** with a composed filter, **4** refuse), the
+  corpus reaches **13 of 13** cataloged screens, and it names **0** targets that
+  are not a `GET` route; only **2 of 6** filter prompts get a value, because a
+  value may come from the page's own vocabulary and nothing else - `paket yang
+  aktif` stops at the screen rather than inventing `active`. **18** statements are
+  pinned to a code line with comment lines blanked first, and **5** gaps are
+  re-checked on every run. Two findings constrain any future palette regardless of
+  the parser: the customer list accepts no date parameter, and the dashboard totals
+  live at `GET /dashboard/stats` with no `<Resource>` entry to point at. **5-row
+  no-go register** in `docs/operator-intent-search-2026-10-29.md`: a shipped
+  palette (needs a `TR-F013` scope decision), measured resolution quality (needs
+  named respondents - the 20 prompts are constructed, not observed), a
+  state-word translation layer (needs an owner decision), free text beyond the
+  catalog (`TR-N001`/`TR-N002`), and per-role intent visibility (needs a live
+  seeded admin session per role). Acceptance: `go test -p 1
+  ./internal/intentsearch/` passes 21 cases with the dump skipped,
+  `golangci-lint run ./internal/intentsearch/...` reports 0 issues, and the package
+  has no importers in `internal/` or `cmd/`.
 
 - `FUT-017` (2026-10-29, `dev` @ `7a8b944`): the manga skin study, resolved as a
   measurement of the direction that already shipped rather than a second one. The
@@ -1087,7 +1121,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ECO-011` TR-F023 P2 — Kajian strategi distribusi community/open-source · RISET · dep ECO-001 · PROPOSED_VERIFICATION
 - [ ] `FUT-013` TR-F031 P3 — Offline read-only NOC snapshot dengan TTL dan enkripsi · RISET · dep ENG-055 · PROPOSED_VERIFICATION
 - [x] `FUT-017` TR-F029 P3 — Experimental neo-brutalist manga skin via existing tokens · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `7a8b944`
-- [ ] `FUT-001` TR-F013 P3 — Proof-of-concept intent search untuk perintah operator read-only · RISET · dep ENG-052 · PROPOSED_VERIFICATION
+- [x] `FUT-001` TR-F013 P3 — Proof-of-concept intent search untuk perintah operator read-only · RISET · dep ENG-052 · PROPOSED_VERIFICATION · commit `8f9b85c`
 - [ ] `FUT-002` TR-F031 P3 — AI incident triage berbasis log tersensor · RISET · dep ENG-028 · PROPOSED_VERIFICATION
 - [ ] `FUT-003` TR-F031 P3 — Ringkasan insiden berbukti tanpa mengklaim pelanggan offline · RISET · dep ENG-058 · PROPOSED_VERIFICATION
 - [ ] `FUT-004` TR-F031 P3 — Deteksi pola anomali latency dari metrik historis bounded · RISET · dep ENG-049 · PROPOSED_VERIFICATION
@@ -1128,9 +1162,9 @@ taken from the checkboxes in the wave lists, not from memory:
 | 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
 | **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-The inventory-wide total adds the 10 Wave 3 rows delivered out of wave order
-because they were locally executable: `ENG-006`, `ENG-007`, `ECO-006`, `FUT-006`,
-`FUT-009`, `FUT-010`, `FUT-011`, `FUT-017`, `FUT-022`, `FUT-023`.
+The inventory-wide total adds the 11 Wave 3 rows delivered out of wave order
+because they were locally executable: `ENG-006`, `ENG-007`, `ECO-006`, `FUT-001`,
+`FUT-006`, `FUT-009`, `FUT-010`, `FUT-011`, `FUT-017`, `FUT-022`, `FUT-023`.
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
@@ -1139,19 +1173,19 @@ complete statement: 44 delivered, 23 no-go, none undecided.
 Work continues in Waves 3-4, where the rows that need no asset remain. Ordered so
 each step stays executable without hardware; `ENG-006` (TEAP readiness for M11),
 `ENG-007` (EAP-PWD need for M12), `ECO-006` (onboarding and migration
-validation) and `FUT-017` (the manga-ink contrast audit, closed as a measurement
-of the shipped direction) were the first four and all closed 2026-10-29:
-1. `FUT-001` — read-only intent search proof of concept (`RISET`, `ENG-052` done).
-2. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
-3. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
+validation), `FUT-017` (the manga-ink contrast audit, closed as a measurement
+of the shipped direction) and `FUT-001` (the intent search proof of concept,
+closed as a resolver that can only name a read route) were the first five and all
+closed 2026-10-29:
+1. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
+2. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
    `ENG-016` done).
-4. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
+3. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
    `ENG-053` done).
-5. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
+4. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
    `ENG-053` done).
-6. `FUT-018` — printable incident-card visual research (`RISET`; its dependency
-   `FUT-017` is now closed, so the row is unblocked).
-7. `FUT-020` — per-tenant private operational statistics from aggregates
+5. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
+6. `FUT-020` — per-tenant private operational statistics from aggregates
    (`RISET`, `ENG-017` done).
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
