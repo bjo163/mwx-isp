@@ -38,7 +38,7 @@ This is the canonical planning surface and task source: milestone status, guardr
 | M8 | PEAPv0 / EAP-MSCHAPv2 authentication | TR-F004 | P1 | Delivered |
 | M9 | EAP-TTLS tunneled authentication | TR-F004 | P1 | Delivered |
 | M10 | EAP-TLS 1.3 / RFC 9190 upgrade | TR-F004 | P2 | Delivered (M10.1 #562, M10.2 #564, M10.3 #607, M10.5 anonymous NAI) |
-| M11 | TEAP tunneled authentication | TR-F004 | P3 | Planned |
+| M11 | TEAP tunneled authentication | TR-F004 | P3 | Planned (readiness surveyed: 7 of 22 mechanisms reusable, 14 absent) |
 | M12 | EAP-PWD password authentication | TR-F004 | P3 | Planned |
 | M13 | Bilingual documentation site with mdbook | TR-F023 | P2 | Delivered |
 | M14 | LDAP / AD bind authentication backend for PAP-family methods | TR-F025 | P2 | In progress |
