@@ -33,6 +33,31 @@ the current tree.
 
 Done: 50 / 100.
 
+- `ECO-009` (2026-10-29, `dev` @ `dcf4a7d`): revenue-leakage audit over the ledger
+  that already exists. The rule was that no rupiah may be claimed without a row
+  behind it, so `internal/revenue` (read-only, imported by nothing) states its
+  findings as exceptions to eleven guards that `internal/billing/service.go` and
+  `internal/radiusd/radius.go` already enforce — `generateMonthlyInvoices`,
+  `ProcessOverdueInvoices`, `SuspendOverdueSubscriptions`, `RecordPayment` — and
+  `TestEveryRuleIsTraceableToRealSource` opens those files and asserts the named
+  function exists. Eleven kinds; only four carry an IDR figure (unbilled periods
+  at the package price, a past-grace balance, a duplicate charge, money booked on
+  a void invoice); seven refuse one and `Totals.Unquantified` counts them, because
+  a still-enabled account or an undisconnected session has no price in any stored
+  row. `Audit` partitions rows by `tenant_id` before applying any rule, so a
+  cross-tenant finding is structurally impossible, and each slice is sorted before
+  indexing, so row order cannot change the verdict. Showcase: 8 findings,
+  IDR 400000 at stake, 5 of them deliberately unquantified. Decision: stay a
+  prototype — TR-N001 forbids growing this into charging/ERP reporting, and no
+  endpoint, dashboard or schedule is added. Acceptance: `go test
+  ./internal/revenue/` passes 28 cases (including the negative ones: clean ledger,
+  grace still running, month before its billing day, reversed payment, manual
+  suspension) and `golangci-lint run ./internal/revenue/...` reports 0 issues.
+  Unproven half of the criterion: the sanitized sample export — `Load(db)` is
+  ready for it, but no sample database exists locally, so every number here is
+  synthetic. Evidence:
+  [revenue-leakage-audit-2026-10-29.md](revenue-leakage-audit-2026-10-29.md).
+
 - `FUT-023` (2026-10-29, `dev` @ `f4de6b2`): RFC→feature→test navigation graph.
   Nothing joined `docs/rfcs`, the checklist entry points, and the Go files that
   cite a number, so "which test implements RFC 3576?" was a grep. The prototype
@@ -920,7 +945,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-034` TR-F028 P2 — Pembetulan transaksi payment operator yang salah input · LOKAL · PROPOSED_VERIFICATION · commit `9bc7368`
 - [x] `ENG-060` TR-F022 P2 — Studi support bundle tersensor untuk insiden operator · LOKAL · dep ENG-028 · PROPOSED_VERIFICATION · commit `e3e5e57`
 - [ ] `ECO-003` TR-F020 P2 — Model total cost of ownership deployment ISP · RISET · dep ENG-045 · PROPOSED_VERIFICATION
-- [ ] `ECO-009` TR-F028 P2 — Audit peluang revenue leakage dari invoice yang sudah ada · RISET · dep ENG-031 · PROPOSED_VERIFICATION
+- [x] `ECO-009` TR-F028 P2 — Audit peluang revenue leakage dari invoice yang sudah ada · RISET · dep ENG-031 · PROPOSED_VERIFICATION · commit `dcf4a7d`
 - [ ] `ENG-049` TR-F031 P2 — UAT SNMPv3 authPriv dengan perangkat sungguhan · ASET · VERIFIED_GAP
 - [ ] `ENG-045` TR-F020 P2 — Tetapkan RTO/RPO operator berdasarkan rehearsal · ASET · dep ENG-043 · PROPOSED_VERIFICATION
 - [ ] `ENG-050` TR-F010 P2 — Matrix NAS/firmware teruji untuk RADIUS dan CoA · ASET · dep ENG-013 · PROPOSED_VERIFICATION
@@ -975,13 +1000,29 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 ## Suggested next batch
 
-Ordered so each step stays executable without new hardware:
+Empty. `ECO-009` (2026-10-29, `dcf4a7d`) was the last Wave 0-2 row executable
+without a new asset, so the ordered queue below is exhausted. Counts are taken
+from the checkboxes in the wave lists, not from memory:
 
-1. `ECO-009` — revenue-leakage audit over the invoice ledger that already
-   exists (dependency `ENG-031` is done; the item is RISET, so a read-only
-   prototype over fixtures and a supplied database is the whole deliverable).
+| Wave | Items | Done | Open | Open that needs an asset or a dependency on one |
+| --- | ---: | ---: | ---: | --- |
+| 0 | 5 | 4 | 1 | the 1 (`ENG-041` clean VPS) |
+| 1 | 37 | 28 | 9 | all 9 — 7 `ASET` rows plus `ENG-055`/`ENG-064`, whose only unsatisfied dependency is an `ASET` row |
+| 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
+| **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-After `ECO-009`, Waves 0-2 contain no locally executable item left.
+The inventory-wide 50 adds the 6 research prototypes delivered out of wave order
+because they were locally executable: `FUT-006`, `FUT-009`, `FUT-010`, `FUT-011`,
+`FUT-022`, `FUT-023`.
+
+Every remaining open row is listed with the reason it cannot be closed by
+repository work in the blocked register below, so the Wave 0-2 close-out is a
+complete statement: 44 delivered, 23 no-go, none undecided.
+
+The next locally executable work is therefore Wave 3, whose two `LOKAL` rows are
+`ENG-006` (TEAP compatibility research for M11) and `ENG-007` (EAP-PWD need
+research for M12); the other 21 Wave 3 rows are `RISET` and several of them
+depend on the ASET rows this register blocks, so they inherit the same no-go.
 
 ## Blocked register (Waves 0-2)
 
@@ -999,8 +1040,7 @@ PITR), `ENG-045` (RTO/RPO from a rehearsal), `ECO-003` (TCO model, depends on
 **No-go — needs a real NAS in a lab (`ENG-013` chain).** `ENG-013` (RFC 5176
 CoA/Disconnect pilot), `ENG-050` (tested NAS/firmware matrix), `ENG-014` (VSA
 priority from a real device model), `ENG-064` (queue dead-letter and alert check,
-depends on `ENG-013`), `ECO-007` (telemetry and whatsmeow cost control, depends
-on `ENG-048`).
+depends on `ENG-013`).
 
 **No-go — needs supplicant hardware.** `ENG-002` (EAP-TLS 1.2/1.3
 interoperability matrix with real supplicants), `ENG-005` (TTLS inner CHAP /
@@ -1011,7 +1051,8 @@ MS-CHAP evaluation, depends on `ENG-002`).
 `ENG-058` (NOC impact confidence labels, depends on `ENG-055`).
 
 **No-go — needs a live WhatsApp pairing number.** `ENG-048` (pairing UAT to an
-opt-in test number).
+opt-in test number), `ECO-007` (telemetry and whatsmeow cost control, depends on
+`ENG-048`).
 
 **No-go — needs a second tenant database and a restore target.** `ENG-020`
 (cross-tenant restore after a schema change).
