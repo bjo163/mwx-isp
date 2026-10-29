@@ -31,7 +31,28 @@ the current tree.
 
 ## Progress
 
-Done: 41 / 100.
+Done: 42 / 100.
+
+- `ENG-026` (2026-10-29, `dev` @ `33c0f5e`): backup KDF and envelope
+  evaluation. Measured PBKDF2-SHA256 at the counts that bound the policy on
+  go1.27.0 (Ryzen 5 7500F): 310k = 41.7 ms, 600k = 79.5 ms, 1.2M = 161.6 ms,
+  2.4M = 355.3 ms, and a full 600k archive open = 87.1 ms, so the 600k written
+  cost is kept. The inspected decrypt path compared the recorded iteration
+  count to the compiled constant for exact equality; raising the cost would
+  have rejected every archive written by an earlier release with no format
+  change to signal it. Restore now accepts a bounded recorded range
+  (600,000–2,400,000) and derives with the manifest value, the minimum blocks a
+  downgrade and the maximum bounds CPU before authentication, and fixture tests
+  restore archives at 600k, 600,001 and 2.4M while rejecting 0, 599,999,
+  2,400,001 and 2^30 without writing rows. New encrypted exports require a
+  12-character passphrase (`BACKUP_PASSPHRASE_TOO_SHORT`); restoring stays
+  length-agnostic, so an archive written earlier with a short passphrase still
+  restores. Container format and version are unchanged. `go test
+  ./internal/adminapi/ ./config/` and `golangci-lint run ./internal/adminapi/
+  ./config/` pass (only the pre-existing auth_session_test.go gosec findings
+  remain). Limit: the benchmark ran on a desktop, not on a claimed VPS host, so
+  a cost bump needs a rerun on deployment hardware. Evidence:
+  [backup-kdf-evaluation-2026-10-29.md](backup-kdf-evaluation-2026-10-29.md).
 
 - `ENG-036` (2026-10-29, `dev` @ `39caa5f`): per-tenant FUP scheduler trail.
   #46's per-tenant loop already continues after a tenant error, but nothing
@@ -726,7 +747,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-062` TR-F022 P2 — Sistem upgrade dependency dengan ratchet keamanan · LOKAL · dep ENG-030 · PROPOSED_VERIFICATION · commit `5173519`
 - [x] `ENG-003` TR-F004 P2 — Pemetaan kebijakan pencabutan sertifikat EAP-TLS · LOKAL · PROPOSED_VERIFICATION · commit `d463ec4`
 - [ ] `ENG-005` TR-F004 P2 — Evaluasi dukungan inner EAP-TTLS CHAP dan MS-CHAP · LOKAL · dep ENG-002 · PROPOSED_VERIFICATION
-- [ ] `ENG-026` TR-F020 P2 — Evaluasi parameter KDF dan envelope backup · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-026` TR-F020 P2 — Evaluasi parameter KDF dan envelope backup · LOKAL · PROPOSED_VERIFICATION · commit `33c0f5e`
 - [ ] `ENG-034` TR-F028 P2 — Pembetulan transaksi payment operator yang salah input · LOKAL · dep ENG-033 · PROPOSED_VERIFICATION
 - [ ] `ENG-060` TR-F022 P2 — Studi support bundle tersensor untuk insiden operator · LOKAL · dep ENG-028 · PROPOSED_VERIFICATION
 - [ ] `ECO-003` TR-F020 P2 — Model total cost of ownership deployment ISP · RISET · dep ENG-045 · PROPOSED_VERIFICATION
@@ -787,9 +808,8 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-026` — backup KDF and envelope parameter evaluation.
-2. `ENG-034` — operator payment correction (dependency ENG-033 is done).
-3. `ENG-060` — redacted support bundle study (dependency ENG-028 is done).
+1. `ENG-034` — operator payment correction (dependency ENG-033 is done).
+2. `ENG-060` — redacted support bundle study (dependency ENG-028 is done).
 
 `ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
 `ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
