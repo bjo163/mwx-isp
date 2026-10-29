@@ -2,9 +2,14 @@
 
 `/admin/loki/query` (`internal/adminapi/system_logs.go`) reads the application
 log file and returns entries to a platform administrator. Operators still filter
-on the raw line, but only the redacted form leaves the process, so the same rule
-applies whether the file is an on-host log or a future support bundle
-(`ENG-060`).
+on the raw line, but only the redacted form leaves the process.
+
+The rules themselves live in `internal/redact`, and both this endpoint and the
+support bundle (`cmd/support-bundle`, see
+[support-bundle-2026-10-29.md](support-bundle-2026-10-29.md)) call that package,
+so an on-host log export and a staged bundle cannot drift apart. Adding a
+pattern or a key fragment there changes both outputs at once — and its tests
+cover both key classification and the free-text sweep.
 
 ## Data classes
 
