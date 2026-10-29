@@ -3,6 +3,16 @@
 Date: 2026-10-29 · Tag: LOKAL (research) · Feature: TR-F004 · Milestone: M11
 Prototype: `internal/teapreadiness` · Tests: `go test ./internal/teapreadiness/`
 
+> **Citation basis superseded the same day.** This survey read its requirements
+> out of `docs/rfcs/rfc7170-teap.txt`, which RFC 9930 obsoletes. M11.1 vendored
+> RFC 9930 and RFC 9427 and re-anchored every citation in the catalog, which
+> moved two verdicts: `inner-avp-codec` (ready) became `vendor-specific-tlv`
+> (missing) and `pac-tlv` (missing) became `session-resumption` (blocked, pinned
+> by `tlsengine/engine.go:140`). The report below is kept as the record of what
+> was measured against RFC 7170; the current numbers are `Mechanics: 22 · ready 6
+> · partial 0 · blocked 2 · missing 14`, and the reasons are in
+> [teap-citation-anchoring-2026-10-29.md](teap-citation-anchoring-2026-10-29.md).
+
 ## Question
 
 `docs/roadmap.md` lists M11 as "TEAP tunneled authentication" and
