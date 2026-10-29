@@ -20,7 +20,7 @@ func billingTestDB(t *testing.T) *gorm.DB {
 		&domain.Customer{}, &domain.InternetPackage{}, &domain.Subscription{},
 		&domain.Invoice{}, &domain.InvoiceItem{}, &domain.Payment{},
 		&domain.BillingEvent{}, &domain.RadiusUser{},
-		&domain.DocumentSequence{},
+		&domain.DocumentSequence{}, &domain.SysOprLog{},
 	))
 	return db
 }

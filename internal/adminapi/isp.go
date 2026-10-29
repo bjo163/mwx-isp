@@ -98,6 +98,7 @@ func registerISPRoutes() {
 	webserver.ApiGET("/isp/payments", listPayments)
 	webserver.ApiGET("/isp/payments/:id", getPayment)
 	webserver.ApiPOST("/isp/payments", createPayment, admin)
+	webserver.ApiPOST("/isp/payments/:id/reverse", reversePayment, admin)
 	webserver.ApiPOST("/isp/invoices/:id/send-whatsapp", sendInvoiceWhatsApp, admin)
 	webserver.ApiPOST("/isp/payments/:id/send-whatsapp", sendPaymentWhatsApp, admin)
 	webserver.ApiPOST("/isp/subscriptions/:id/apply-fup", applySubscriptionFUP, admin)
@@ -1522,6 +1523,50 @@ func getPayment(c echo.Context) error {
 		return fail(c, 404, "NOT_FOUND", "Payment not found", nil)
 	}
 	return ok(c, row)
+}
+
+type paymentReverseInput struct {
+	Reason string `json:"reason"`
+}
+
+// reversePayment applies an operator correction to a received manual payment.
+// It is restricted to admin and super operators by the route middleware, never
+// contacts a payment gateway or ERP, and writes the reason and operator to the
+// billing event and operator log in the same transaction as the ledger change.
+func reversePayment(c echo.Context) error {
+	id, err := parseIDParam(c, "id")
+	if err != nil {
+		return fail(c, 400, "INVALID_ID", "Invalid payment ID", nil)
+	}
+	var in paymentReverseInput
+	if err := c.Bind(&in); err != nil {
+		return fail(c, 400, "INVALID_REQUEST", "Unable to parse the correction", err.Error())
+	}
+	operator, err := resolveOperatorFromContext(c)
+	if err != nil {
+		return fail(c, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required", nil)
+	}
+	payment, invoice, err := billing.ReversePayment(GetDB(c), id, billing.PaymentCorrection{
+		Operator:   operator.Username,
+		OperatorIP: c.RealIP(),
+		Reason:     in.Reason,
+	}, time.Now())
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return fail(c, 404, "NOT_FOUND", "Payment not found", nil)
+	case errors.Is(err, billing.ErrInvalidCorrectionReason):
+		return fail(c, 400, "INVALID_CORRECTION_REASON", err.Error(), nil)
+	case errors.Is(err, billing.ErrInvoiceVoided):
+		return fail(c, 409, "INVOICE_VOID", err.Error(), nil)
+	case errors.Is(err, billing.ErrPaymentNotReversible):
+		return fail(c, 409, "PAYMENT_NOT_REVERSIBLE", err.Error(), nil)
+	case err != nil:
+		return fail(c, 500, "PAYMENT_CORRECTION_FAILED", "Failed to reverse the payment", err.Error())
+	}
+	return ok(c, struct {
+		Payment domain.Payment `json:"payment"`
+		Invoice domain.Invoice `json:"invoice"`
+	}{Payment: *payment, Invoice: *invoice})
 }
 
 type ispDashboardStats struct {

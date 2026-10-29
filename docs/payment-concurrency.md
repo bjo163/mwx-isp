@@ -1,7 +1,10 @@
 # Payment Concurrency and Replay (H04)
 
-Money state is written only by `billing.RecordPayment`
-(`internal/billing/service.go`). The admin handler is the sole HTTP entry point;
+Money state is written only by `billing.RecordPayment` and
+`billing.ReversePayment` (`internal/billing/service.go`). The admin payment
+handler is the sole entry point for recording money; the admin reverse handler
+is the sole entry point for correcting it
+([policy](payment-correction-policy-2026-10-29.md)).
 `/portal/invoices/:id/simulate-pay` is disabled (`410`) and
 `/portal/payments/webhook` is unconfigured (`503`).
 
@@ -86,6 +89,21 @@ because SQLite does not provide real row locks:
 
 The test asserts counts in the database, so a duplicate booking from either
 concurrent request fails the test even if both HTTP responses look plausible.
+
+## Payment reversal
+
+`billing.ReversePayment` locks the payment row and then its invoice
+(`SELECT ... FOR UPDATE`) inside one transaction, so a reversal and a payment on
+the same invoice serialise against each other. It rejects `void` invoices, any
+payment whose status is not `received`, and payments whose amount exceeds the
+invoice's `PaidAmount`, so a reversal can never push `PaidAmount` below zero or
+`Balance` above `Total`. The status matrix, HTTP codes, and the dual audit trail
+are documented in [payment-correction-policy-2026-10-29.md](payment-correction-policy-2026-10-29.md).
+
+Two reversals of the same payment cannot both succeed: the second sees
+`status = reversed` after the lock and returns `409 PAYMENT_NOT_REVERSIBLE`.
+Reversing two different payments of one invoice yields `partial` with the
+remaining paid amount, matching the arithmetic `RecordPayment` uses.
 
 ## Boundaries
 

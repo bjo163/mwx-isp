@@ -937,6 +937,7 @@ const customEnglishMessages: TranslationMessages = {
     overdue: 'Overdue',
     void: 'Void',
     received: 'Received',
+    reversed: 'Reversed',
     open: 'Open',
     scheduled: 'Scheduled',
     assigned: 'Assigned',

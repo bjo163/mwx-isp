@@ -1301,10 +1301,17 @@ export const PaymentCreate = () => <Create title="Record payment"><SimpleForm>
   <SelectInput source="method" choices={[{ id: 'cash', name: 'Cash' }, { id: 'bank_transfer', name: 'Bank transfer' }, { id: 'manual', name: 'Manual' }, { id: 'other', name: 'Other' }]} isRequired />
   <TextInput source="reference" /><TextInput source="notes" multiline />
 </SimpleForm></Create>;
+const CORRECTION_REASON_MIN = 8;
+const CORRECTION_REASON_MAX = 200;
+
 const PaymentShowActions = () => {
   const record = useRecordContext();
   const notify = useNotify();
+  const refresh = useRefresh();
   const [sendingWa, setSendingWa] = useState(false);
+  const [reverseOpen, setReverseOpen] = useState(false);
+  const [reverseReason, setReverseReason] = useState('');
+  const [reversing, setReversing] = useState(false);
   const isAdmin = useIsAdmin();
   if (!record) return null;
 
@@ -1320,34 +1327,112 @@ const PaymentShowActions = () => {
     }
   };
 
+  const trimmedReason = reverseReason.trim();
+  const reasonTooShort = trimmedReason.length < CORRECTION_REASON_MIN;
+  const reasonTooLong = trimmedReason.length > CORRECTION_REASON_MAX;
+
+  const closeReverse = () => {
+    if (reversing) return;
+    setReverseOpen(false);
+    setReverseReason('');
+  };
+
+  const handleReverse = async () => {
+    if (reasonTooShort || reasonTooLong) return;
+    setReversing(true);
+    try {
+      await apiRequest(`/isp/payments/${record.id}/reverse`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: trimmedReason }),
+      });
+      notify('Payment reversed; the invoice balance was restored', { type: 'success' });
+      setReverseOpen(false);
+      setReverseReason('');
+      refresh();
+    } catch (err: any) {
+      notify(err instanceof Error ? err.message : 'Failed to reverse payment', { type: 'error' });
+    } finally {
+      setReversing(false);
+    }
+  };
+
   return (
-    <TopToolbar>
-      {isAdmin && (
+    <>
+      <TopToolbar>
+        {isAdmin && record.status === 'received' && (
+          <Button
+            variant="contained"
+            size="small"
+            color="warning"
+            disabled={reversing}
+            onClick={() => setReverseOpen(true)}
+            sx={{ mr: 1 }}
+          >
+            Reverse payment
+          </Button>
+        )}
+        {isAdmin && (
+          <Button
+            variant="contained"
+            size="small"
+            color="success"
+            startIcon={<WhatsAppIcon />}
+            disabled={sendingWa}
+            onClick={handleServerSendWhatsApp}
+            sx={{ mr: 1 }}
+          >
+            {sendingWa ? 'Sending...' : 'Direct Send WA'}
+          </Button>
+        )}
         <Button
-          variant="contained"
+          variant="outlined"
           size="small"
           color="success"
           startIcon={<WhatsAppIcon />}
-          disabled={sendingWa}
-          onClick={handleServerSendWhatsApp}
-          sx={{ mr: 1 }}
+          component="a"
+          href={generateWhatsAppReceiptLink(record)}
+          target="_blank"
+          rel="noopener noreferrer"
         >
-          {sendingWa ? 'Sending...' : 'Direct Send WA'}
+          Open wa.me
         </Button>
-      )}
-      <Button
-        variant="outlined"
-        size="small"
-        color="success"
-        startIcon={<WhatsAppIcon />}
-        component="a"
-        href={generateWhatsAppReceiptLink(record)}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Open wa.me
-      </Button>
-    </TopToolbar>
+      </TopToolbar>
+      <Dialog open={reverseOpen} onClose={closeReverse} fullWidth maxWidth="sm" aria-labelledby="reverse-payment-title">
+        <DialogTitle id="reverse-payment-title">Reverse payment {record.payment_no}?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            This marks the payment as reversed, restores the invoice balance, and records the reason
+            in the billing event trail and the operator log. The payment number is kept for auditing.
+          </Typography>
+          <MuiTextField
+            label="Correction reason"
+            value={reverseReason}
+            onChange={(e) => setReverseReason(e.target.value)}
+            fullWidth
+            multiline
+            minRows={2}
+            autoFocus
+            error={reasonTooLong || (reverseReason.length > 0 && reasonTooShort)}
+            helperText={
+              reasonTooLong
+                ? `Keep it under ${CORRECTION_REASON_MAX} characters`
+                : `At least ${CORRECTION_REASON_MIN} characters, ${CORRECTION_REASON_MAX} max`
+            }
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeReverse} disabled={reversing}>Cancel</Button>
+          <Button
+            color="warning"
+            variant="contained"
+            onClick={handleReverse}
+            disabled={reversing || reasonTooShort || reasonTooLong}
+          >
+            {reversing ? 'Reversing...' : 'Reverse payment'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

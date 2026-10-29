@@ -43,6 +43,11 @@ const (
 	PaymentPending = "pending"
 	// PaymentReceived marks a recorded manual payment.
 	PaymentReceived = "received"
+	// PaymentReversed marks a payment an operator corrected as a wrong entry.
+	// Reversed payments keep their original number, amount and timestamp; the
+	// ledger correction is the invoice balance/status change and the billing
+	// event that records who reversed it and why.
+	PaymentReversed = "reversed"
 )
 
 // Customer is an ISP subscriber profile. It is intentionally distinct from

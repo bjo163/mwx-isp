@@ -46,7 +46,7 @@ lookup is tenant-scoped: a customer that belongs to another tenant returns HTTP
 | --- | --- | --- | --- |
 | Billing | `BillingEvent` | `created_at` | Stored event type, e.g. `subscription_suspended`. |
 | Invoice | `Invoice` | `invoice_date` | `invoice_issued`. Backdated invoices therefore keep their issuance date instead of the row insertion time. |
-| Payment | `Payment` | `paid_at` | `payment_received`. |
+| Payment | `Payment` | `paid_at` | `payment_received`. A payment whose status is `reversed` keeps the same type and `event_id` but is summarized as reversed with `warning` severity; the correction itself appears as the `payment_reversed` billing event at its own timestamp. |
 | Session | `RadiusOnline` | `acct_start_time` | `session_connected`. |
 | Session | `RadiusAccounting` | `acct_stop_time` | `session_disconnected`; rows without a stop time are skipped. |
 | Ticket | `TroubleTicket` | `created_at` | `ticket_created`. |
