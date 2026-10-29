@@ -22,7 +22,12 @@ func TestCarriedArchiveHasNoNumberMismatch(t *testing.T) {
 	}
 }
 
-func TestEAPWDSpecIsNotCarriedUnderTheNameThatPromisesIt(t *testing.T) {
+// TestEAPWDSpecIsCarriedUnderTheNameThatPromisesIt pins M12.1. Until 2026-10-29
+// the archive had no EAP-PWD text at all: the file named for it was RFC 7542, the
+// Network Access Identifier. RFC 5931 is now carried, and nothing else in docs/rfcs
+// claims the EAP-PWD name, so a milestone citing "the EAP-PWD spec" cannot silently
+// read the wrong document.
+func TestEAPWDSpecIsCarriedUnderTheNameThatPromisesIt(t *testing.T) {
 	v, err := AuditVendoring(repoRoot(t))
 	if err != nil {
 		t.Fatalf("AuditVendoring: %v", err)
@@ -31,17 +36,39 @@ func TestEAPWDSpecIsNotCarriedUnderTheNameThatPromisesIt(t *testing.T) {
 	if got == nil {
 		t.Fatal("the EAP-PWD citation is not audited")
 	}
-	if got.State != SpecMislabeled {
-		t.Fatalf("state = %s, want mislabeled (a file named for EAP-PWD exists but is not that specification)", got.State)
+	if got.State != SpecHeld {
+		t.Fatalf("state = %s, want carried; %s", got.State, got.String())
 	}
-	if filepath.Base(got.PromisedBy) != "rfc7542-eap-pwd.txt" {
-		t.Errorf("file = %s, want the file this project filed as its EAP-PWD text", got.PromisedBy)
+	if filepath.Base(got.HeldBy) != "rfc5931-eap-pwd.txt" {
+		t.Errorf("held by %s, want the RFC 5931 text", got.HeldBy)
 	}
-	if got.PromisedNumber != "7542" || !strings.Contains(got.PromisedTitle, "Network Access Identifier") {
-		t.Errorf("the named file declares RFC %s %q; the memo has to report exactly that", got.PromisedNumber, got.PromisedTitle)
+	if got.HeldBy != got.PromisedBy {
+		t.Errorf("held=%s promised=%s; the milestone must be able to cite one file", got.HeldBy, got.PromisedBy)
 	}
-	if strings.Contains(got.PromisedTitle, "EAP-PWD") {
-		t.Errorf("title %q is the promised document after all, so the verdict is wrong", got.PromisedTitle)
+
+	var promises []string
+	for _, d := range v.Docs {
+		if strings.Contains(filepath.Base(d.File), "-"+got.Spec.Slug+".txt") {
+			promises = append(promises, d.File)
+		}
+	}
+	if len(promises) != 1 {
+		t.Errorf("%d files are named for EAP-PWD (%s), want exactly one", len(promises), strings.Join(promises, ", "))
+	}
+
+	// Carrying the right number is not enough: the text has to be the method M12
+	// would build, so the phrases an implementer needs are checked in the file.
+	// The type code is one of them, because the roadmap schedules `TypePWD = 52`
+	// and that number has to be readable here rather than recalled.
+	//nolint:gosec // G304: a fixed path inside this repository, resolved under the repo root.
+	raw, err := os.ReadFile(filepath.Join(repoRoot(t), filepath.FromSlash(got.HeldBy)))
+	if err != nil {
+		t.Fatalf("reading the carried text: %v", err)
+	}
+	for _, want := range []string{"EAP-pwd", "shared password", "Ciphersuite", "EAP method type for EAP-pwd (52)"} {
+		if !strings.Contains(string(raw), want) {
+			t.Errorf("%s is absent from %s, which is supposed to specify the method", want, got.HeldBy)
+		}
 	}
 }
 
@@ -100,6 +127,32 @@ func TestAuditReportsAbsentWhenNoFilePromisesTheTopic(t *testing.T) {
 	}
 	if !strings.Contains(got.String(), "absent") {
 		t.Errorf("String() lost the verdict: %q", got.String())
+	}
+}
+
+// TestAuditReportsMislabeledUnderAFixture keeps the mislabeled verdict reachable
+// now that the real archive no longer triggers it: a file named for the topic that
+// declares a different number must still be reported as mislabeled rather than
+// absent, because the difference is what tells an implementer to rename a file
+// instead of downloading a specification.
+func TestAuditReportsMislabeledUnderAFixture(t *testing.T) {
+	root := t.TempDir()
+	writeTree(t, root, map[string]string{
+		"docs/rfcs/rfc7542-eap-pwd.txt": "Request for Comments: 7542\nCategory: Standards Track\n\n\n                     The Network Access Identifier\n\nAbstract\n",
+	})
+	v, err := AuditVendoring(root)
+	if err != nil {
+		t.Fatalf("AuditVendoring: %v", err)
+	}
+	got := findSpec(v, "eap-pwd-spec")
+	if got == nil {
+		t.Fatal("no verdict for the EAP-PWD citation")
+	}
+	if got.State != SpecMislabeled {
+		t.Fatalf("state = %s, want mislabeled; %s", got.State, got.String())
+	}
+	if got.PromisedNumber != "7542" || !strings.Contains(got.PromisedTitle, "Network Access Identifier") {
+		t.Errorf("the verdict lost what the file really is: number=%s title=%q", got.PromisedNumber, got.PromisedTitle)
 	}
 }
 

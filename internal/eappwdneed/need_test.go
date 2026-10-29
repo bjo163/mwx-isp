@@ -283,10 +283,13 @@ func TestRenderMarkdownRealTree(t *testing.T) {
 	if !strings.Contains(out, "need claims confirmed") {
 		t.Errorf("render dropped its verdict line:\n%s", out)
 	}
-	for _, want := range []string{"eap-pwd-spec (RFC 5931 EAP-PWD) | mislabeled", "rfc7542-eap-pwd.txt", "Network Access Identifier"} {
+	for _, want := range []string{"eap-pwd-spec (RFC 5931 EAP-PWD) | carried", "rfc5931-eap-pwd.txt"} {
 		if !strings.Contains(out, want) {
-			t.Errorf("render does not show that the file named for EAP-PWD is %q:\n%s", want, out)
+			t.Errorf("render does not show %q:\n%s", want, out)
 		}
+	}
+	if strings.Contains(out, "rfc7542-eap-pwd.txt") {
+		t.Errorf("render still points the EAP-PWD citation at the NAI file:\n%s", out)
 	}
 	if !strings.Contains(out, "teap-spec-control (RFC 7170 TEAP) | carried") {
 		t.Errorf("render lost the positively carried control:\n%s", out)

@@ -39,7 +39,7 @@ This is the canonical planning surface and task source: milestone status, guardr
 | M9 | EAP-TTLS tunneled authentication | TR-F004 | P1 | Delivered |
 | M10 | EAP-TLS 1.3 / RFC 9190 upgrade | TR-F004 | P2 | Delivered (M10.1 #562, M10.2 #564, M10.3 #607, M10.5 anonymous NAI) |
 | M11 | TEAP tunneled authentication | TR-F004 | P3 | In progress (M11.1 built on `dev`, awaiting PR approval: catalog re-anchored to RFC 9930 — 6 of 22 mechanisms reusable, 2 blocked by deliberate TLS 1.3 choices, 14 absent) |
-| M12 | EAP-PWD password authentication | TR-F004 | P3 | Planned (need verified: 11/11 claims hold, no method present; blocked on carrying RFC 5931 - the file named for it is the NAI spec; M12.1 added) |
+| M12 | EAP-PWD password authentication | TR-F004 | P3 | Planned (need verified: 11/11 claims hold, no method present; the RFC 5931 blocker is cleared by M12.1, built on `dev` — building the method itself stays demand-gated) |
 | M13 | Bilingual documentation site with mdbook | TR-F023 | P2 | Delivered |
 | M14 | LDAP / AD bind authentication backend for PAP-family methods | TR-F025 | P2 | In progress |
 | M15 | Multi-tenant ISP and RT/RW Net isolation | TR-F033 | P1 | Delivered |
@@ -116,7 +116,11 @@ Agent-facing unchecked tasks:
 - [ ] M11.5 Inner-method chaining with Basic-Password-Auth and the §3.6.2/§3.6.5 chaining bounds, and the password-TLV MSK/EMSK rule RFC 9930 states for it.
 - [ ] M11.6 Key derivation via the RFC 9427 §2.2 exporter labels (`TEAPkeymateriale`, `TEAPSessionKey`, `TEAPChannelBinding`, `IMSK[j]`), requesting the exact lengths §2.1 warns about rather than copying the EAP-TLS request-128-then-slice pattern.
 - [ ] M11.7 Handler and config wiring for the TEAP method type, then `test/integration/` acceptance with a real TEAP peer — the ENG-002 gate, which no local scan can substitute.
-- [ ] M12.1 Carry RFC 5931 (EAP-PWD) into `docs/rfcs/` and correct the mislabel: the file `rfc7542-eap-pwd.txt` is RFC 7542 (Network Access Indicator/NAI), not EAP-PWD, so the M12 need study currently points at a document that does not contain the method.
+- [ ] M12.1 Carry RFC 5931 (EAP-PWD) into `docs/rfcs/` and correct the mislabel. Built on `dev`, left unchecked until its PR merges. The file `rfc7542-eap-pwd.txt` was RFC 7542 (Network Access Identifier), so the M12 need study cited a document that does not contain the method. RFC 5931 is now carried as `docs/rfcs/rfc5931-eap-pwd.txt` (92,518 bytes, 2,243 lines, CRLF/no-BOM like the rest of the archive) and the NAI text is renamed to `rfc7542-network-access-identifier.txt`; `docs/rfcs/FILE-NAMING.md` and the docs-site RFC index follow the correction. `internal/eappwdneed`'s verdict moved from `mislabeled` to `carried` and its gate now fails if any file other than `rfc5931-eap-pwd.txt` claims the EAP-PWD name or if the carried text lacks the phrases an implementer needs, including the type allocation "IANA has allocated a new EAP method type for EAP-pwd (52)" (§5) that M12.2 depends on. The `mislabeled` state itself stays covered, now by a fixture (`TestAuditReportsMislabeledUnderAFixture`) since the real tree no longer triggers it. Archive after the move: 59 carried specifications, 0 filename/header number mismatches, 1 vendoring finding (`rfc3851-eap-md5.txt` holds S/MIME — reported, deliberately not re-filed here; see the study's decision 7). Evidence: [study](eap-pwd-m12-need-2026-10-29.md).
+- [ ] M12.2 (demand-gated) Declare `TypePWD = 52` in `internal/radiusd/plugins/eap/interfaces.go` and register the method name, following the fail-closed contract in `docs/eap-otp-contract.md` — the type code is now quotable from `docs/rfcs/rfc5931-eap-pwd.txt` §5.
+- [ ] M12.3 (demand-gated) Implement the dragonfly / Password Authenticated Connection Establishment primitives and the EAP-pwd frame exchange (commit / confirm) per RFC 5931 §3, with the ciphersuite registry the document requires.
+- [ ] M12.4 (demand-gated) Add a TEAP/TTLS inner-method slot for it — `ttls_inner.go` is where `ErrTTLSInnerNotImplemented` already reserves the place — and do not retrofit PEAP, whose inner state machine is MSCHAPv2-shaped.
+- [ ] M12.5 (demand-gated) Unit + `test/integration/` acceptance for the handshake and the key derivation, plus the config enum entry, so the method is selectable the same way `eap-ttls` is.
 
 ## Non-Goals
 
