@@ -130,7 +130,7 @@ three is wrong, and the replay names all three rather than the latest one.
 
 ```
 go test ./internal/replay/ -count=1
-ok  	github.com/bjo163/mwx-isp/internal/replay	1.450s
+ok  	github.com/bjo163/mwx-isp/internal/replay	1.483s
 
 golangci-lint run ./internal/replay/...
 0 issues.
@@ -149,6 +149,8 @@ Unit coverage (`internal/replay/replay_test.go`):
   reversal event is reported even though the stored invoice looks consistent.
 - `TestReplayInvoiceDetectsReversalWithoutPayment` — a second reversal of the
   same payment is rejected by the fold.
+- `TestReplayInvoiceDetectsDuplicateReceipt` — a duplicated `payment_received`
+  event is reported and does not double the paid amount.
 - `TestReplayInvoiceDetectsEventOrderAndUnknownPayment` — an `id` inversion in
   timestamp order and an event naming a missing payment.
 - `TestReplayInvoiceDetectsNegativeLedger` — a non-positive payment amount

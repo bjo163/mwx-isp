@@ -152,6 +152,22 @@ func TestReplayInvoiceDetectsEventOrderAndUnknownPayment(t *testing.T) {
 		divergenceKinds(divergences), "%v", divergences)
 }
 
+func TestReplayInvoiceDetectsDuplicateReceipt(t *testing.T) {
+	invoice := replayInvoice(50000, 150000, domain.InvoicePartial, replayNow.AddDate(0, 0, 10))
+	payments := []domain.Payment{
+		replayPayment("PAY-202610-000001", 50000, domain.PaymentReceived, replayNow.AddDate(0, 0, -10)),
+	}
+	events := []domain.BillingEvent{
+		replayEvent(1, "payment_received", "PAY-202610-000001", replayNow.AddDate(0, 0, -10)),
+		replayEvent(2, "payment_received", "PAY-202610-000001", replayNow.AddDate(0, 0, -10)),
+	}
+
+	state, divergences := ReplayInvoice(invoice, payments, events, replayNow)
+
+	assert.Equal(t, int64(50000), state.Paid, "a duplicate event must not double the paid amount")
+	assert.Equal(t, []string{DivergenceDuplicateEvent}, divergenceKinds(divergences), "%v", divergences)
+}
+
 func TestReplayInvoiceDetectsNegativeLedger(t *testing.T) {
 	invoice := replayInvoice(-5000, 150000, domain.InvoiceIssued, replayNow.AddDate(0, 0, 10))
 	payments := []domain.Payment{
