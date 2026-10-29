@@ -1,0 +1,1017 @@
+[
+  {
+    "name": "minimal access request/flip byte 0",
+    "seed": "minimal access request",
+    "kind": "flip_bit",
+    "frame": "0009001400000000000000000000000000000000",
+    "outcome": "packet"
+  },
+  {
+    "name": "minimal access request/flip byte 1",
+    "seed": "minimal access request",
+    "kind": "flip_bit",
+    "frame": "0108001400000000000000000000000000000000",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "minimal access request/flip byte 19",
+    "seed": "minimal access request",
+    "kind": "flip_bit",
+    "frame": "0109001400000000000000000000000000000001",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "minimal access request/truncate to 10",
+    "seed": "minimal access request",
+    "kind": "truncate",
+    "frame": "01090014000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "minimal access request/truncate to 19",
+    "seed": "minimal access request",
+    "kind": "truncate",
+    "frame": "01090014000000000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "minimal access request/truncate to 16",
+    "seed": "minimal access request",
+    "kind": "truncate",
+    "frame": "01090014000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "minimal access request/declare 0",
+    "seed": "minimal access request",
+    "kind": "declared_length",
+    "frame": "0109000000000000000000000000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "minimal access request/declare 19",
+    "seed": "minimal access request",
+    "kind": "declared_length",
+    "frame": "0109001300000000000000000000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "minimal access request/declare 4097",
+    "seed": "minimal access request",
+    "kind": "declared_length",
+    "frame": "0109100100000000000000000000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "minimal access request/declare 19",
+    "seed": "minimal access request",
+    "kind": "declared_length",
+    "frame": "0109001300000000000000000000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "minimal access request/declare 21",
+    "seed": "minimal access request",
+    "kind": "declared_length",
+    "frame": "0109001500000000000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/flip byte 0",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "flip_bit",
+    "frame": "00090022000000000000000000000000000000000107616c69636520076e61732d31",
+    "outcome": "packet",
+    "attributes": 2
+  },
+  {
+    "name": "user-name and nas-identifier attributes/flip byte 1",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "flip_bit",
+    "frame": "01080022000000000000000000000000000000000107616c69636520076e61732d31",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 2
+  },
+  {
+    "name": "user-name and nas-identifier attributes/flip byte 33",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "flip_bit",
+    "frame": "01090022000000000000000000000000000000000107616c69636520076e61732d30",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 2
+  },
+  {
+    "name": "user-name and nas-identifier attributes/truncate to 17",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "truncate",
+    "frame": "0109002200000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/truncate to 33",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "truncate",
+    "frame": "01090022000000000000000000000000000000000107616c69636520076e61732d",
+    "outcome": "short_read"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/truncate to 30",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "truncate",
+    "frame": "01090022000000000000000000000000000000000107616c69636520076e",
+    "outcome": "short_read"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/declare 0",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "declared_length",
+    "frame": "01090000000000000000000000000000000000000107616c69636520076e61732d31",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/declare 19",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "declared_length",
+    "frame": "01090013000000000000000000000000000000000107616c69636520076e61732d31",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/declare 20",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "declared_length",
+    "frame": "01090014000000000000000000000000000000000107616c69636520076e61732d31",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "user-name and nas-identifier attributes/declare 4097",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "declared_length",
+    "frame": "01091001000000000000000000000000000000000107616c69636520076e61732d31",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/declare 33",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "declared_length",
+    "frame": "01090021000000000000000000000000000000000107616c69636520076e61732d31",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/declare 35",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "declared_length",
+    "frame": "01090023000000000000000000000000000000000107616c69636520076e61732d31",
+    "outcome": "short_read"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/first attribute length 0",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "attribute_length",
+    "frame": "01090022000000000000000000000000000000000100616c69636520076e61732d31",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/first attribute length 1",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "attribute_length",
+    "frame": "01090022000000000000000000000000000000000101616c69636520076e61732d31",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/first attribute length 255",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "attribute_length",
+    "frame": "010900220000000000000000000000000000000001ff616c69636520076e61732d31",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/duplicate attribute list",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "duplicate_attributes",
+    "frame": "01090030000000000000000000000000000000000107616c69636520076e61732d310107616c69636520076e61732d31",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 4
+  },
+  {
+    "name": "user-name and nas-identifier attributes/drop last byte keep length",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "drop_byte_keep_length",
+    "frame": "01090022000000000000000000000000000000000107616c69636520076e61732d",
+    "outcome": "short_read"
+  },
+  {
+    "name": "user-name and nas-identifier attributes/drop last byte fix length",
+    "seed": "user-name and nas-identifier attributes",
+    "kind": "drop_byte_fix_length",
+    "frame": "01090021000000000000000000000000000000000107616c69636520076e61732d",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "trailing padding is ignored/flip byte 0",
+    "seed": "trailing padding is ignored",
+    "kind": "flip_bit",
+    "frame": "0009001400000000000000000000000000000000090909",
+    "outcome": "packet"
+  },
+  {
+    "name": "trailing padding is ignored/flip byte 1",
+    "seed": "trailing padding is ignored",
+    "kind": "flip_bit",
+    "frame": "0108001400000000000000000000000000000000090909",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "trailing padding is ignored/flip byte 22",
+    "seed": "trailing padding is ignored",
+    "kind": "flip_bit",
+    "frame": "0109001400000000000000000000000000000000090908",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "trailing padding is ignored/truncate to 11",
+    "seed": "trailing padding is ignored",
+    "kind": "truncate",
+    "frame": "0109001400000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "trailing padding is ignored/truncate to 22",
+    "seed": "trailing padding is ignored",
+    "kind": "truncate",
+    "frame": "01090014000000000000000000000000000000000909",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "trailing padding is ignored/truncate to 19",
+    "seed": "trailing padding is ignored",
+    "kind": "truncate",
+    "frame": "01090014000000000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "trailing padding is ignored/declare 0",
+    "seed": "trailing padding is ignored",
+    "kind": "declared_length",
+    "frame": "0109000000000000000000000000000000000000090909",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "trailing padding is ignored/declare 19",
+    "seed": "trailing padding is ignored",
+    "kind": "declared_length",
+    "frame": "0109001300000000000000000000000000000000090909",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "trailing padding is ignored/declare 20",
+    "seed": "trailing padding is ignored",
+    "kind": "declared_length",
+    "frame": "0109001400000000000000000000000000000000090909",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "trailing padding is ignored/declare 4097",
+    "seed": "trailing padding is ignored",
+    "kind": "declared_length",
+    "frame": "0109100100000000000000000000000000000000090909",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "trailing padding is ignored/declare 22",
+    "seed": "trailing padding is ignored",
+    "kind": "declared_length",
+    "frame": "0109001600000000000000000000000000000000090909",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "trailing padding is ignored/declare 24",
+    "seed": "trailing padding is ignored",
+    "kind": "declared_length",
+    "frame": "0109001800000000000000000000000000000000090909",
+    "outcome": "short_read"
+  },
+  {
+    "name": "trailing padding is ignored/first attribute length 0",
+    "seed": "trailing padding is ignored",
+    "kind": "attribute_length",
+    "frame": "0109001400000000000000000000000000000000090009",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "trailing padding is ignored/first attribute length 1",
+    "seed": "trailing padding is ignored",
+    "kind": "attribute_length",
+    "frame": "0109001400000000000000000000000000000000090109",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "trailing padding is ignored/first attribute length 255",
+    "seed": "trailing padding is ignored",
+    "kind": "attribute_length",
+    "frame": "010900140000000000000000000000000000000009ff09",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "trailing padding is ignored/duplicate attribute list",
+    "seed": "trailing padding is ignored",
+    "kind": "duplicate_attributes",
+    "frame": "0109001a00000000000000000000000000000000090909090909",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "trailing padding is ignored/drop last byte keep length",
+    "seed": "trailing padding is ignored",
+    "kind": "drop_byte_keep_length",
+    "frame": "01090014000000000000000000000000000000000909",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "trailing padding is ignored/drop last byte fix length",
+    "seed": "trailing padding is ignored",
+    "kind": "drop_byte_fix_length",
+    "frame": "01090016000000000000000000000000000000000909",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/flip byte 0",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "flip_bit",
+    "frame": "0009001c000000000000000000000000000000001a08000007db0100",
+    "outcome": "packet",
+    "attributes": 1
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/flip byte 1",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "flip_bit",
+    "frame": "0108001c000000000000000000000000000000001a08000007db0100",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 1
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/flip byte 27",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "flip_bit",
+    "frame": "0109001c000000000000000000000000000000001a08000007db0101",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 1
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/truncate to 14",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "truncate",
+    "frame": "0109001c00000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/truncate to 27",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "truncate",
+    "frame": "0109001c000000000000000000000000000000001a08000007db01",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/truncate to 24",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "truncate",
+    "frame": "0109001c000000000000000000000000000000001a080000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/declare 0",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "declared_length",
+    "frame": "01090000000000000000000000000000000000001a08000007db0100",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/declare 19",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "declared_length",
+    "frame": "01090013000000000000000000000000000000001a08000007db0100",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/declare 20",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "declared_length",
+    "frame": "01090014000000000000000000000000000000001a08000007db0100",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/declare 4097",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "declared_length",
+    "frame": "01091001000000000000000000000000000000001a08000007db0100",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/declare 27",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "declared_length",
+    "frame": "0109001b000000000000000000000000000000001a08000007db0100",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/declare 29",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "declared_length",
+    "frame": "0109001d000000000000000000000000000000001a08000007db0100",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/first attribute length 0",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "attribute_length",
+    "frame": "0109001c000000000000000000000000000000001a00000007db0100",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/first attribute length 1",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "attribute_length",
+    "frame": "0109001c000000000000000000000000000000001a01000007db0100",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/first attribute length 255",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "attribute_length",
+    "frame": "0109001c000000000000000000000000000000001aff000007db0100",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/duplicate attribute list",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "duplicate_attributes",
+    "frame": "01090024000000000000000000000000000000001a08000007db01001a08000007db0100",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 2
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/drop last byte keep length",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "drop_byte_keep_length",
+    "frame": "0109001c000000000000000000000000000000001a08000007db01",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with malformed nested TLV/drop last byte fix length",
+    "seed": "vendor specific attribute with malformed nested TLV",
+    "kind": "drop_byte_fix_length",
+    "frame": "0109001b000000000000000000000000000000001a08000007db01",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/flip byte 0",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "flip_bit",
+    "frame": "00090020000000000000000000000000000000001a0c000007db010600002710",
+    "outcome": "packet",
+    "attributes": 1
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/flip byte 1",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "flip_bit",
+    "frame": "01080020000000000000000000000000000000001a0c000007db010600002710",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 1
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/flip byte 31",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "flip_bit",
+    "frame": "01090020000000000000000000000000000000001a0c000007db010600002711",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 1
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/truncate to 16",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "truncate",
+    "frame": "01090020000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/truncate to 31",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "truncate",
+    "frame": "01090020000000000000000000000000000000001a0c000007db0106000027",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/truncate to 28",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "truncate",
+    "frame": "01090020000000000000000000000000000000001a0c000007db0106",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/declare 0",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "declared_length",
+    "frame": "01090000000000000000000000000000000000001a0c000007db010600002710",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/declare 19",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "declared_length",
+    "frame": "01090013000000000000000000000000000000001a0c000007db010600002710",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/declare 20",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "declared_length",
+    "frame": "01090014000000000000000000000000000000001a0c000007db010600002710",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/declare 4097",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "declared_length",
+    "frame": "01091001000000000000000000000000000000001a0c000007db010600002710",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/declare 31",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "declared_length",
+    "frame": "0109001f000000000000000000000000000000001a0c000007db010600002710",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/declare 33",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "declared_length",
+    "frame": "01090021000000000000000000000000000000001a0c000007db010600002710",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/first attribute length 0",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "attribute_length",
+    "frame": "01090020000000000000000000000000000000001a00000007db010600002710",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/first attribute length 1",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "attribute_length",
+    "frame": "01090020000000000000000000000000000000001a01000007db010600002710",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/first attribute length 255",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "attribute_length",
+    "frame": "01090020000000000000000000000000000000001aff000007db010600002710",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/duplicate attribute list",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "duplicate_attributes",
+    "frame": "0109002c000000000000000000000000000000001a0c000007db0106000027101a0c000007db010600002710",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 2
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/drop last byte keep length",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "drop_byte_keep_length",
+    "frame": "01090020000000000000000000000000000000001a0c000007db0106000027",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute with valid Huawei TLV/drop last byte fix length",
+    "seed": "vendor specific attribute with valid Huawei TLV",
+    "kind": "drop_byte_fix_length",
+    "frame": "0109001f000000000000000000000000000000001a0c000007db0106000027",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute without value/flip byte 0",
+    "seed": "vendor specific attribute without value",
+    "kind": "flip_bit",
+    "frame": "00090016000000000000000000000000000000001a02",
+    "outcome": "packet",
+    "attributes": 1
+  },
+  {
+    "name": "vendor specific attribute without value/flip byte 1",
+    "seed": "vendor specific attribute without value",
+    "kind": "flip_bit",
+    "frame": "01080016000000000000000000000000000000001a02",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 1
+  },
+  {
+    "name": "vendor specific attribute without value/flip byte 21",
+    "seed": "vendor specific attribute without value",
+    "kind": "flip_bit",
+    "frame": "01090016000000000000000000000000000000001a03",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute without value/truncate to 11",
+    "seed": "vendor specific attribute without value",
+    "kind": "truncate",
+    "frame": "0109001600000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute without value/truncate to 21",
+    "seed": "vendor specific attribute without value",
+    "kind": "truncate",
+    "frame": "01090016000000000000000000000000000000001a",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute without value/truncate to 18",
+    "seed": "vendor specific attribute without value",
+    "kind": "truncate",
+    "frame": "010900160000000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute without value/declare 0",
+    "seed": "vendor specific attribute without value",
+    "kind": "declared_length",
+    "frame": "01090000000000000000000000000000000000001a02",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "vendor specific attribute without value/declare 19",
+    "seed": "vendor specific attribute without value",
+    "kind": "declared_length",
+    "frame": "01090013000000000000000000000000000000001a02",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "vendor specific attribute without value/declare 20",
+    "seed": "vendor specific attribute without value",
+    "kind": "declared_length",
+    "frame": "01090014000000000000000000000000000000001a02",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "vendor specific attribute without value/declare 4097",
+    "seed": "vendor specific attribute without value",
+    "kind": "declared_length",
+    "frame": "01091001000000000000000000000000000000001a02",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "vendor specific attribute without value/declare 21",
+    "seed": "vendor specific attribute without value",
+    "kind": "declared_length",
+    "frame": "01090015000000000000000000000000000000001a02",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute without value/declare 23",
+    "seed": "vendor specific attribute without value",
+    "kind": "declared_length",
+    "frame": "01090017000000000000000000000000000000001a02",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute without value/first attribute length 0",
+    "seed": "vendor specific attribute without value",
+    "kind": "attribute_length",
+    "frame": "01090016000000000000000000000000000000001a00",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute without value/first attribute length 1",
+    "seed": "vendor specific attribute without value",
+    "kind": "attribute_length",
+    "frame": "01090016000000000000000000000000000000001a01",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute without value/first attribute length 255",
+    "seed": "vendor specific attribute without value",
+    "kind": "attribute_length",
+    "frame": "01090016000000000000000000000000000000001aff",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "vendor specific attribute without value/duplicate attribute list",
+    "seed": "vendor specific attribute without value",
+    "kind": "duplicate_attributes",
+    "frame": "01090018000000000000000000000000000000001a021a02",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 2
+  },
+  {
+    "name": "vendor specific attribute without value/drop last byte keep length",
+    "seed": "vendor specific attribute without value",
+    "kind": "drop_byte_keep_length",
+    "frame": "01090016000000000000000000000000000000001a",
+    "outcome": "short_read"
+  },
+  {
+    "name": "vendor specific attribute without value/drop last byte fix length",
+    "seed": "vendor specific attribute without value",
+    "kind": "drop_byte_fix_length",
+    "frame": "01090015000000000000000000000000000000001a",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "message authenticator with wrong length/flip byte 0",
+    "seed": "message authenticator with wrong length",
+    "kind": "flip_bit",
+    "frame": "0009001e00000000000000000000000000000000500a0000000000000000",
+    "outcome": "packet",
+    "attributes": 1
+  },
+  {
+    "name": "message authenticator with wrong length/flip byte 1",
+    "seed": "message authenticator with wrong length",
+    "kind": "flip_bit",
+    "frame": "0108001e00000000000000000000000000000000500a0000000000000000",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 1
+  },
+  {
+    "name": "message authenticator with wrong length/flip byte 29",
+    "seed": "message authenticator with wrong length",
+    "kind": "flip_bit",
+    "frame": "0109001e00000000000000000000000000000000500a0000000000000001",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 1
+  },
+  {
+    "name": "message authenticator with wrong length/truncate to 15",
+    "seed": "message authenticator with wrong length",
+    "kind": "truncate",
+    "frame": "0109001e0000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "message authenticator with wrong length/truncate to 29",
+    "seed": "message authenticator with wrong length",
+    "kind": "truncate",
+    "frame": "0109001e00000000000000000000000000000000500a00000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "message authenticator with wrong length/truncate to 26",
+    "seed": "message authenticator with wrong length",
+    "kind": "truncate",
+    "frame": "0109001e00000000000000000000000000000000500a00000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "message authenticator with wrong length/declare 0",
+    "seed": "message authenticator with wrong length",
+    "kind": "declared_length",
+    "frame": "0109000000000000000000000000000000000000500a0000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "message authenticator with wrong length/declare 19",
+    "seed": "message authenticator with wrong length",
+    "kind": "declared_length",
+    "frame": "0109001300000000000000000000000000000000500a0000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "message authenticator with wrong length/declare 20",
+    "seed": "message authenticator with wrong length",
+    "kind": "declared_length",
+    "frame": "0109001400000000000000000000000000000000500a0000000000000000",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "message authenticator with wrong length/declare 4097",
+    "seed": "message authenticator with wrong length",
+    "kind": "declared_length",
+    "frame": "0109100100000000000000000000000000000000500a0000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "message authenticator with wrong length/declare 29",
+    "seed": "message authenticator with wrong length",
+    "kind": "declared_length",
+    "frame": "0109001d00000000000000000000000000000000500a0000000000000000",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "message authenticator with wrong length/declare 31",
+    "seed": "message authenticator with wrong length",
+    "kind": "declared_length",
+    "frame": "0109001f00000000000000000000000000000000500a0000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "message authenticator with wrong length/first attribute length 0",
+    "seed": "message authenticator with wrong length",
+    "kind": "attribute_length",
+    "frame": "0109001e0000000000000000000000000000000050000000000000000000",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "message authenticator with wrong length/first attribute length 1",
+    "seed": "message authenticator with wrong length",
+    "kind": "attribute_length",
+    "frame": "0109001e0000000000000000000000000000000050010000000000000000",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "message authenticator with wrong length/first attribute length 255",
+    "seed": "message authenticator with wrong length",
+    "kind": "attribute_length",
+    "frame": "0109001e0000000000000000000000000000000050ff0000000000000000",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "message authenticator with wrong length/duplicate attribute list",
+    "seed": "message authenticator with wrong length",
+    "kind": "duplicate_attributes",
+    "frame": "0109002800000000000000000000000000000000500a0000000000000000500a0000000000000000",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 2
+  },
+  {
+    "name": "message authenticator with wrong length/drop last byte keep length",
+    "seed": "message authenticator with wrong length",
+    "kind": "drop_byte_keep_length",
+    "frame": "0109001e00000000000000000000000000000000500a00000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "message authenticator with wrong length/drop last byte fix length",
+    "seed": "message authenticator with wrong length",
+    "kind": "drop_byte_fix_length",
+    "frame": "0109001d00000000000000000000000000000000500a00000000000000",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "duplicate message authenticator/flip byte 0",
+    "seed": "duplicate message authenticator",
+    "kind": "flip_bit",
+    "frame": "0009003800000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "packet",
+    "attributes": 2
+  },
+  {
+    "name": "duplicate message authenticator/flip byte 1",
+    "seed": "duplicate message authenticator",
+    "kind": "flip_bit",
+    "frame": "0108003800000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 2
+  },
+  {
+    "name": "duplicate message authenticator/flip byte 55",
+    "seed": "duplicate message authenticator",
+    "kind": "flip_bit",
+    "frame": "0109003800000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000001",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 2
+  },
+  {
+    "name": "duplicate message authenticator/truncate to 28",
+    "seed": "duplicate message authenticator",
+    "kind": "truncate",
+    "frame": "01090038000000000000000000000000000000005012000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "duplicate message authenticator/truncate to 55",
+    "seed": "duplicate message authenticator",
+    "kind": "truncate",
+    "frame": "01090038000000000000000000000000000000005012000000000000000000000000000000005012000000000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "duplicate message authenticator/truncate to 52",
+    "seed": "duplicate message authenticator",
+    "kind": "truncate",
+    "frame": "01090038000000000000000000000000000000005012000000000000000000000000000000005012000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "duplicate message authenticator/declare 0",
+    "seed": "duplicate message authenticator",
+    "kind": "declared_length",
+    "frame": "0109000000000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "duplicate message authenticator/declare 19",
+    "seed": "duplicate message authenticator",
+    "kind": "declared_length",
+    "frame": "0109001300000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "duplicate message authenticator/declare 20",
+    "seed": "duplicate message authenticator",
+    "kind": "declared_length",
+    "frame": "0109001400000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "packet",
+    "code": 1
+  },
+  {
+    "name": "duplicate message authenticator/declare 4097",
+    "seed": "duplicate message authenticator",
+    "kind": "declared_length",
+    "frame": "0109100100000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "malformed_frame"
+  },
+  {
+    "name": "duplicate message authenticator/declare 55",
+    "seed": "duplicate message authenticator",
+    "kind": "declared_length",
+    "frame": "0109003700000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "duplicate message authenticator/declare 57",
+    "seed": "duplicate message authenticator",
+    "kind": "declared_length",
+    "frame": "0109003900000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "duplicate message authenticator/first attribute length 0",
+    "seed": "duplicate message authenticator",
+    "kind": "attribute_length",
+    "frame": "0109003800000000000000000000000000000000500000000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "duplicate message authenticator/first attribute length 1",
+    "seed": "duplicate message authenticator",
+    "kind": "attribute_length",
+    "frame": "0109003800000000000000000000000000000000500100000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "duplicate message authenticator/first attribute length 255",
+    "seed": "duplicate message authenticator",
+    "kind": "attribute_length",
+    "frame": "010900380000000000000000000000000000000050ff00000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "bad_attributes"
+  },
+  {
+    "name": "duplicate message authenticator/duplicate attribute list",
+    "seed": "duplicate message authenticator",
+    "kind": "duplicate_attributes",
+    "frame": "0109005c00000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000501200000000000000000000000000000000",
+    "outcome": "packet",
+    "code": 1,
+    "attributes": 4
+  },
+  {
+    "name": "duplicate message authenticator/drop last byte keep length",
+    "seed": "duplicate message authenticator",
+    "kind": "drop_byte_keep_length",
+    "frame": "01090038000000000000000000000000000000005012000000000000000000000000000000005012000000000000000000000000000000",
+    "outcome": "short_read"
+  },
+  {
+    "name": "duplicate message authenticator/drop last byte fix length",
+    "seed": "duplicate message authenticator",
+    "kind": "drop_byte_fix_length",
+    "frame": "01090037000000000000000000000000000000005012000000000000000000000000000000005012000000000000000000000000000000",
+    "outcome": "bad_attributes"
+  }
+]
