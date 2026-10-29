@@ -78,7 +78,7 @@ column on the customer row.
 | `claims.go` | 24 statements with their checks and the 7-item gap register. |
 | `render.go` | Emits every table in this memo from one run. |
 | `study_test.go` | 17 gates: the criterion's three clauses, the counters, and the no-write/no-importer guarantees. |
-| `render_test.go` | 5 gates on the report itself: every section present, digest carried, tables unbroken, limits open, statements lined. |
+| `render_test.go` | 5 gates on the report itself: every section present, digest carried, tables unbroken, limits open, statements lined. The 23rd test function, `TestReportMarkdownDump`, is the harness that emits the tables below; it skips unless `CARD_DUMP=1`. |
 
 Nothing in `internal/` or `cmd/` imports it (`TestNothingImportsTheStudy` plus a
 grep over the tree that returns 0), it opens no database connection
@@ -646,7 +646,7 @@ go build -p 1 ./...                                # clean
 go vet -p 1 ./internal/incidentcard/               # clean
 gofmt -l internal/incidentcard/                   # empty
 golangci-lint run ./internal/incidentcard/         # 0 issues
-go test -p 1 -count=1 ./internal/incidentcard/     # ok (22 gates, 24 of 24 statements confirmed)
+go test -p 1 -count=1 ./internal/incidentcard/     # ok (22 gates run + the dump harness skipped, 24 of 24 statements confirmed)
 go test -p 1 -count=1 ./internal/...               # ok, whole internal tree
 grep -rn incidentcard --include=*.go internal/ cmd/ | grep -v ^internal/incidentcard/   # 0 importers
 ```

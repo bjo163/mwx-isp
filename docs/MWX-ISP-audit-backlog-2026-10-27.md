@@ -31,8 +31,50 @@ the current tree.
 
 ## Progress
 
-Done: 59 / 100.
+Done: 60 / 100.
 
+- `FUT-018` (2026-10-29, `dev` @ `de91f23`): printable grunge incident card,
+  delivered as a measurement of what such a sheet may say rather than as a mockup.
+  No card component, exporter or proof sheet exists in the tree, so the criterion's
+  three claims were each made checkable against the product as it ships.
+  **Tidak membocorkan nama pelanggan** is answered by four independent readings of
+  one field set: **129** slots served by the **15** incident response types, of
+  which **108** print and **21** are refused — by the shipped classifier parsed out
+  of `internal/redact` (**7**), by a select list that proves the value is an
+  identity column (**10**), by a `Sprintf` that composes such a column into prose
+  (**3**), and by an assignment trace for keys that literally say `name` (**1**,
+  `SyslogEvent.severity_name`, refused for being unresolvable). No customer name
+  prints; the three name-shaped fields that do (`nocImpactScope.name`,
+  `nocImpactScope.nas_name`, `nocImpactMonitoring.target_name`) print only because
+  the trace proves their assignments read `isp_odp`/`net_nas`/`net_monitor_target`
+  rows, and `subscriberRows = {isp_customer, radius_user}` is named as the one
+  interpretive choice. The load-bearing finding is that **13 of the 21 refusals sit
+  past every shipped rule** — `isp_customer.name`, `customer_no`,
+  `radius_user.username` and `realname` are all `Plain` to `internal/redact`, and
+  `TroubleTicket.subject` has a name formatted into it at `isp.go:757` — so a card
+  built on "no rule forbids it" leaks subscriber identity while keeping CI green.
+  **Print A4 hitam-putih dapat dibaca** is priced as greys, not chosen: all **18**
+  light tokens clear the 4.5:1 floor on the white sheet the console's own print rule
+  forces (worst **8.32:1**) while **8 of the 18** dark ones fail — the default skin
+  (`A16`) prints `warning.main` at **3.03:1** and `success.main` at **3.45:1** — and
+  **28 of 30** status pairs dry to the same grey, so the state has to ride the
+  label, not the fill. **Stale/confidence terlihat** is split honestly in two:
+  **10** such slots reach the ledger and print, **6** are read by `web/src`
+  (`stale` **12** lines, `confidence` **7**) and **4** (`confidence_reason`,
+  `stale_after_seconds`, `last_checked_at`, `interval_seconds`) are not read at all,
+  while **0 of the 6** incident surfaces has a print path, so the paper half of the
+  claim is currently empty. The sheet also cannot hold the answer: the skin's own
+  metrics budget **32** slot rows against the **108** the ledger allows.
+  [Study](printable-incident-card-study-2026-10-29.md), `internal/incidentcard`
+  (read-only, imported by nothing, stdlib-only, 22 gates, digest
+  `e667b8e47e590ac663f3b087de00fb1d7dcceb7db9724a22bfb9f764c26453ff`). **No-go,
+  explicitly:** a real monochrome proof sheet (`G01`), a declared page geometry —
+  zero `@page` rules exist (`G02`), a background-graphics decision — zero
+  `print-color-adjust` declarations (`G03`), a shipped display face (`G04`), an
+  exporter, since none exists in `web/package.json` or `go.mod` (`G05`), a redaction
+  rule that reaches a name inside prose, which is a change to `internal/redact` and
+  therefore product scope (`G06`), and incident data from a running deployment
+  (`G07`).
 - `FUT-016` (2026-10-29, `dev` @ `808bf61`): voice-assisted navigation for
   internal accessibility, delivered as a measurement of what a navigation-only
   vocabulary may be asked to do rather than as a microphone demo. The criterion's
@@ -1269,7 +1311,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `FUT-014` TR-F031 P3 — Field diagnostics mini-mode untuk teknisi yang offline · RISET · dep FUT-013 · PROPOSED_VERIFICATION
 - [x] `FUT-015` TR-F013 P3 — Adaptive contextual workspace dari tugas operator · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `e1b5261`
 - [x] `FUT-016` TR-F013 P3 — Voice-assisted navigation untuk aksesibilitas internal · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `808bf61`
-- [ ] `FUT-018` TR-F029 P3 — Riset visual incident card grunge yang bisa dicetak · RISET · dep FUT-017 · PROPOSED_VERIFICATION
+- [x] `FUT-018` TR-F029 P3 — Riset visual incident card grunge yang bisa dicetak · RISET · dep FUT-017 · PROPOSED_VERIFICATION · commit `de91f23`
 - [ ] `FUT-020` TR-F033 P3 — Per-tenant statistik operasional privat berbasis agregat · RISET · dep ENG-017 · PROPOSED_VERIFICATION
 - [ ] `FUT-019` TR-F031 P3 — Edge collector polling read-only pada jaringan terbatas · RISET+ASET · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `FUT-024` TR-F031 P3 — Prediksi kapasitas network yang dibatasi data SNMP nyata · RISET+ASET · dep ENG-049 · PROPOSED_VERIFICATION
@@ -1313,9 +1355,11 @@ the role-gate disagreement it exposes and the human/live-session half it cannot
 close) is the eighth and `FUT-016` (the voice-navigation study, closed as a
 measurement of what a navigation-only vocabulary can be asked to do, with the
 audio-corpus, panel and live-session half it cannot close) the ninth, also
-2026-10-29. These two are what remains:
-1. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
-2. `FUT-020` — per-tenant private operational statistics from aggregates
+2026-10-29. `FUT-018` (the printable incident-card study, closed as a measurement
+of what a grunge A4 sheet may say — four independent checks over the 129 slots the
+incident response types serve, greys derived from the shipped tokens, and the
+paper/proof-sheet half recorded no-go) is the tenth. This one is what remains:
+1. `FUT-020` — per-tenant private operational statistics from aggregates
    (`RISET`, `ENG-017` done).
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
