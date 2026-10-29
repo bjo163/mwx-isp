@@ -31,7 +31,27 @@ the current tree.
 
 ## Progress
 
-Done: 48 / 100.
+Done: 49 / 100.
+
+- `FUT-011` (2026-10-29, `dev` @ `319699a`): generated RADIUS mutation
+  regression corpus. ENG-011 pins 22 named frames and fuzzes the parser, but a
+  fuzz crash file is not a reviewable artifact and a fixed corpus only covers
+  the damage someone thought of. `internal/radiusd/mutation_corpus_test.go`
+  now derives 137 positional mutants from the eight valid seed frames under 512
+  bytes using seven kinds (bit flip, truncate, declared length, attribute
+  length, duplicate attribute list, drop-byte keeping length, drop-byte fixing
+  length) and pins each mutant's parse outcome class in
+  `testdata/radius_mutation_corpus.json`. Distribution: 41 `packet`, 37
+  `short_read`, 34 `bad_attributes`, 25 `malformed_frame`, every kind populated.
+  A parser change that reclassifies any mutant fails
+  `TestRadiusMutationCorpusMatchesGolden`; regeneration is an explicit
+  `-update-radius-mutation-corpus` run, so the golden diff is the review
+  signal. Decision: keep outcome classes (not error text) as the contract, and
+  keep the file generation-time only — no product code imports it. Acceptance:
+  `go test ./internal/radiusd -run 'TestRadiusMutation'` passes 137 subtests,
+  the full package passes (42.3 s), and `golangci-lint run ./internal/radiusd/...`
+  reports no findings in the new files. Evidence:
+  [radius-mutation-regression-2026-10-29.md](radius-mutation-regression-2026-10-29.md).
 
 - `FUT-006` (2026-10-29, `dev` @ `f026ff4`): static NAS-ODP graph. The ODP
   registry has `olt_name` and `pon_port` as free text and no NAS foreign key, so
@@ -912,7 +932,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `FUT-008` TR-F010 P3 — Preview dampak CoA terhadap sesi yang aktif sebelum aksi · RISET · dep ENG-013 · PROPOSED_VERIFICATION
 - [x] `FUT-009` TR-F028 P3 — Explanation trace billing-suspend dari rule engine existing · RISET · dep ENG-032 · PROPOSED_VERIFICATION · commit `c372ee3`
 - [x] `FUT-010` TR-F033 P3 — Static tenant-scope policy checker dari query AST sederhana · RISET · dep ENG-019 · PROPOSED_VERIFICATION · commit `e521c02`
-- [ ] `FUT-011` TR-F001 P3 — Pembangkitan regression tests untuk paket RADIUS via mutator · RISET · dep ENG-011 · PROPOSED_VERIFICATION
+- [x] `FUT-011` TR-F001 P3 — Pembangkitan regression tests untuk paket RADIUS via mutator · RISET · dep ENG-011 · PROPOSED_VERIFICATION · commit `319699a`
 - [ ] `FUT-012` TR-F004 P3 — Eksperimen adversarial EAP TLS fragment scheduler · RISET · dep ENG-002 · PROPOSED_VERIFICATION
 - [ ] `FUT-021` TR-F005 P3 — Knowledge base kompatibilitas firmware berbasis bukti uji · RISET · dep ENG-050 · PROPOSED_VERIFICATION
 - [x] `FUT-022` TR-F028 P3 — Event replay simulator untuk reproduksi billing dan NAS · RISET · dep ENG-032 · PROPOSED_VERIFICATION · commit `31551a4`
@@ -935,8 +955,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `FUT-011` — RADIUS regression-test generation via the existing mutator
-   (dependency ENG-011 is done; the fuzz harness already mutates packets).
+1. `FUT-023` — semantic graph of RADIUS protocol relations and feature IDs
+   (dependency ENG-016 is done; the fork/upstream audit produced the protocol
+   surface to map).
 
 `ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
 `ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
