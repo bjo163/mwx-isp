@@ -31,7 +31,42 @@ the current tree.
 
 ## Progress
 
-Done: 53 / 100.
+Done: 54 / 100.
+
+- `FUT-017` (2026-10-29, `dev` @ `7a8b944`): the manga skin study, resolved as a
+  measurement of the direction that already shipped rather than a second one. The
+  card asked for an "experimental neo-brutalist manga skin via existing tokens",
+  but `TR-F029` sanctions exactly one manga-ink direction and names a theme/plugin
+  marketplace as a non-goal - so building a competing skin would be a scope
+  decision, not research. `internal/mangaskin` (read-only, imported by nothing)
+  parses `web/src/theme.ts` and resolves **22 operator-visible states** in both
+  modes through the token path: **44 color pairs**, **40 judged by WCAG AA**, **4
+  measured but exempt** (decoration and inactive text, reported so the pass rate
+  cannot hide them). Every pair is computed from the sRGB linearisation in the
+  package, never eyeballed, and **14 positive claims** plus **5 negative claims**
+  are pinned to a code line with comment lines blanked first. Result: **one AA
+  violation** in the shipped skin - the dark panel outline at **2.34:1** against
+  the 3:1 non-text floor, which is `alpha(ink, isDark ? 0.28 : 0.7)` at
+  `web/src/theme.ts:72`, and closing it uses the `0.7` the same line already
+  writes for light mode. `Ink Max` proves the closure costs **0 new colors**
+  (`TestInkMaxClosesTheHeldViolationsWithoutIntroducingAColor`) and lifts the two
+  exempt empty-value pairs to 8.35/8.87:1. Rollback is met structurally, not by
+  promise: **0 stylesheets under `web/`**, **1 `createAppTheme` definition**
+  feeding **3 call sites**, both modes from it, plus the branding screen's
+  restore-to-defaults action - so a skin decision never needs a CSS fork. The
+  honest limit is scope: **170 literal colors** live outside `theme.ts` across 84
+  files (**119** of them in `LandingPage.tsx`) with **61 hand-written**
+  `mode === 'dark' ?` branches, and **four status groups declare no
+  `contrastText`**, leaving the label over a filled chip to the component library;
+  a token-level decision therefore re-skins the console, not the site. **5-row
+  no-go register** in `docs/manga-skin-contrast-audit-2026-10-29.md`: the
+  browser-rendered AA pass (needs a live seeded admin session), applying the alpha
+  change (needs a `TR-F029` scope decision), operator preference between
+  directions (needs human respondents), a bundled display webfont (needs a
+  licensing decision), and a forced-colors/Windows-high-contrast pass (needs a
+  direction decision). Acceptance: `go test -p 1 ./internal/mangaskin/` passes 33
+  cases, `golangci-lint run ./internal/mangaskin/...` reports 0 issues, and the
+  package has no importers in `internal/` or `cmd/`.
 
 - `ECO-006` (2026-10-29, `dev` @ `4b2ea0a`): onboarding and migration service
   validation, measured off the importer instead of argued. `internal/migrationcheck`
@@ -1051,7 +1086,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ECO-008` TR-F015 P2 — Cost allocation unit per NAS dan subscriber aktif · RISET · dep ECO-003 · PROPOSED_VERIFICATION
 - [ ] `ECO-011` TR-F023 P2 — Kajian strategi distribusi community/open-source · RISET · dep ECO-001 · PROPOSED_VERIFICATION
 - [ ] `FUT-013` TR-F031 P3 — Offline read-only NOC snapshot dengan TTL dan enkripsi · RISET · dep ENG-055 · PROPOSED_VERIFICATION
-- [ ] `FUT-017` TR-F029 P3 — Experimental neo-brutalist manga skin via existing tokens · RISET · dep ENG-053 · PROPOSED_VERIFICATION
+- [x] `FUT-017` TR-F029 P3 — Experimental neo-brutalist manga skin via existing tokens · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `7a8b944`
 - [ ] `FUT-001` TR-F013 P3 — Proof-of-concept intent search untuk perintah operator read-only · RISET · dep ENG-052 · PROPOSED_VERIFICATION
 - [ ] `FUT-002` TR-F031 P3 — AI incident triage berbasis log tersensor · RISET · dep ENG-028 · PROPOSED_VERIFICATION
 - [ ] `FUT-003` TR-F031 P3 — Ringkasan insiden berbukti tanpa mengklaim pelanggan offline · RISET · dep ENG-058 · PROPOSED_VERIFICATION
@@ -1093,9 +1128,9 @@ taken from the checkboxes in the wave lists, not from memory:
 | 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
 | **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-The inventory-wide total adds the 9 Wave 3 rows delivered out of wave order
+The inventory-wide total adds the 10 Wave 3 rows delivered out of wave order
 because they were locally executable: `ENG-006`, `ENG-007`, `ECO-006`, `FUT-006`,
-`FUT-009`, `FUT-010`, `FUT-011`, `FUT-022`, `FUT-023`.
+`FUT-009`, `FUT-010`, `FUT-011`, `FUT-017`, `FUT-022`, `FUT-023`.
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
@@ -1103,20 +1138,20 @@ complete statement: 44 delivered, 23 no-go, none undecided.
 
 Work continues in Waves 3-4, where the rows that need no asset remain. Ordered so
 each step stays executable without hardware; `ENG-006` (TEAP readiness for M11),
-`ENG-007` (EAP-PWD need for M12) and `ECO-006` (onboarding and migration
-validation) were the first three and all closed 2026-10-29:
-1. `FUT-017` — experimental skin from existing design tokens (`RISET`, dependency
-   `ENG-053` is done).
-2. `FUT-001` — read-only intent search proof of concept (`RISET`, `ENG-052` done).
-3. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
-4. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
+`ENG-007` (EAP-PWD need for M12), `ECO-006` (onboarding and migration
+validation) and `FUT-017` (the manga-ink contrast audit, closed as a measurement
+of the shipped direction) were the first four and all closed 2026-10-29:
+1. `FUT-001` — read-only intent search proof of concept (`RISET`, `ENG-052` done).
+2. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
+3. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
    `ENG-016` done).
-5. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
+4. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
    `ENG-053` done).
-6. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
+5. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
    `ENG-053` done).
-7. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
-8. `FUT-020` — per-tenant private operational statistics from aggregates
+6. `FUT-018` — printable incident-card visual research (`RISET`; its dependency
+   `FUT-017` is now closed, so the row is unblocked).
+7. `FUT-020` — per-tenant private operational statistics from aggregates
    (`RISET`, `ENG-017` done).
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
