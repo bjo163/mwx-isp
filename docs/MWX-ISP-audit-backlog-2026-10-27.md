@@ -31,7 +31,26 @@ the current tree.
 
 ## Progress
 
-Done: 45 / 100.
+Done: 46 / 100.
+
+- `FUT-009` (2026-10-29, `dev` @ `c372ee3`): billing-suspend explanation
+  trace. `suspension_reason=billing_overdue` says that billing suspended a
+  subscription but not which invoice or threshold did it. The prototype
+  `internal/billing/suspendtrace` (analysis only, imported by nothing) reads
+  the subscription, the earliest unpaid overdue invoice, the linked RADIUS user,
+  and the `invoice_overdue`/`subscription_suspended` events, and returns ordered
+  steps with evidence plus explicit gaps. Findings: the common case is fully
+  reconstructible; grace days are read live (changing them rewrites the
+  explanation) and the job clock is not stored; a later payment leaves the
+  suspension without a matching invoice, so the trace reports `not_matched`
+  instead of implying the paid invoice caused it; manual suspensions record
+  neither operator nor reason beyond `suspension_reason`; a re-enabled user is
+  flagged as divergent. Decision: keep the explanation derived, never stored,
+  and record any new rule input with the suspension event if the rule changes.
+  Acceptance: `go test ./internal/billing/suspendtrace/` passes six cases and
+  `golangci-lint run ./internal/billing/suspendtrace/...` reports 0 issues.
+  Evidence:
+  [billing-suspend-explanation-trace-2026-10-29.md](billing-suspend-explanation-trace-2026-10-29.md).
 
 - `FUT-010` (2026-10-29, `dev` @ `e521c02`): table-level tenant-scope study.
   `ENG-019`'s ratchet asks only whether the string `tenant_id` appears in a raw
@@ -856,7 +875,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `FUT-005` TR-F031 P3 — Graph hipotesis penyebab insiden dengan uncertainty · RISET · dep ENG-058 · PROPOSED_VERIFICATION
 - [ ] `FUT-006` TR-F031 P3 — Visual graph statis NAS-ODP dari relasi yang telah diisi operator · RISET · dep ENG-018 · PROPOSED_VERIFICATION
 - [ ] `FUT-008` TR-F010 P3 — Preview dampak CoA terhadap sesi yang aktif sebelum aksi · RISET · dep ENG-013 · PROPOSED_VERIFICATION
-- [ ] `FUT-009` TR-F028 P3 — Explanation trace billing-suspend dari rule engine existing · RISET · dep ENG-032 · PROPOSED_VERIFICATION
+- [x] `FUT-009` TR-F028 P3 — Explanation trace billing-suspend dari rule engine existing · RISET · dep ENG-032 · PROPOSED_VERIFICATION · commit `c372ee3`
 - [x] `FUT-010` TR-F033 P3 — Static tenant-scope policy checker dari query AST sederhana · RISET · dep ENG-019 · PROPOSED_VERIFICATION · commit `e521c02`
 - [ ] `FUT-011` TR-F001 P3 — Pembangkitan regression tests untuk paket RADIUS via mutator · RISET · dep ENG-011 · PROPOSED_VERIFICATION
 - [ ] `FUT-012` TR-F004 P3 — Eksperimen adversarial EAP TLS fragment scheduler · RISET · dep ENG-002 · PROPOSED_VERIFICATION
@@ -881,9 +900,8 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `FUT-009` — explanation trace for billing-suspend decisions (dependency
-   ENG-032 is done; the suspend invariant and its billing events already carry
-   the inputs the trace would explain).
+1. `FUT-022` — event replay simulator for billing and RADIUS reproduction
+   (dependency ENG-032 is done; the billing event trail is the replay input).
 
 `ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
 `ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
