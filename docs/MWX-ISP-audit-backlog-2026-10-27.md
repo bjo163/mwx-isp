@@ -31,8 +31,34 @@ the current tree.
 
 ## Progress
 
-Done: 57 / 100.
+Done: 58 / 100.
 
+- `FUT-015` (2026-10-29, `dev` @ `e1b5261`): the adaptive contextual workspace,
+  delivered as a measurement of the navigation the console already ships rather
+  than a mockup of one it does not. The cost unit is borrowed from the repository
+  - a forward focus stop inside the navigation region, what `tabTo()` presses in
+  `web/e2e/keyboard-navigation.spec.ts` - and both columns count it over the *same*
+  deduplicated destination sequence, so the only difference is which list numbers
+  the stops. Measured over **17** task surfaces (8 guide chapters, the setup
+  checklist, the quick tour, **7** dashboard cards) x **6** role arms derived from
+  the levels the operator API validates crossed with the one permission string the
+  auth handler can issue: **51** of **51** destination edges resolve to a declared
+  route and **51/51** ride a keyboard-native control, **0** need a pointer - the
+  criterion's "keyboard fallback setara" is already satisfied by construction.
+  Ordering a task's own destinations in front of the menu removes **1555** of
+  **2300** stops (**745** grouped, largest single task **47**) and never adds one.
+  The load-bearing finding is a disagreement, not a saving: **28** task x role
+  cells offer a destination that the same role's menu hides - `/system/config`,
+  which the menu gates to the `platform_admin` permission while the checklist's own
+  filter knows levels only, and `/operations` for plain `operator` - and
+  `/account/settings` is reached by tasks yet appears in **no** role's menu, while
+  `SystemConfigPage` runs **0** client-side role checks. The "adaptive" half is
+  recorded as refusal: the only per-operator state is browser storage, **0**
+  operator preference models exist in the domain, and CI runs **0** Playwright jobs
+  so no gate observes a rendered focus order. **24/24** statements pin to code
+  lines, **6** gaps stay open (human respondents, a live browser session, per-role
+  sessions, a `TR-F013` scope decision, a workspace-state schema, runtime fixtures).
+  Digest `24fbd60f48f066543bcfef48352f18e130cf22314c14a98586ced7d63b35efe2`.
 - `FUT-007` (2026-10-29, `dev` @ `a02c698`): the bandwidth-profile what-if
   estimator, delivered as a reproducible wire diff over the product's own answer.
   The criterion's two halves were both made checkable. Reproducible: held-out keys
@@ -1207,7 +1233,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ECO-010` TR-F031 P3 — Riset risiko churn berbasis sinyal operasional agregat · RISET · dep ECO-002 · PROPOSED_VERIFICATION
 - [x] `FUT-007` TR-F008 P3 — Simulasi perubahan profil bandwidth tanpa menulis NAS · RISET · dep ENG-016 · PROPOSED_VERIFICATION · commit `a02c698`
 - [ ] `FUT-014` TR-F031 P3 — Field diagnostics mini-mode untuk teknisi yang offline · RISET · dep FUT-013 · PROPOSED_VERIFICATION
-- [ ] `FUT-015` TR-F013 P3 — Adaptive contextual workspace dari tugas operator · RISET · dep ENG-053 · PROPOSED_VERIFICATION
+- [x] `FUT-015` TR-F013 P3 — Adaptive contextual workspace dari tugas operator · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `e1b5261`
 - [ ] `FUT-016` TR-F013 P3 — Voice-assisted navigation untuk aksesibilitas internal · RISET · dep ENG-053 · PROPOSED_VERIFICATION
 - [ ] `FUT-018` TR-F029 P3 — Riset visual incident card grunge yang bisa dicetak · RISET · dep FUT-017 · PROPOSED_VERIFICATION
 - [ ] `FUT-020` TR-F033 P3 — Per-tenant statistik operasional privat berbasis agregat · RISET · dep ENG-017 · PROPOSED_VERIFICATION
@@ -1227,10 +1253,10 @@ taken from the checkboxes in the wave lists, not from memory:
 | 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
 | **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-The inventory-wide total adds the 12 Wave 3 rows and the 1 Wave 4 row delivered
+The inventory-wide total adds the 12 Wave 3 rows and the 2 Wave 4 rows delivered
 out of wave order because they were locally executable: `ENG-006`, `ENG-007`,
 `ECO-006`, `FUT-001`, `FUT-002`, `FUT-006`, `FUT-007`, `FUT-009`, `FUT-010`,
-`FUT-011`, `FUT-017`, `FUT-022`, `FUT-023`.
+`FUT-011`, `FUT-015`, `FUT-017`, `FUT-022`, `FUT-023`.
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
@@ -1247,13 +1273,14 @@ and no path from a verdict to an action) and `FUT-007` (the bandwidth-profile
 what-if estimator, closed as a reproducible wire diff that holds the product's
 answer instead of predicting one, with the cache-miss fallback and the
 checker-only columns recorded as the parts a preview must refuse to promise) were
-the first seven and all closed 2026-10-29. These four are what remains:
-1. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
+the first seven and all closed 2026-10-29. `FUT-015` (the contextual workspace
+study, closed as a pricing of the task surfaces the console already ships, with
+the role-gate disagreement it exposes and the human/live-session half it cannot
+close) is the eighth, also 2026-10-29. These three are what remains:
+1. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
    `ENG-053` done).
-2. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
-   `ENG-053` done).
-3. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
-4. `FUT-020` — per-tenant private operational statistics from aggregates
+2. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
+3. `FUT-020` — per-tenant private operational statistics from aggregates
    (`RISET`, `ENG-017` done).
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
