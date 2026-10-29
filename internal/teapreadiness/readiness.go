@@ -1,6 +1,6 @@
-// Package teapreadiness reports which mechanisms RFC 7170 (TEAP) expects of an
-// authentication server, and which of them this repository's EAP server already
-// implements.
+// Package teapreadiness reports which mechanisms RFC 9930 (TEAP Version 1)
+// expects of an authentication server, and which of them this repository's EAP
+// server already implements.
 //
 // It is an ENG-006 research prototype. It only reads, no product code imports
 // it, and every verdict is anchored twice: a mechanism counts as implemented
@@ -21,8 +21,10 @@ import (
 
 // The RFC labels cited by the catalog.
 const (
-	// rfcTEAP is the base TEAP specification, vendored as docs/rfcs/rfc7170-teap.txt.
-	rfcTEAP = "RFC 7170"
+	// rfcTEAP is the current TEAP Version 1 specification, vendored as
+	// docs/rfcs/rfc9930-teap-version-1.txt. It obsoletes RFC 7170, which stays in
+	// the archive only as the history of the clauses this catalog no longer cites.
+	rfcTEAP = "RFC 9930"
 	// rfcTLSTunnel is the TLS 1.3 transport TEAP builds on.
 	rfcTLSTunnel = "RFC 9190"
 	// rfcEAPBase is the EAP framework carrying fragmentation rules.
@@ -30,10 +32,8 @@ const (
 	// rfcCUI is the chargeable-user-identity specification behind the anonymous
 	// outer identity the server already sends.
 	rfcCUI = "RFC 4372"
-	// rfcTEAPv1 is the revision that adds the AVP and password mechanisms; this
-	// repository carries no text for it, so its clauses cannot be quoted locally.
-	rfcTEAPv1 = "RFC 9930"
-	// rfcCryptoAgility is the TEAP key-derivation update; likewise not vendored.
+	// rfcCryptoAgility carries the TLS 1.3 key derivations TEAP uses, vendored as
+	// docs/rfcs/rfc9427-tls-based-eap-types-tls13.txt. RFC 9930 updates it.
 	rfcCryptoAgility = "RFC 9427"
 )
 
@@ -53,13 +53,14 @@ const (
 
 // Source is the specification clause that makes a Mechanic a requirement.
 type Source struct {
-	// RFC names the specification, e.g. "RFC 7170".
+	// RFC names the specification, e.g. "RFC 9930".
 	RFC string
 	// Section is the clause number, or "" when the requirement is quoted from
 	// the document body rather than a numbered heading.
 	Section string
-	// Document is the vendored text under docs/rfcs, or "" when this repository
-	// carries no text for RFC — in which case Quote must be "" too.
+	// Document is the vendored text under docs/rfcs that carries the clause. Every
+	// catalog entry names one: a mechanism whose specification is not in the
+	// repository cannot be cataloged as a requirement.
 	Document string
 	// Quote is a phrase that appears verbatim in Document once whitespace is
 	// collapsed. It is what makes the requirement citable instead of asserted.
@@ -176,109 +177,109 @@ type Report struct {
 // appears across the whole tree does not turn the report into a source dump.
 const maxEvidence = 3
 
-// Mechanics returns the requirement catalog in the order RFC 7170 introduces it.
+// Mechanics returns the requirement catalog in the order RFC 9930 introduces it.
 // Every marker names an identifier an implementer would have to write, and every
-// citation is quoted from a document under docs/rfcs — except the two clauses
-// whose specifications this repository does not carry, which say so in Note.
+// citation is quoted from a document this repository carries under docs/rfcs.
 func Mechanics() []Mechanic {
 	return []Mechanic{
 		{
 			ID:      "teap-eap-type",
 			Title:   "TEAP has an assigned EAP method type the server can send",
-			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc7170-teap.txt", Quote: "TEAP Message Format"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc9930-teap-version-1.txt", Quote: "TEAP Message Format"},
 			Markers: []string{"TypeTEAP"},
 			Note:    "interfaces.go declares types 1-33 and stops at EAP-TLV; type 39 is the first one missing.",
 		},
 		{
 			ID:      "teap-method-name",
 			Title:   "The method has a name the registry and configuration can address",
-			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc7170-teap.txt", Quote: "TEAP Message Format"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc9930-teap-version-1.txt", Quote: "TEAP Message Format"},
 			Markers: []string{"EAPMethodTEAP"},
 			Note:    "Handlers export EAPMethodTLS, EAPMethodPEAP, EAPMethodTTLS and EAPMethodOTP; there is no TEAP name.",
 		},
 		{
 			ID:      "teap-handler-wiring",
 			Title:   "A TEAP handler is registered and reachable from the identity phase",
-			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc7170-teap.txt", Quote: "In the first EAP-Request sent with EAP type=TEAP"},
+			Source:  Source{RFC: rfcTEAP, Section: "3.1", Document: "rfc9930-teap-version-1.txt", Quote: "In the first EAP-Request sent with EAP type=TEAP"},
 			Markers: []string{"NewTEAPHandler", "NewTEAPHandlerWithConfig"},
 			Note:    "Registration is central in plugins/init.go, and the identity-phase dispatch in coordinator.go is a name switch, so a new method needs both a constructor and a case there.",
 		},
 		{
 			ID:      "teap-config-choice",
 			Title:   "Operators can select TEAP as radius.EapMethod",
-			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc7170-teap.txt", Quote: "TEAP Message Format"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc9930-teap-version-1.txt", Quote: "TEAP Message Format"},
 			Markers: []string{"eap-teap"},
 			Note:    "The config enum lists eap-md5, eap-mschapv2, eap-tls, eap-peap and eap-ttls; the allowlist would drop an unregistered name anyway.",
 		},
 		{
 			ID:      "teap-version-negotiation",
 			Title:   "The TEAP version field is negotiated and re-verified",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.13", Document: "rfc7170-teap.txt", Quote: "The receiver of the Crypto-Binding TLV MUST verify that the version"},
+			Source:  Source{RFC: rfcTEAP, Section: "3.1", Document: "rfc9930-teap-version-1.txt", Quote: "The receiver of the Crypto-Binding TLV MUST verify that the version"},
 			Markers: []string{"teapVersion", "TEAPVersion"},
-			Note:    "Nothing parses a TEAP header today, so there is no version octet to negotiate.",
+			Note:    "Nothing parses a TEAP header today, so there is no version octet to negotiate. RFC 9930 §3.1 makes the negotiated version a check the receiver must repeat against the Crypto-Binding TLV, which is why this row cannot be satisfied by a parser alone.",
 		},
 		{
 			ID:      "result-tlv",
 			Title:   "Result TLV is read to finish phase 2",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.4", Document: "rfc7170-teap.txt", Quote: "Result TLV"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.2.4", Document: "rfc9930-teap-version-1.txt", Quote: "Result TLV"},
 			Markers: []string{"TypeTLV", "tlvTypeResult"},
 			Note:    "PEAPv0 already decodes a Result TLV of type 3, which is the same encoding TEAP requires.",
 		},
 		{
 			ID:      "crypto-binding-tlv",
 			Title:   "Crypto-Binding TLV is constructed and verified",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.13", Document: "rfc7170-teap.txt", Quote: "Phase 2 MUST always end with a Crypto-Binding TLV"},
+			Source:  Source{RFC: rfcTEAP, Section: "3.6", Document: "rfc9930-teap-version-1.txt", Quote: "Phase 2 MUST always end with a Crypto-Binding TLV"},
 			Markers: []string{"CryptoBinding", "cryptobinding"},
-			Note:    "The only mentions in the tree are comments: peap_inner.go says unknown TLVs including Cryptobinding are skipped, so the tunneled methods today cannot close a TEAP exchange.",
+			Note:    "The only mentions in the tree are comments: peap_inner.go says unknown TLVs including Cryptobinding are skipped, so the tunneled methods today cannot close a TEAP exchange. The computation itself is specified in RFC 9930 §6.2.4 and, for TLS 1.3, by RFC 9427 §2.2.",
 		},
 		{
 			ID:      "eap-payload-tlv",
 			Title:   "Inner EAP runs are carried in EAP-Payload TLVs",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.10", Document: "rfc7170-teap.txt", Quote: "EAP-Payload TLV"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.2.10", Document: "rfc9930-teap-version-1.txt", Quote: "EAP-Payload TLV"},
 			Markers: []string{"eapPayloadTLV", "EAPPayload"},
 			Note:    "PEAP and TTLS put a bare inner EAP packet in the tunnel; TEAP wraps it in a TLV, which is a new encoder rather than a reuse.",
 		},
 		{
 			ID:      "intermediate-result-tlv",
 			Title:   "Intermediate-Result TLV reports progress before the final result",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.11", Document: "rfc7170-teap.txt", Quote: "Intermediate-Result TLV"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.2.11", Document: "rfc9930-teap-version-1.txt", Quote: "Intermediate-Result TLV"},
 			Markers: []string{"IntermediateResult", "CodeIntermediate"},
 			Note:    "The code knows EAP Request, Response, Success and Failure only; the chaining design needs the intermediate form to continue after the first inner method.",
 		},
 		{
-			ID:      "pac-tlv",
-			Title:   "PAC TLV provisioning and reuse is implemented",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.12", Document: "rfc7170-teap.txt", Quote: "PAC TLV Format"},
-			Markers: []string{"pacOpaque", "PACInfo", "pacTLV"},
-			Note:    "Session resumption inside TEAP depends on PAC-Key, PAC-Opaque and PAC-Info; none of them exists, so every TEAP handshake would be a full handshake.",
+			ID:      "session-resumption",
+			Title:   "Phase 1 resumption runs on TLS 1.3 session tickets, not on the deprecated PAC",
+			Source:  Source{RFC: rfcTEAP, Section: "2", Document: "rfc9930-teap-version-1.txt", Quote: "the PAC has been deprecated"},
+			Markers: []string{"SessionTicketsDisabled"},
+			Against: []string{"SessionTicketsDisabled: true"},
+			Note:    "RFC 9930 deprecated the PAC that RFC 7170 borrowed from EAP-FAST and resumes a TEAP session with the TLS 1.3 NewSessionTicket message instead, so this row is not a build item; the shared tunnel engine deliberately disables tickets, which is what has to change.",
 		},
 		{
 			ID:      "inner-method-chaining",
 			Title:   "Two inner methods chain, machine then user",
-			Source:  Source{RFC: rfcTEAP, Document: "rfc7170-teap.txt", Quote: "TEAPv1 meets this requirement by supporting inner EAP method chaining"},
+			Source:  Source{RFC: rfcTEAP, Section: "A.26", Document: "rfc9930-teap-version-1.txt", Quote: "TEAPv1 meets this requirement by supporting inner EAP method chaining"},
 			Markers: []string{"InnerMethods", "methodChain"},
-			Note:    "The tunnel state machines run exactly one inner method per session, which is the M11 requirement the roadmap calls certificate plus password.",
+			Note:    "The tunnel state machines run exactly one inner method per session, which is the M11 requirement the roadmap calls certificate plus password. RFC 9930 §3.6.2 defines the chained sequence and §3.6.5 bounds what may be chained: an inner method MUST crypto-bind its own keys to the tunnel, a tunneled method MUST NOT be nested inside TEAP, inner-method resumption is forbidden, and EAP-TLS with EAP-MSCHAPv2 are the pair the document names as widely supported.",
 		},
 		{
 			ID:      "identity-type-tlv",
 			Title:   "Identity-Type TLV distinguishes machine from user identity",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.3", Document: "rfc7170-teap.txt", Quote: "Identity-Type TLV"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.2.3", Document: "rfc9930-teap-version-1.txt", Quote: "Identity-Type TLV"},
 			Markers: []string{"identityType", "IdentityType"},
 			Note:    "Chaining is meaningless without the TLV that says whose credentials are being proved.",
 		},
 		{
 			ID:      "authority-id-tlv",
 			Title:   "Authority-ID TLV identifies the provisioning authority",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.2", Document: "rfc7170-teap.txt", Quote: "Authority-ID TLV"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.2.2", Document: "rfc9930-teap-version-1.txt", Quote: "Authority-ID TLV"},
 			Markers: []string{"authorityID", "AuthorityID"},
-			Note:    "Only needed if PAC provisioning is built; it is listed so the build set is complete rather than implied.",
+			Note:    "RFC 9930 keeps this TLV for certificate provisioning inside the tunnel (§3.11), not for the deprecated PAC, so it stays a build item only if provisioning is scheduled; it is listed so the build set is complete rather than implied.",
 		},
 		{
 			ID:      "basic-password-auth-tlv",
 			Title:   "Basic-Password-Auth TLVs carry a password without an inner EAP method",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.14", Document: "rfc7170-teap.txt", Quote: "Basic-Password-Auth-Req TLV"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.2.14", Document: "rfc9930-teap-version-1.txt", Quote: "Basic-Password-Auth-Req TLV"},
 			Markers: []string{"basicPasswordAuth", "PasswordAuthTLV"},
-			Note:    "This is the certificate-plus-password path the roadmap wants, and it is a TLV exchange, not an inner method.",
+			Note:    "This is the certificate-plus-password path the roadmap wants, and it is a TLV exchange, not an inner method. RFC 9930 §4.2.8 names Basic-Password-Auth-Req as the case whose MSK and EMSK cannot come from cryptographic primitives and MUST be set to zero, and RFC 9427 §2.2 turns that into 32 zero octets for the inner session key - so a password carried this way contributes no link-layer key material of its own.",
 		},
 		{
 			ID:      "tls13-outer-tunnel",
@@ -291,30 +292,30 @@ func Mechanics() []Mechanic {
 		{
 			ID:      "rfc9427-key-derivation",
 			Title:   "Session keys derive through the RFC 9427 KDF",
-			Source:  Source{RFC: rfcCryptoAgility},
+			Source:  Source{RFC: rfcCryptoAgility, Section: "2.2", Document: "rfc9427-tls-based-eap-types-tls13.txt", Quote: `IMSK[j] = TLS-Exporter("TEAPbindkey@ietf.org", secret, 32)`},
 			Markers: []string{"cfs4", "KdfLabel"},
-			Note:    "docs/rfcs carries no RFC 9427 text, so this requirement is named but cannot be quoted from a document in this repository; the existing exporter call sites use the RFC 5705 labels of the inner methods.",
+			Note:    "The exporter call sites in the tree use the RFC 5705 labels of the inner methods; RFC 9427 §2.2 gives TEAP its own TLS 1.3 exporter labels for every compound key, and §2.1 warns that TLS 1.3 exporter output depends on the length passed to it, so requesting more and truncating produces a different key rather than a shorter one.",
 		},
 		{
 			ID:      "exported-keying-material",
 			Title:   "The tunnel exports keying material for the inner method",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.13", Document: "rfc7170-teap.txt", Quote: "Crypto-Binding TLV"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.2.13", Document: "rfc9930-teap-version-1.txt", Quote: "Crypto-Binding TLV"},
 			Markers: []string{"ExportKeyingMaterial"},
 			Note:    "RFC 5705 export already happens inside the established tunnel, which is where a Crypto-Binding calculation would hook in.",
 		},
 		{
 			ID:      "tunneled-eap-framing",
 			Title:   "Inner EAP packets are parsed and normalized inside the tunnel",
-			Source:  Source{RFC: rfcTEAP, Section: "4.2.10", Document: "rfc7170-teap.txt", Quote: "EAP-Payload TLV"},
+			Source:  Source{RFC: rfcTEAP, Section: "4.2.10", Document: "rfc9930-teap-version-1.txt", Quote: "EAP-Payload TLV"},
 			Markers: []string{"parseInnerEAP", "normalizeInnerEAP"},
 			Note:    "PEAP's inner framing already does the header normalization a TEAP EAP-Payload TLV would reuse.",
 		},
 		{
-			ID:      "inner-avp-codec",
-			Title:   "Vendor AVPs are encoded and decoded inside the tunnel",
-			Source:  Source{RFC: rfcTEAPv1},
-			Markers: []string{"parseTTLSAVPs", "encodeTTLSAVP"},
-			Note:    "The AVP codec is EAP-TTLS's and is reusable, but docs/rfcs carries no RFC 9930 text, so its use inside TEAP is named here without a local citation.",
+			ID:      "vendor-specific-tlv",
+			Title:   "Vendor attributes reach the peer inside a Vendor-Specific TLV",
+			Source:  Source{RFC: rfcTEAP, Section: "4.2.8", Document: "rfc9930-teap-version-1.txt", Quote: "The Vendor-Specific TLV is available to allow vendors to support"},
+			Markers: []string{"vendorSpecificTLV", "encodeVendorTLV", "parseVendorTLVs"},
+			Note:    "RFC 9930 nests vendor-defined TLVs in a Vendor-Specific TLV of its own; the ttls_avp.go reader in the tree parses EAP-TTLS AVPs, which is the closest precedent but not the encoding TEAP requires, and §4.2.8 adds the rule that a vendor TLV carrying an authentication protocol MUST define MSK and EMSK values.",
 		},
 		{
 			ID:      "tls-fragmentation",
@@ -349,7 +350,7 @@ var unknowns = []Unknown{
 		Reason: "No file in this repository records client behavior; answering it needs the supplicant matrix that blocks ENG-002.",
 	},
 	{
-		Topic:  "Whether a real TEAP peer completes the Crypto-Binding and PAC exchange",
+		Topic:  "Whether a real TEAP peer completes the Crypto-Binding and Result exchange",
 		Reason: "The handshake harness in the tree drives a crypto/tls client through EAP-TLS, PEAP and TTLS framing only; a TEAP conversation needs a peer that speaks it.",
 	},
 	{
@@ -361,8 +362,8 @@ var unknowns = []Unknown{
 		Reason: "Chaining behavior is client-specific, and this prototype claims no client result; it needs supplicant hardware.",
 	},
 	{
-		Topic:  "What RFC 9427 and RFC 9930 require of TEAP key derivation and inner AVPs",
-		Reason: "docs/rfcs carries no text for either specification, so those two mechanisms are named from their RFC numbers but not quoted; the local EAP-TLS/TTLS documents do not cover them.",
+		Topic:  "Whether inner-method combinations beyond those RFC 9930 §5.1 names behave the same",
+		Reason: "The specification limits its own claims to the combinations it documents and attributes the rest to how a given implementation encodes the Compound MAC; settling it needs a real TEAP peer, which is the ENG-002 gate.",
 	},
 }
 

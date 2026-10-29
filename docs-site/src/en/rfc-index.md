@@ -61,16 +61,21 @@ Where the two differ, the citations in this chapter take precedence.
 
 ## Roadmap standards
 
-| RFC | Standard | Milestone |
-| --- | --- | --- |
-| RFC 9190 (+ RFC 9427) | EAP-TLS 1.3 and TLS 1.3 key derivation | M10 |
-| RFC 7170 / RFC 9930 | TEAP v1 — tunnel EAP, machine + user chaining | M11 |
-| RFC 5931 | EAP-PWD — password-based, no per-client certificate | M12 |
+| RFC | Standard | Milestone | Text archived in `docs/rfcs/` |
+| --- | --- | --- | --- |
+| RFC 9190 | EAP-TLS 1.3 | M10 | `rfc9190-eap-tls13.txt` |
+| RFC 9427 | TLS 1.3 key derivation for TLS-based EAP types | M10, M11 | `rfc9427-tls-based-eap-types-tls13.txt` |
+| RFC 9930 | TEAP v1 — tunnel EAP, machine + user chaining; obsoletes RFC 7170 | M11 | `rfc9930-teap-version-1.txt` |
+| RFC 7170 | TEAP v1, superseded by RFC 9930 | — | `rfc7170-teap.txt` (history only) |
+| RFC 5931 | EAP-PWD — password-based, no per-client certificate | M12 | not yet archived |
 
 > **Catalog accuracy note.** In `docs/rfcs/`, the file `rfc7542-eap-pwd.txt` is
 > mislabeled: **RFC 7542 is the Network Access Identifier (NAI)**, whereas
 > **EAP-PWD is RFC 5931**. Likewise, EAP-MD5 is defined by **RFC 3748 §5.4**, not
 > RFC 3851 (an S/MIME specification). This chapter uses the correct citations.
+> RFC 9930 and RFC 9427 were added to the archive on 2026-10-29 so that the TEAP
+> readiness catalog (`internal/teapreadiness`) could stop citing clauses it could
+> not read — see [the re-anchoring note](https://github.com/bjo163/mwx-isp/blob/main/docs/teap-citation-anchoring-2026-10-29.md).
 
 ## See also
 

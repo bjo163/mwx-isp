@@ -61,11 +61,13 @@
 | RFC 5216 | `rfc5216-eap-tls.txt`             | EAP-TLS              |
 | RFC 9190 | `rfc9190-eap-tls13.txt`           | EAP-TLS 1.3          |
 | RFC 5281 | `rfc5281-eap-ttls.txt`            | EAP-TTLS             |
+| RFC 7170 | `rfc7170-teap.txt`                | TEAP v1（已被 RFC 9930 取代，仅保留作历史对照） |
+| RFC 9427 | `rfc9427-tls-based-eap-types-tls13.txt` | 基于 TLS 1.3 的 TLS 型 EAP 方法（含 TEAP 密钥导出） |
+| RFC 9930 | `rfc9930-teap-version-1.txt`      | TEAP v1（现行规范，取代 RFC 7170） |
 | RFC 4186 | `rfc4186-eap-sim.txt`             | EAP-SIM (GSM)        |
 | RFC 4187 | `rfc4187-eap-aka.txt`             | EAP-AKA (3G)         |
 | RFC 4764 | `rfc4764-eap-psk.txt`             | EAP-PSK (预共享密钥) |
 | RFC 5448 | `rfc5448-eap-ikev2-aka-prime.txt` | EAP-IKEv2 / EAP-AKA' |
-| RFC 7170 | `rfc7170-teap.txt`                | TEAP (隧道 EAP)      |
 | RFC 7542 | `rfc7542-eap-pwd.txt`             | EAP-PWD (密码)       |
 
 ## EAP 扩展
@@ -194,7 +196,8 @@
 
 - `rfc5216-eap-tls.txt` (最安全)
 - `rfc5281-eap-ttls.txt` (常用)
-- `rfc7170-teap.txt` (新一代)
+- `rfc9930-teap-version-1.txt` (新一代 TEAP，取代 rfc7170-teap.txt)
+- `rfc9427-tls-based-eap-types-tls13.txt` (TLS 1.3 下的密钥导出)
 
 **厂商属性**：
 
@@ -203,4 +206,4 @@
 
 ## 文档更新
 
-最后更新时间：2025-11-10
+最后更新时间：2026-10-29

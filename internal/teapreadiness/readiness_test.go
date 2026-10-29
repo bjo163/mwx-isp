@@ -70,20 +70,40 @@ func TestCatalogIDsAreUnique(t *testing.T) {
 }
 
 // TestEveryCitationIsQuotableHere is the anti-fabrication gate: a mechanism
-// either quotes a document the repository carries, or says in its note that the
-// specification is not vendored. A clause nobody has read cannot be cited.
+// quotes a phrase out of a document this repository carries. M11.1 vendored the
+// last two missing specifications (RFC 9930 and RFC 9427), so an entry with no
+// document is now a defect rather than a disclosed exemption: a clause nobody
+// has read cannot be cited.
 func TestEveryCitationIsQuotableHere(t *testing.T) {
 	for _, m := range Mechanics() {
-		if m.Source.Document == "" {
-			assert.Empty(t, m.Source.Quote, "%s quotes text but names no document", m.ID)
-			assert.True(t, strings.Contains(m.Note, "docs/rfcs"),
-				"%s cites %s with no vendored document, so its note must say so", m.ID, m.Source.RFC)
-			continue
-		}
+		require.NotEmpty(t, m.Source.Document,
+			"%s cites %s without naming a vendored document", m.ID, m.Source.RFC)
+		assert.NotEmpty(t, m.Source.Quote, "%s names %s but quotes nothing", m.ID, m.Source.Document)
 		doc := readRepoFile(t, "docs/rfcs/"+m.Source.Document)
 		assert.Contains(t, collapseSpace(doc), collapseSpace(m.Source.Quote),
 			"%s cites %s with a quote that is not in %s", m.ID, m.Source, m.Source.Document)
 	}
+}
+
+// TestNoCitationPointsAtAnObsoletedSpecification pins the re-anchoring done by
+// M11.1: RFC 9930 obsoletes RFC 7170, so the requirement catalog cites the
+// current text. The obsolete document stays in docs/rfcs as history, but a
+// mechanism read as a build requirement must not cite it.
+func TestNoCitationPointsAtAnObsoletedSpecification(t *testing.T) {
+	for _, m := range Mechanics() {
+		assert.NotEqual(t, "rfc7170-teap.txt", m.Source.Document,
+			"%s cites RFC 7170, which RFC 9930 obsoletes", m.ID)
+		assert.NotEqual(t, "RFC 7170", m.Source.RFC, "%s cites an obsoleted specification", m.ID)
+	}
+}
+
+// TestObsoletedSpecificationIsStillArchived keeps the re-anchoring honest in the
+// other direction: the catalog moved off RFC 7170 because the newer text is in
+// the archive, not because the older one was deleted.
+func TestObsoletedSpecificationIsStillArchived(t *testing.T) {
+	assert.Contains(t, readRepoFile(t, "docs/rfcs/rfc9930-teap-version-1.txt"),
+		"Obsoletes: 7170", "the TEAP catalog cites RFC 9930 because it obsoletes RFC 7170")
+	assert.FileExists(t, filepath.Join(repoRoot(t), "docs", "rfcs", "rfc7170-teap.txt"))
 }
 
 // TestCommentMentionsAreNotEvidence pins the rule that makes the Crypto-Binding
@@ -134,7 +154,7 @@ func TestSubstringLookalikesDoNotProveTEAP(t *testing.T) {
 func TestRealTreeVerdictsForReusedMechanics(t *testing.T) {
 	report := realReport(t)
 	for _, id := range []string{
-		"result-tlv", "tunneled-eap-framing", "inner-avp-codec", "tls-fragmentation",
+		"result-tlv", "tunneled-eap-framing", "tls-fragmentation",
 		"protected-success", "anonymous-outer-identity", "exported-keying-material",
 	} {
 		finding := find(t, report, id)
@@ -151,8 +171,9 @@ func TestRealTreeVerdictsForBuildMechanics(t *testing.T) {
 	report := realReport(t)
 	for _, id := range []string{
 		"teap-eap-type", "teap-method-name", "teap-handler-wiring", "teap-config-choice",
-		"teap-version-negotiation", "eap-payload-tlv", "intermediate-result-tlv", "pac-tlv",
+		"teap-version-negotiation", "eap-payload-tlv", "intermediate-result-tlv",
 		"inner-method-chaining", "identity-type-tlv", "authority-id-tlv", "basic-password-auth-tlv",
+		"vendor-specific-tlv",
 	} {
 		finding := find(t, report, id)
 		assert.Equal(t, StatusMissing, finding.Status, "%s must not be claimed as built", id)
@@ -169,6 +190,22 @@ func TestTLSTunnelVerdictReportsBothSides(t *testing.T) {
 	assert.Contains(t, finding.Against[0].Text, "MaxVersion")
 }
 
+// TestResumptionVerdictReportsTheTicketPin is the finding that made M11.1 worth
+// running: RFC 9930 replaces the deprecated PAC with TLS 1.3 session tickets, and
+// the shared tunnel engine deliberately turns tickets off.
+func TestResumptionVerdictReportsTheTicketPin(t *testing.T) {
+	report := realReport(t)
+	finding := find(t, report, "session-resumption")
+	assert.Equal(t, StatusBlocked, finding.Status)
+	require.NotEmpty(t, finding.Against, "the ticket pin must be quoted as the contradiction")
+	assert.Contains(t, finding.Against[0].Text, "SessionTicketsDisabled: true")
+
+	// The deprecation itself is quotable from the current specification, so the
+	// row cannot quietly turn back into "build the PAC".
+	assert.Contains(t, collapseSpace(finding.Mechanic.Source.Quote), "the PAC has been deprecated")
+	assert.Contains(t, finding.Note, "deprecated", "the note must say the PAC is not the mechanism to build")
+}
+
 func TestTotalsAccountForEveryMechanism(t *testing.T) {
 	report := realReport(t)
 	assert.Equal(t, len(Mechanics()), report.Totals.Mechanics)
@@ -176,6 +213,10 @@ func TestTotalsAccountForEveryMechanism(t *testing.T) {
 		report.Totals.Ready+report.Totals.Partial+report.Totals.Blocked+report.Totals.Missing)
 	assert.Greater(t, report.Totals.Missing, report.Totals.Ready,
 		"TEAP is a build project, not a configuration toggle")
+	// Both blockers are TLS 1.3 tunnel settings the tree pins on purpose, so an
+	// M11 plan starts by revisiting two existing decisions rather than by adding
+	// a handler.
+	assert.Equal(t, 2, report.Totals.Blocked)
 }
 
 func TestStatusRulesFromASyntheticTree(t *testing.T) {
@@ -264,13 +305,13 @@ func TestFindingStringNamesVerdictClauseAndEvidence(t *testing.T) {
 	report := realReport(t)
 	line := find(t, report, "result-tlv").String()
 	assert.Contains(t, line, "result-tlv ready")
-	assert.Contains(t, line, "RFC 7170 §4.2.4")
+	assert.Contains(t, line, "RFC 9930 §4.2.4")
 	assert.Contains(t, line, "evidence=internal/radiusd/plugins/eap")
 
 	blocked := find(t, report, "tls13-outer-tunnel").String()
 	assert.Contains(t, blocked, "contradicted-by=")
 
-	missing := find(t, report, "pac-tlv").String()
+	missing := find(t, report, "crypto-binding-tlv").String()
 	assert.Contains(t, missing, "evidence=none")
 }
 
@@ -280,8 +321,8 @@ func TestRenderMarkdownSeparatesReuseBuildAndUnknown(t *testing.T) {
 	assert.Contains(t, rendered, "## Reusable now")
 	assert.Contains(t, rendered, "## To build")
 	assert.Contains(t, rendered, "## What this scan cannot answer")
-	assert.Contains(t, rendered, "| result-tlv | RFC 7170 §4.2.4 | internal/radiusd/plugins/eap")
-	assert.Contains(t, rendered, "`pac-tlv` — ")
+	assert.Contains(t, rendered, "| result-tlv | RFC 9930 §4.2.4 | internal/radiusd/plugins/eap")
+	assert.Contains(t, rendered, "`vendor-specific-tlv` — ")
 	assert.Contains(t, rendered, "Which supplicants offer TEAP")
 }
 
