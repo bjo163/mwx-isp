@@ -31,7 +31,36 @@ the current tree.
 
 ## Progress
 
-Done: 42 / 100.
+Done: 43 / 100.
+
+- `ENG-034` (2026-10-29, `dev` @ `9bc7368`): operator payment correction. No
+  correction path existed: `billing.RecordPayment` is append-only and the
+  portal payment endpoints are fail-closed (503/410/503), so a mis-entered
+  payment could only be fixed by editing money rows by hand. `ReversePayment`
+  now keeps the payment number, amount and timestamp, marks the row `reversed`,
+  restores exactly that amount on the invoice, and derives the invoice status
+  from the restored balance (paid→issued, paid→overdue when the due date
+  passed, paid→partial when other payments remain, partial→issued). Void
+  invoices (`409 INVOICE_VOID`), non-received payments
+  (`409 PAYMENT_NOT_REVERSIBLE`), and payments that disagree with the invoice
+  ledger are rejected before any write. The payment and invoice are locked
+  `FOR UPDATE` in one transaction with a `payment_reversed` billing event and a
+  `sys_opr_logs` row carrying the operator, client IP and a trimmed 8–200
+  character reason (`400 INVALID_CORRECTION_REASON`), so a repeat call cannot
+  duplicate the trail. The route is admin-only
+  (`POST /isp/payments/:id/reverse`, operator gets 403) and a cross-tenant
+  payment id returns 404 through the tenant-scoped `GetDB(c)`. The customer
+  timeline now summarizes a reversed payment as `(reversed)` with warning
+  severity instead of reporting it as settled, and the console shows the
+  action only to admins on received payments. Acceptance is the
+  paid/partial/void matrix with a role check and a correction trail: `go test
+  ./internal/billing/` and `go test ./internal/adminapi/ -run
+  'TestCustomerTimeline|TestPaymentReversal'` pass, `golangci-lint run
+  ./internal/billing/... ./internal/adminapi/...` reports only the four
+  pre-existing `auth_session_test.go` gosec findings, and `npm run type-check`
+  plus `npm run build` pass. Limits: no Playwright coverage of the new dialog,
+  and no concurrent payment-vs-reversal race test beyond the shared row locks.
+  Evidence: [payment-correction-policy-2026-10-29.md](payment-correction-policy-2026-10-29.md).
 
 - `ENG-026` (2026-10-29, `dev` @ `33c0f5e`): backup KDF and envelope
   evaluation. Measured PBKDF2-SHA256 at the counts that bound the policy on
@@ -748,7 +777,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-003` TR-F004 P2 — Pemetaan kebijakan pencabutan sertifikat EAP-TLS · LOKAL · PROPOSED_VERIFICATION · commit `d463ec4`
 - [ ] `ENG-005` TR-F004 P2 — Evaluasi dukungan inner EAP-TTLS CHAP dan MS-CHAP · LOKAL · dep ENG-002 · PROPOSED_VERIFICATION
 - [x] `ENG-026` TR-F020 P2 — Evaluasi parameter KDF dan envelope backup · LOKAL · PROPOSED_VERIFICATION · commit `33c0f5e`
-- [ ] `ENG-034` TR-F028 P2 — Pembetulan transaksi payment operator yang salah input · LOKAL · dep ENG-033 · PROPOSED_VERIFICATION
+- [x] `ENG-034` TR-F028 P2 — Pembetulan transaksi payment operator yang salah input · LOKAL · PROPOSED_VERIFICATION · commit `9bc7368`
 - [ ] `ENG-060` TR-F022 P2 — Studi support bundle tersensor untuk insiden operator · LOKAL · dep ENG-028 · PROPOSED_VERIFICATION
 - [ ] `ECO-003` TR-F020 P2 — Model total cost of ownership deployment ISP · RISET · dep ENG-045 · PROPOSED_VERIFICATION
 - [ ] `ECO-009` TR-F028 P2 — Audit peluang revenue leakage dari invoice yang sudah ada · RISET · dep ENG-031 · PROPOSED_VERIFICATION
@@ -808,8 +837,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `ENG-034` — operator payment correction (dependency ENG-033 is done).
-2. `ENG-060` — redacted support bundle study (dependency ENG-028 is done).
+1. `ENG-060` — redacted support bundle study (dependency ENG-028 is done).
 
 `ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
 `ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
