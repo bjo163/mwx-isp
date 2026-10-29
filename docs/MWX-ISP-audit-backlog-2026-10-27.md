@@ -31,8 +31,42 @@ the current tree.
 
 ## Progress
 
-Done: 58 / 100.
+Done: 59 / 100.
 
+- `FUT-016` (2026-10-29, `dev` @ `808bf61`): voice-assisted navigation for
+  internal accessibility, delivered as a measurement of what a navigation-only
+  vocabulary may be asked to do rather than as a microphone demo. The criterion's
+  three claims were each made checkable. **Mutations are unreachable by
+  construction**: the speakable vocabulary is exactly the **23** menu rows as the
+  two shipped locales render them (**46** phrases, **0** destinations speakable in
+  neither locale), and the answer carries a menu path with no method, id or
+  payload, so **0** of the **78** write registrations is expressible -
+  `TestTheAnswerTypeCarriesNoOperation` reflects over the type rather than trusting
+  the prose. Behaviourally, an operation word derived from the server's own guard
+  line and write-route tails (**17** action words → **32** refusal tokens, pruned
+  to **28** because **4** are also screen words - `operators` names both
+  `ApiPOST("/platform/tenants/:id/operators")` and the Operators screen) refuses
+  before scoring: **7 of 7** operation transcripts refused. **Salah transkripsi**:
+  over **58** authored transcripts in **14** error classes, **57** give the answer
+  the study requires, **0** confident answers name a screen the transcript did not
+  ask for and **0** reach a mutation; the single mismatch is `peladangan` at **70%**
+  against a **78%** accept floor, reported rather than tuned away. The corpus broke
+  the naive scorer once - `jaringan` was nearly answered as `/operations` - and the
+  fragment-eligibility rule (a candidate may have no more words than the transcript
+  has tokens) is what refuses it now, with **16-17** of **22-23** resembling labels
+  dropped per one-word transcript. **Teks fallback**: measured per destination
+  through `App.tsx`'s import graph - **23 of 23** trace to a page, **140** text or
+  search inputs, **8** pages bind a filter - and the honest answer is a split one,
+  **12** screens declare no typed input of their own, so the fallback there is
+  navigation-level, not typed. **Voice optional** is a fact of absence, not a
+  promise: **0** speech-API references in `web/src` and `web/e2e`, **0** microphone
+  or recognizer entry points in `internal`. Two findings stay as refusals: the **9**
+  gated destinations remain speakable exactly as their URLs stay reachable, and **4**
+  Indonesian operation sentences are stopped by nothing but the answer type.
+  **15/15** statements pin to code lines, **6** gaps stay open (an audio corpus, a
+  human panel, a live browser session, per-role sessions, the `TR-F013` vocabulary
+  scope call, a device and duty-cycle decision). Digest
+  `443ac7d1d52ff577c7d47b2189cdc9abc03f6a8861dc7037e4f8e38e7b803b95`.
 - `FUT-015` (2026-10-29, `dev` @ `e1b5261`): the adaptive contextual workspace,
   delivered as a measurement of the navigation the console already ships rather
   than a mockup of one it does not. The cost unit is borrowed from the repository
@@ -1234,7 +1268,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `FUT-007` TR-F008 P3 — Simulasi perubahan profil bandwidth tanpa menulis NAS · RISET · dep ENG-016 · PROPOSED_VERIFICATION · commit `a02c698`
 - [ ] `FUT-014` TR-F031 P3 — Field diagnostics mini-mode untuk teknisi yang offline · RISET · dep FUT-013 · PROPOSED_VERIFICATION
 - [x] `FUT-015` TR-F013 P3 — Adaptive contextual workspace dari tugas operator · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `e1b5261`
-- [ ] `FUT-016` TR-F013 P3 — Voice-assisted navigation untuk aksesibilitas internal · RISET · dep ENG-053 · PROPOSED_VERIFICATION
+- [x] `FUT-016` TR-F013 P3 — Voice-assisted navigation untuk aksesibilitas internal · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `808bf61`
 - [ ] `FUT-018` TR-F029 P3 — Riset visual incident card grunge yang bisa dicetak · RISET · dep FUT-017 · PROPOSED_VERIFICATION
 - [ ] `FUT-020` TR-F033 P3 — Per-tenant statistik operasional privat berbasis agregat · RISET · dep ENG-017 · PROPOSED_VERIFICATION
 - [ ] `FUT-019` TR-F031 P3 — Edge collector polling read-only pada jaringan terbatas · RISET+ASET · dep ENG-049 · PROPOSED_VERIFICATION
@@ -1253,10 +1287,10 @@ taken from the checkboxes in the wave lists, not from memory:
 | 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
 | **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-The inventory-wide total adds the 12 Wave 3 rows and the 2 Wave 4 rows delivered
+The inventory-wide total adds the 13 Wave 3 rows and the 2 Wave 4 rows delivered
 out of wave order because they were locally executable: `ENG-006`, `ENG-007`,
 `ECO-006`, `FUT-001`, `FUT-002`, `FUT-006`, `FUT-007`, `FUT-009`, `FUT-010`,
-`FUT-011`, `FUT-015`, `FUT-017`, `FUT-022`, `FUT-023`.
+`FUT-011`, `FUT-015`, `FUT-016`, `FUT-017`, `FUT-022`, `FUT-023`.
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
@@ -1276,11 +1310,12 @@ checker-only columns recorded as the parts a preview must refuse to promise) wer
 the first seven and all closed 2026-10-29. `FUT-015` (the contextual workspace
 study, closed as a pricing of the task surfaces the console already ships, with
 the role-gate disagreement it exposes and the human/live-session half it cannot
-close) is the eighth, also 2026-10-29. These three are what remains:
-1. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
-   `ENG-053` done).
-2. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
-3. `FUT-020` — per-tenant private operational statistics from aggregates
+close) is the eighth and `FUT-016` (the voice-navigation study, closed as a
+measurement of what a navigation-only vocabulary can be asked to do, with the
+audio-corpus, panel and live-session half it cannot close) the ninth, also
+2026-10-29. These two are what remains:
+1. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
+2. `FUT-020` — per-tenant private operational statistics from aggregates
    (`RISET`, `ENG-017` done).
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
