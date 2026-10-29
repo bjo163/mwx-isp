@@ -125,9 +125,9 @@ func Claims() []Claim {
 		},
 		{
 			ID:        "peap-inner-is-mschapv2-only",
-			Statement: "PEAP runs EAP-MSCHAPv2 inside its tunnel and nothing else.",
+			Statement: "PEAP's inner exchange accepts only EAP-MSCHAPv2; an inner response of any other EAP type is a protocol violation that rejects.",
 			File:      "internal/radiusd/plugins/eap/handlers/peap_inner.go",
-			Symbol:    "handleInnerEAP",
+			Symbol:    "TypeMSCHAPv2",
 			Gap:       "A password method that is not MS-CHAPv2 has no place inside the tunnel that exists today.",
 		},
 		{
@@ -138,9 +138,9 @@ func Claims() []Claim {
 			Gap:       "The tunnel that would carry an EAP-PWD exchange for a certificate-less client is only half built.",
 		},
 		{
-			ID:        "eap-tls-requires-a-client-certificate",
-			Statement: "The certificate method fails when the peer presents no TLS client certificate.",
-			File:      "internal/radiusd/plugins/eap/errors.go",
+			ID:        "eap-tls-authenticates-a-certificate-identity",
+			Statement: "EAP-TLS grants only after mapping a verified peer-certificate identity, and rejects when the certificate carries no usable identity.",
+			File:      "internal/radiusd/plugins/eap/handlers/tls_handler.go",
 			Symbol:    "ErrTLSNoIdentity",
 			Gap:       "This is the requirement EAP-PWD is proposed against: password authentication with no per-client certificate.",
 		},
