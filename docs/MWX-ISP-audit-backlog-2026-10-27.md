@@ -31,7 +31,33 @@ the current tree.
 
 ## Progress
 
-Done: 50 / 100.
+Done: 51 / 100.
+
+- `ENG-006` (2026-10-29, `dev` @ `e1ae01e`): TEAP readiness for M11, measured
+  instead of remembered. `internal/teapreadiness` (read-only, imported by
+  nothing) holds a catalog of the 22 mechanisms RFC 7170 needs and scans the
+  product code for the Go identifiers that would prove each one: 7 reusable now
+  (tunneled framing, fragmentation, keying-material export, Result TLV,
+  protected success, inner AVP codec, anonymous NAI), 1 **blocked** rather than
+  missing — `tls_config.go:257` pins the tunneled handshake to TLS 1.2 while
+  TEAP's outer tunnel is the TLS 1.3 form — and 14 absent, including the two that
+  decide whether M11 is worth scheduling: Crypto-Binding TLV and inner-method
+  chaining. Evidence rules were the whole problem: the tree already contains
+  "Cryptobinding", inside a comment that says the TLV is skipped, so comments are
+  stripped before matching (`TestCommentMentionsAreNotEvidence`), `_test.go` and
+  `testdata` are excluded (`TestScanReadsOnlyProductCode`), and word boundaries
+  stop the generated `msaccteaptype_del` from reading as the method
+  (`TestSubstringLookalikesDoNotProveTEAP`). Every requirement quotes a document
+  under `docs/rfcs`; RFC 9427 and RFC 9930 are not vendored, so those two name
+  their RFC number and say they cannot be cited locally
+  (`TestEveryCitationIsQuotableHere`). Scope stayed bounded: the word Windows,
+  macOS, iOS, Android or wpa_supplicant may not appear in any verdict
+  (`TestNoVerdictClaimsClientCompatibility`), and five `Unknown` entries carry the
+  client questions to the assets `ENG-002` and `ENG-013` need. Decision: M11
+  remains Planned — no handler, config enum or endpoint was added. Acceptance:
+  `go test ./internal/teapreadiness/` passes 18 cases plus 5 subtests and
+  `golangci-lint run ./internal/teapreadiness/...` reports 0 issues. Evidence:
+  [teap-m11-readiness-2026-10-29.md](teap-m11-readiness-2026-10-29.md).
 
 - `ECO-009` (2026-10-29, `dev` @ `dcf4a7d`): revenue-leakage audit over the ledger
   that already exists. The rule was that no rupiah may be claimed without a row
@@ -961,7 +987,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 ## Wave 3 — 23 item (LOKAL 2 · RISET 21)
 
-- [ ] `ENG-006` TR-F004 P3 — Riset kompatibilitas TEAP terbatas untuk milestone M11 · LOKAL · PROPOSED_VERIFICATION
+- [x] `ENG-006` TR-F004 P3 — Riset kompatibilitas TEAP terbatas untuk milestone M11 · LOKAL · PROPOSED_VERIFICATION · commit `e1ae01e`
 - [ ] `ENG-007` TR-F004 P3 — Riset kebutuhan EAP-PWD milestone M12 · LOKAL · PROPOSED_VERIFICATION
 - [ ] `ECO-004` TR-F020 P2 — Evaluasi lisensi managed support vs self-hosted · RISET · dep ECO-001 · PROPOSED_VERIFICATION
 - [ ] `ECO-005` TR-F020 P2 — Desain paket dukungan & SLA yang realistis · RISET · dep ENG-045 · PROPOSED_VERIFICATION
@@ -1000,9 +1026,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 ## Suggested next batch
 
-Empty. `ECO-009` (2026-10-29, `dcf4a7d`) was the last Wave 0-2 row executable
-without a new asset, so the ordered queue below is exhausted. Counts are taken
-from the checkboxes in the wave lists, not from memory:
+Empty for Waves 0-2. `ECO-009` (2026-10-29, `dcf4a7d`) was the last Wave 0-2 row
+executable without a new asset, so that ordered queue is exhausted. Counts are
+taken from the checkboxes in the wave lists, not from memory:
 
 | Wave | Items | Done | Open | Open that needs an asset or a dependency on one |
 | --- | ---: | ---: | ---: | --- |
@@ -1011,18 +1037,37 @@ from the checkboxes in the wave lists, not from memory:
 | 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
 | **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-The inventory-wide 50 adds the 6 research prototypes delivered out of wave order
-because they were locally executable: `FUT-006`, `FUT-009`, `FUT-010`, `FUT-011`,
-`FUT-022`, `FUT-023`.
+The inventory-wide total adds the 7 Wave 3 rows delivered out of wave order
+because they were locally executable: `ENG-006`, `FUT-006`, `FUT-009`, `FUT-010`,
+`FUT-011`, `FUT-022`, `FUT-023`.
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
 complete statement: 44 delivered, 23 no-go, none undecided.
 
-The next locally executable work is therefore Wave 3, whose two `LOKAL` rows are
-`ENG-006` (TEAP compatibility research for M11) and `ENG-007` (EAP-PWD need
-research for M12); the other 21 Wave 3 rows are `RISET` and several of them
-depend on the ASET rows this register blocks, so they inherit the same no-go.
+Work continues in Waves 3-4, where the rows that need no asset remain. Ordered so
+each step stays executable without hardware — `ENG-006` (TEAP readiness for M11)
+was the first of them, closed 2026-10-29:
+
+1. `ENG-007` — EAP-PWD need research for M12 (`LOKAL`, no dependency).
+2. `ECO-006` — onboarding and migration service validation (`RISET`, dependency
+   `ENG-059` is done).
+3. `FUT-017` — experimental skin from existing design tokens (`RISET`, dependency
+   `ENG-053` is done).
+4. `FUT-001` — read-only intent search proof of concept (`RISET`, `ENG-052` done).
+5. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
+6. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
+   `ENG-016` done).
+7. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
+   `ENG-053` done).
+8. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
+   `ENG-053` done).
+9. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
+10. `FUT-020` — per-tenant private operational statistics from aggregates
+    (`RISET`, `ENG-017` done).
+
+The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
+the register below: they are `ASET`/`RISET+ASET`, or they depend on a row that is.
 
 ## Blocked register (Waves 0-2)
 
