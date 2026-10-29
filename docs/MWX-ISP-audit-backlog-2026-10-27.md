@@ -31,7 +31,45 @@ the current tree.
 
 ## Progress
 
-Done: 55 / 100.
+Done: 56 / 100.
+
+- `FUT-002` (2026-10-29, `dev` @ `62c80bb`): incident triage over the sanitized
+  operator log export, delivered as a measurement rather than a model. The card
+  asked for a labeled dataset, a reported hallucination rate and no automatic
+  remediate, so all three had to be made checkable: `SanitizedLine` is only
+  producible through the export's own `internal/redact` path, a hallucination is
+  defined in code as a named cause whose evidence does not hold (not as "wrong"),
+  and the no-remediate half is read off the type by reflection plus the **9**
+  mutating verbs measured from the admin API's own route registrations.
+  `internal/incidenttriage` (read-only, imported by nothing) runs three engines
+  over **20** synthetic incidents built from message templates the product
+  writes, **17** with one cause label and **3** labeled `unresolved` on purpose:
+  the token rules score **100%** accuracy at **0%** hallucination by abstaining on
+  exactly those three, a subsystem-name baseline fitted on the same labels answers
+  **19 of 20** and every answer is unsupported (**42.1%** accuracy, **100%**
+  hallucination), and a never-abstains counterfactual buys **3** extra decisions
+  for a **15%** hallucination rate - which is the number anyone shipping a
+  "summarize this incident" button would be paying. **20 of 20** taxonomy signals
+  resolve to a product code line, the corpus planted **14** secret values and
+  **0** survived the redaction sweep, and the incident-by-incident table prints
+  the log line and the `file:line` behind every verdict. Two findings came out of
+  the scan contradicting the draft memo, and the draft moved instead of the
+  numbers: `namespace` - one of the two filters the export offers - is written with
+  only **3** literals across **55** sites and `job` is written nowhere, and
+  `internal/domain`, `internal/notify` and `internal/ldapauth` attach no namespace
+  at all, so four of the ten cause classes reach the operator in an empty subsystem
+  bucket. **16** statements confirmed, **6** gaps open, **4** mutations of the
+  safety properties all caught by the suite. **5-row no-go register** in
+  `docs/incident-triage-sanitized-logs-2026-10-29.md`: a shipped triage surface
+  (`TR-F031` scope decision, `TR-N003` boundary), precision on real tenant logs
+  (needs a real labeled incident corpus - six of ten classes here have one
+  incident), any AI/LLM comparison (needs a sanctioned model and the data-handling
+  decision; `no-model-client` is an open gap), per-tenant log access (needs a live
+  seeded admin session per role), and remediation suggestions of any kind (the
+  card's criterion is explicitly *no* automatic remediate). Acceptance: `go test
+  -p 1 -count=1 ./internal/incidenttriage/` passes 28 cases with the dump skipped,
+  `golangci-lint run ./internal/incidenttriage/...` reports 0 issues, and the
+  package has no importers in `internal/`, `cmd/` or `pkg/`.
 
 - `FUT-001` (2026-10-29, `dev` @ `8f9b85c`): the read-only intent search proof of
   concept, delivered as a resolver whose safety half is structural rather than
@@ -1122,7 +1160,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `FUT-013` TR-F031 P3 — Offline read-only NOC snapshot dengan TTL dan enkripsi · RISET · dep ENG-055 · PROPOSED_VERIFICATION
 - [x] `FUT-017` TR-F029 P3 — Experimental neo-brutalist manga skin via existing tokens · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `7a8b944`
 - [x] `FUT-001` TR-F013 P3 — Proof-of-concept intent search untuk perintah operator read-only · RISET · dep ENG-052 · PROPOSED_VERIFICATION · commit `8f9b85c`
-- [ ] `FUT-002` TR-F031 P3 — AI incident triage berbasis log tersensor · RISET · dep ENG-028 · PROPOSED_VERIFICATION
+- [x] `FUT-002` TR-F031 P3 — AI incident triage berbasis log tersensor · RISET · dep ENG-028 · PROPOSED_VERIFICATION · commit `62c80bb`
 - [ ] `FUT-003` TR-F031 P3 — Ringkasan insiden berbukti tanpa mengklaim pelanggan offline · RISET · dep ENG-058 · PROPOSED_VERIFICATION
 - [ ] `FUT-004` TR-F031 P3 — Deteksi pola anomali latency dari metrik historis bounded · RISET · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `FUT-005` TR-F031 P3 — Graph hipotesis penyebab insiden dengan uncertainty · RISET · dep ENG-058 · PROPOSED_VERIFICATION
@@ -1162,9 +1200,10 @@ taken from the checkboxes in the wave lists, not from memory:
 | 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
 | **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-The inventory-wide total adds the 11 Wave 3 rows delivered out of wave order
+The inventory-wide total adds the 12 Wave 3 rows delivered out of wave order
 because they were locally executable: `ENG-006`, `ENG-007`, `ECO-006`, `FUT-001`,
-`FUT-006`, `FUT-009`, `FUT-010`, `FUT-011`, `FUT-017`, `FUT-022`, `FUT-023`.
+`FUT-002`, `FUT-006`, `FUT-009`, `FUT-010`, `FUT-011`, `FUT-017`, `FUT-022`,
+`FUT-023`.
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
@@ -1174,18 +1213,19 @@ Work continues in Waves 3-4, where the rows that need no asset remain. Ordered s
 each step stays executable without hardware; `ENG-006` (TEAP readiness for M11),
 `ENG-007` (EAP-PWD need for M12), `ECO-006` (onboarding and migration
 validation), `FUT-017` (the manga-ink contrast audit, closed as a measurement
-of the shipped direction) and `FUT-001` (the intent search proof of concept,
-closed as a resolver that can only name a read route) were the first five and all
-closed 2026-10-29:
-1. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
-2. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
+of the shipped direction), `FUT-001` (the intent search proof of concept, closed
+as a resolver that can only name a read route) and `FUT-002` (incident triage
+over sanitized logs, closed as three engines with a measured hallucination rate
+and no path from a verdict to an action) were the first six and all closed
+2026-10-29:
+1. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
    `ENG-016` done).
-3. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
+2. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
    `ENG-053` done).
-4. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
+3. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
    `ENG-053` done).
-5. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
-6. `FUT-020` — per-tenant private operational statistics from aggregates
+4. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
+5. `FUT-020` — per-tenant private operational statistics from aggregates
    (`RISET`, `ENG-017` done).
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
