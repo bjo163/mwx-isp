@@ -2,11 +2,8 @@ package adminapi
 
 import (
 	"bufio"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"regexp"
@@ -14,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/bjo163/mwx-isp/internal/redact"
 	"github.com/bjo163/mwx-isp/internal/webserver"
+	"github.com/labstack/echo/v4"
 	webresp "github.com/bjo163/mwx-isp/pkg/web"
 )
 
@@ -124,51 +122,10 @@ func readSystemLogEntries(c echo.Context, startTime, endTime time.Time, limit in
 
 // Log lines are filtered on their raw content (operators still search by the
 // identifier they already know) but only the redacted form is exported. The
-// rules mirror a support bundle: secrets disappear, customer identifiers become
-// a stable pseudonym, and addresses keep only their network prefix. Correlation
-// survives because the pseudonym and the prefix are deterministic.
-const systemLogRedactedMarker = "[REDACTED]"
-
-var (
-	secretLogKeyFragments = []string{"password", "passwd", "secret", "token", "authorization", "apikey", "credential", "community", "privatekey"}
-	piiLogKeyFragments    = []string{"phone", "msisdn", "email", "address", "fullname", "customername", "contact"}
-
-	secretAssignmentPattern = regexp.MustCompile(`(?i)\b(password|passwd|secret|token|authorization|api[_-]?key)\b(\s*[=:]\s*)("[^"]*"|'[^']*'|[^\s,;}]+)`)
-	ipv4Pattern             = regexp.MustCompile(`\b(\d{1,3}\.\d{1,3}\.\d{1,3})\.\d{1,3}\b`)
-	emailPattern            = regexp.MustCompile(`[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}`)
-)
-
-type systemLogFieldClass int
-
-const (
-	logClassPlain systemLogFieldClass = iota
-	logClassSecret
-	logClassPII
-	logClassIP
-)
-
-func classifySystemLogKey(key string) systemLogFieldClass {
-	normalized := strings.ToLower(strings.NewReplacer("_", "", "-", "", ".", "").Replace(key))
-	if containsAnyFragment(normalized, secretLogKeyFragments) {
-		return logClassSecret
-	}
-	if normalized == "ip" || strings.HasSuffix(normalized, "ip") || strings.HasSuffix(normalized, "ipaddress") || strings.HasPrefix(normalized, "ipaddr") {
-		return logClassIP
-	}
-	if normalized == "nik" || containsAnyFragment(normalized, piiLogKeyFragments) {
-		return logClassPII
-	}
-	return logClassPlain
-}
-
-func containsAnyFragment(value string, fragments []string) bool {
-	for _, fragment := range fragments {
-		if strings.Contains(value, fragment) {
-			return true
-		}
-	}
-	return false
-}
+// rules live in internal/redact so the log export and the local support bundle
+// cannot drift apart: secrets disappear, customer identifiers become a stable
+// pseudonym, and addresses keep only their network prefix.
+const systemLogRedactedMarker = redact.Marker
 
 func redactSystemLogEntry(entry systemLogEntry) systemLogEntry {
 	if len(entry.Fields) > 0 {
@@ -188,52 +145,15 @@ func redactSystemLogEntry(entry systemLogEntry) systemLogEntry {
 }
 
 func redactSystemLogValue(key string, value interface{}) interface{} {
-	switch classifySystemLogKey(key) {
-	case logClassSecret:
-		return systemLogRedactedMarker
-	case logClassPII:
-		return pseudonymizeSystemLogValue(toSystemLogString(value))
-	case logClassIP:
-		return maskSystemLogAddress(toSystemLogString(value))
-	default:
-		if text, ok := value.(string); ok {
-			return redactSystemLogText(text)
-		}
-		return value
-	}
+	return redact.Value(key, value)
 }
 
-// pseudonymizeSystemLogValue keeps a stable, non-reversible identifier so two
-// entries about the same customer can still be tied together.
-func pseudonymizeSystemLogValue(value string) string {
-	if strings.TrimSpace(value) == "" {
-		return value
-	}
-	sum := sha256.Sum256([]byte(value))
-	return "sha256:" + hex.EncodeToString(sum[:8])
-}
-
-// maskSystemLogAddress keeps the IPv4 /24 or the IPv6 /48 prefix. The host part
-// is what identifies a subscriber, while the prefix is enough to correlate.
 func maskSystemLogAddress(value string) string {
-	ip := net.ParseIP(strings.TrimSpace(value))
-	if ip == nil {
-		return value
-	}
-	if v4 := ip.To4(); v4 != nil {
-		return fmt.Sprintf("%d.%d.%d.x", v4[0], v4[1], v4[2])
-	}
-	groups := strings.Split(ip.String(), ":")
-	if len(groups) < 3 {
-		return value
-	}
-	return strings.Join(groups[:3], ":") + "::x"
+	return redact.MaskAddress(value)
 }
 
 func redactSystemLogText(text string) string {
-	text = secretAssignmentPattern.ReplaceAllString(text, "$1$2"+systemLogRedactedMarker)
-	text = emailPattern.ReplaceAllStringFunc(text, pseudonymizeSystemLogValue)
-	return ipv4Pattern.ReplaceAllString(text, "$1.x")
+	return redact.Text(text)
 }
 
 type systemLogFilter struct {
