@@ -31,7 +31,29 @@ the current tree.
 
 ## Progress
 
-Done: 49 / 100.
+Done: 50 / 100.
+
+- `FUT-023` (2026-10-29, `dev` @ `f4de6b2`): RFC→feature→test navigation graph.
+  Nothing joined `docs/rfcs`, the checklist entry points, and the Go files that
+  cite a number, so "which test implements RFC 3576?" was a grep. The prototype
+  `internal/protocolmap` (read-only, imported by nothing) derives that graph and
+  renders every unprovable link as `UNKNOWN`. Matching rule: the citation regex
+  also counts import paths (`layeh.com/radius/rfc2866`) and document links;
+  entry-point ownership resolves to the **most specific** declaration, otherwise
+  `TR-F033`, which declares `internal/radiusd` among others, absorbs every
+  protocol row. Survey: 56 references, 22 linked, **34 never named anywhere**
+  (incl. RFC 6613 RADIUS-over-TCP while RFC 6614 RadSec is linked, RFC 5997
+  Status-Server, EAP-SIM/AKA/TEAP set); 13 cited numbers have no document, split
+  between real gaps (5705, 8446, 7627, 9427, 4515) and general-internet RFCs used
+  as vocabulary (3339, 5424, 1918…); 8 features own protocol-package code with no
+  anchor; 28 citing files sit outside every entry-point declaration
+  (`test/integration`, `cmd`, `scripts`, the research prototypes); 0 references
+  reach code without test evidence. Decision: keep it unenforced — unlinked
+  references stay in the library on purpose, and no CI gate depends on the
+  counts. Acceptance: `go test ./internal/protocolmap/` passes 14 cases including
+  the deterministic repository survey and `golangci-lint run ./internal/protocolmap/...`
+  reports 0 issues. Evidence:
+  [radius-protocol-navigation-graph-2026-10-29.md](radius-protocol-navigation-graph-2026-10-29.md).
 
 - `FUT-011` (2026-10-29, `dev` @ `319699a`): generated RADIUS mutation
   regression corpus. ENG-011 pins 22 named frames and fuzzes the parser, but a
@@ -936,7 +958,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `FUT-012` TR-F004 P3 — Eksperimen adversarial EAP TLS fragment scheduler · RISET · dep ENG-002 · PROPOSED_VERIFICATION
 - [ ] `FUT-021` TR-F005 P3 — Knowledge base kompatibilitas firmware berbasis bukti uji · RISET · dep ENG-050 · PROPOSED_VERIFICATION
 - [x] `FUT-022` TR-F028 P3 — Event replay simulator untuk reproduksi billing dan NAS · RISET · dep ENG-032 · PROPOSED_VERIFICATION · commit `31551a4`
-- [ ] `FUT-023` TR-F021 P3 — Graph semantik relasi protokol RADIUS dan feature ID · RISET · dep ENG-016 · PROPOSED_VERIFICATION
+- [x] `FUT-023` TR-F021 P3 — Graph semantik relasi protokol RADIUS dan feature ID · RISET · dep ENG-016 · PROPOSED_VERIFICATION · commit `f4de6b2`
 
 ## Wave 4 — 10 item (RISET 8 · RISET+ASET 2)
 
@@ -955,10 +977,51 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `FUT-023` — semantic graph of RADIUS protocol relations and feature IDs
-   (dependency ENG-016 is done; the fork/upstream audit produced the protocol
-   surface to map).
+1. `ECO-009` — revenue-leakage audit over the invoice ledger that already
+   exists (dependency `ENG-031` is done; the item is RISET, so a read-only
+   prototype over fixtures and a supplied database is the whole deliverable).
 
-`ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
-`ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
-`ENG-013`) are ASET items without a claimed host.
+After `ECO-009`, Waves 0-2 contain no locally executable item left.
+
+## Blocked register (Waves 0-2)
+
+Explicit status for every open Wave 0-2 row. No-go means the item cannot be
+closed by repository work at all; it needs an asset the project does not have.
+
+**No-go — needs a clean VPS host (`ENG-041` chain).** Nothing in this chain can
+start until a host is claimed, and no local substitute proves the claim:
+`ENG-041` (fresh install), `ENG-043` (volume-loss restore drill), `ENG-042`
+(registry outage during upgrade), `ENG-046` (localhost SSH tunnel without DNS),
+`ENG-047` (deployment certificate health and expiry), `ENG-044` (PostgreSQL WAL
+PITR), `ENG-045` (RTO/RPO from a rehearsal), `ECO-003` (TCO model, depends on
+`ENG-045`).
+
+**No-go — needs a real NAS in a lab (`ENG-013` chain).** `ENG-013` (RFC 5176
+CoA/Disconnect pilot), `ENG-050` (tested NAS/firmware matrix), `ENG-014` (VSA
+priority from a real device model), `ENG-064` (queue dead-letter and alert check,
+depends on `ENG-013`), `ECO-007` (telemetry and whatsmeow cost control, depends
+on `ENG-048`).
+
+**No-go — needs supplicant hardware.** `ENG-002` (EAP-TLS 1.2/1.3
+interoperability matrix with real supplicants), `ENG-005` (TTLS inner CHAP /
+MS-CHAP evaluation, depends on `ENG-002`).
+
+**No-go — needs a running SNMPv3 device.** `ENG-049` (SNMPv3 authPriv UAT),
+`ENG-055` (OperationsPage loading, stale and retry states, depends on `ENG-049`),
+`ENG-058` (NOC impact confidence labels, depends on `ENG-055`).
+
+**No-go — needs a live WhatsApp pairing number.** `ENG-048` (pairing UAT to an
+opt-in test number).
+
+**No-go — needs a second tenant database and a restore target.** `ENG-020`
+(cross-tenant restore after a schema change).
+
+**No-go — needs concurrent LDAP load against a real directory.** `ENG-015`
+(LDAP bind cost profile).
+
+**No-go — needs human respondents.** `ECO-001` (willingness-to-pay interviews),
+`ECO-002` (operator task timing before/after, depends on `ECO-001`).
+
+Blocked items do not gate the Wave 0-2 close-out: each one is either an ASET row
+whose asset does not exist, or a LOKAL/RISET row whose only unsatisfied
+dependency is such an ASET row.
