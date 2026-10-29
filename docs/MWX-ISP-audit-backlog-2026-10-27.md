@@ -31,7 +31,23 @@ the current tree.
 
 ## Progress
 
-Done: 47 / 100.
+Done: 48 / 100.
+
+- `FUT-006` (2026-10-29, `dev` @ `f026ff4`): static NAS-ODP graph. The ODP
+  registry has `olt_name` and `pon_port` as free text and no NAS foreign key, so
+  a topology map can only be derived by name. The prototype
+  `internal/topology` (analysis only, imported by nothing) matches the trimmed
+  case-folded OLT name against NAS name, then hostname, then identifier inside
+  one tenant, keeps every candidate when a name is ambiguous, refuses to cross
+  the tenant boundary, counts distinct non-terminated customer ports, and
+  renders a deterministic script-free SVG with dashed candidate edges and
+  unlinked boxes. Findings: one typo unlinks a whole splitter (`OLT-ZTE-2` vs
+  `OLT-ZTE-02`), names are not unique, cross-tenant collisions are real
+  (`ENG-018`), and `pon_port` is opaque text. Decision: no product UI until an
+  explicit validated ODP-to-NAS relation exists; the renderer is not the
+  blocker, the data model is. Acceptance: `go test ./internal/topology/`
+  passes eight cases and `golangci-lint run ./internal/topology/...` reports 0
+  issues. Evidence: [nas-odp-graph-2026-10-29.md](nas-odp-graph-2026-10-29.md).
 
 - `FUT-022` (2026-10-29, `dev` @ `31551a4`): event replay simulator. Billing and
   RADIUS rows record outcomes but not the path to them. The prototype
@@ -892,7 +908,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `FUT-003` TR-F031 P3 — Ringkasan insiden berbukti tanpa mengklaim pelanggan offline · RISET · dep ENG-058 · PROPOSED_VERIFICATION
 - [ ] `FUT-004` TR-F031 P3 — Deteksi pola anomali latency dari metrik historis bounded · RISET · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `FUT-005` TR-F031 P3 — Graph hipotesis penyebab insiden dengan uncertainty · RISET · dep ENG-058 · PROPOSED_VERIFICATION
-- [ ] `FUT-006` TR-F031 P3 — Visual graph statis NAS-ODP dari relasi yang telah diisi operator · RISET · dep ENG-018 · PROPOSED_VERIFICATION
+- [x] `FUT-006` TR-F031 P3 — Visual graph statis NAS-ODP dari relasi yang telah diisi operator · RISET · dep ENG-018 · PROPOSED_VERIFICATION · commit `f026ff4`
 - [ ] `FUT-008` TR-F010 P3 — Preview dampak CoA terhadap sesi yang aktif sebelum aksi · RISET · dep ENG-013 · PROPOSED_VERIFICATION
 - [x] `FUT-009` TR-F028 P3 — Explanation trace billing-suspend dari rule engine existing · RISET · dep ENG-032 · PROPOSED_VERIFICATION · commit `c372ee3`
 - [x] `FUT-010` TR-F033 P3 — Static tenant-scope policy checker dari query AST sederhana · RISET · dep ENG-019 · PROPOSED_VERIFICATION · commit `e521c02`
@@ -919,8 +935,8 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `FUT-006` — static NAS-ODP graph from operator-entered relations
-   (dependency ENG-018 is done; the relations already exist in the inventory).
+1. `FUT-011` — RADIUS regression-test generation via the existing mutator
+   (dependency ENG-011 is done; the fuzz harness already mutates packets).
 
 `ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
 `ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
