@@ -68,6 +68,7 @@ const statusTone: Record<string, ChipProps['color']> = {
   open: 'error', critical: 'error', high: 'warning', down: 'error', failed: 'error', expired: 'default',
   assigned: 'info', in_progress: 'warning', scheduled: 'warning', urgent: 'error', medium: 'info', pending: 'warning', unused: 'success',
   resolved: 'success', closed: 'default', low: 'default', normal: 'default', up: 'success', active: 'success', used: 'default', online: 'success',
+  reversed: 'warning',
 };
 
 /** StatusChip renders a consistent semantic chip for any status/priority string. */

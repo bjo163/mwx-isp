@@ -358,3 +358,25 @@ func TestCustomerTimelineValidatesInput(t *testing.T) {
 		})
 	}
 }
+
+// TestCustomerTimelineMarksReversedPayments keeps a corrected payment from
+// reading as settled money in the customer history.
+func TestCustomerTimelineMarksReversedPayments(t *testing.T) {
+	db := setupCustomerTimelineDB(t)
+	appCtx := setupTestApp(t, db)
+	subject := seedTimelineSubject(t, db, 1, 3, "timeline-carol")
+	now := time.Now().UTC().Truncate(time.Second)
+	require.NoError(t, db.Create(&domain.Payment{
+		TenantID: 1, PaymentNo: "PAY-TL-REV", CustomerID: subject.Customer.ID, InvoiceID: 1,
+		Amount: 50000, Method: "cash", PaidAt: now.Add(-time.Hour), Status: domain.PaymentReversed,
+	}).Error)
+
+	c, rec := newCustomerTimelineCtx(t, db, appCtx, strconv.FormatInt(subject.Customer.ID, 10), "?sources=payment", 1)
+	require.NoError(t, getCustomerTimeline(c))
+	require.Equal(t, http.StatusOK, rec.Code)
+	resp := decodeCustomerTimeline(t, rec)
+	require.Len(t, resp.Data.Events, 1)
+	assert.Equal(t, "payment:1:received", resp.Data.Events[0].EventID)
+	assert.Equal(t, "warning", resp.Data.Events[0].Severity)
+	assert.Contains(t, resp.Data.Events[0].Summary, "(reversed)")
+}

@@ -6,7 +6,7 @@
 export const statusValues = [
   // Billing lifecycle (internal/domain/isp.go).
   'pending', 'active', 'inactive', 'suspended', 'terminated', 'billing_overdue',
-  'draft', 'issued', 'partial', 'paid', 'overdue', 'void', 'received',
+  'draft', 'issued', 'partial', 'paid', 'overdue', 'void', 'received', 'reversed',
   // Incident lifecycle and priorities (internal/domain/isp_operations.go).
   'open', 'scheduled', 'assigned', 'in_progress', 'resolved', 'closed',
   'low', 'normal', 'medium', 'high', 'urgent', 'critical',

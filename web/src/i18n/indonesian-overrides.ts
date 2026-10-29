@@ -1076,6 +1076,7 @@ export const indonesianOverrides: Record<string, unknown> = {
     overdue: 'Jatuh Tempo',
     void: 'Dibatalkan',
     received: 'Diterima',
+    reversed: 'Dikoreksi',
     open: 'Terbuka',
     scheduled: 'Terjadwal',
     assigned: 'Ditugaskan',

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"gorm.io/gorm"
@@ -22,6 +23,22 @@ var (
 	// ErrIdempotencyConflict indicates that an existing payment uses the same
 	// idempotency key for different invoice, amount, method, or reference.
 	ErrIdempotencyConflict = errors.New("idempotency key reused with different payment details")
+	// ErrPaymentNotReversible indicates that a payment is not in the received
+	// state, for example because it was already reversed.
+	ErrPaymentNotReversible = errors.New("payment cannot be reversed in its current state")
+	// ErrInvoiceVoided indicates that a payment's invoice is void. A void invoice
+	// carries no collectible balance, so reversing a payment against it would
+	// create an unreconciled credit instead of restoring a debt.
+	ErrInvoiceVoided = errors.New("invoice is void and cannot take a payment correction")
+	// ErrInvalidCorrectionReason indicates that the operator-supplied reason is
+	// missing or longer than the audit trail accepts.
+	ErrInvalidCorrectionReason = errors.New("correction reason must be between 8 and 200 characters")
+)
+
+// Bounds for the operator-supplied correction reason.
+const (
+	correctionReasonMin = 8
+	correctionReasonMax = 200
 )
 
 // GenerateMonthlyInvoices creates an invoice for every active subscription
@@ -291,6 +308,110 @@ func RecordPayment(db *gorm.DB, payment *domain.Payment, now time.Time, autoReac
 
 func nextMonthlySerial(tx *gorm.DB, kind, period string) (int64, error) {
 	return NextDocumentSerial(tx, kind, period)
+}
+
+// PaymentCorrection identifies the operator who reverses a payment and records
+// why. Operator and OperatorIP are written to the operator audit log; Reason is
+// written to both the billing event and that log.
+type PaymentCorrection struct {
+	// Operator is the authenticated operator username.
+	Operator string
+	// OperatorIP is the request source address.
+	OperatorIP string
+	// Reason is the operator justification, trimmed before storage.
+	Reason string
+}
+
+// ReversePayment records an operator correction for a received manual payment.
+//
+// The correction is a local ledger reversal: it never calls a payment gateway,
+// ERP, or any other external system. The payment keeps its number, amount,
+// method and timestamp and moves to the reversed state, while the invoice paid
+// amount and balance are adjusted by exactly the payment amount. The resulting
+// invoice status is derived from the corrected balance: a remaining paid amount
+// keeps the invoice partial, and a fully reverted invoice returns to issued, or
+// to overdue when its due date has already passed. A void invoice is rejected
+// because it no longer carries a collectible balance, and reversing the same
+// payment twice returns ErrPaymentNotReversible.
+//
+// The payment update, the invoice update, one payment_reversed billing event
+// and one sys_opr_log row are written in a single transaction, so a failed
+// correction leaves no partial audit trail.
+func ReversePayment(db *gorm.DB, paymentID int64, correction PaymentCorrection, now time.Time) (*domain.Payment, *domain.Invoice, error) {
+	reason := strings.TrimSpace(correction.Reason)
+	if n := utf8.RuneCountInString(reason); n < correctionReasonMin || n > correctionReasonMax {
+		return nil, nil, ErrInvalidCorrectionReason
+	}
+	operator := strings.TrimSpace(correction.Operator)
+	if operator == "" {
+		return nil, nil, fmt.Errorf("payment correction requires an authenticated operator")
+	}
+
+	var payment domain.Payment
+	var invoice domain.Invoice
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&payment, paymentID).Error; err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&invoice, payment.InvoiceID).Error; err != nil {
+			return err
+		}
+		if invoice.Status == domain.InvoiceVoid {
+			return ErrInvoiceVoided
+		}
+		if payment.Status != domain.PaymentReceived {
+			return ErrPaymentNotReversible
+		}
+		if payment.Amount <= 0 || payment.Amount > invoice.PaidAmount || payment.Amount > invoice.Total {
+			return fmt.Errorf("payment %s does not match the invoice ledger", payment.PaymentNo)
+		}
+
+		payment.Status = domain.PaymentReversed
+		payment.UpdatedAt = now
+		if err := tx.Save(&payment).Error; err != nil {
+			return err
+		}
+
+		invoice.PaidAmount -= payment.Amount
+		invoice.Balance += payment.Amount
+		if invoice.PaidAmount <= 0 {
+			invoice.PaidAmount = 0
+			startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			if invoice.DueDate.Before(startOfToday) {
+				invoice.Status = domain.InvoiceOverdue
+			} else {
+				invoice.Status = domain.InvoiceIssued
+			}
+		} else {
+			invoice.Status = domain.InvoicePartial
+		}
+		invoice.UpdatedAt = now
+		if err := tx.Save(&invoice).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(&domain.BillingEvent{
+			CustomerID:     invoice.CustomerID,
+			SubscriptionID: invoice.SubscriptionID,
+			InvoiceID:      invoice.ID,
+			Type:           "payment_reversed",
+			Description:    fmt.Sprintf("%s reversed by %s: %s", payment.PaymentNo, operator, reason),
+			CreatedAt:      now,
+		}).Error; err != nil {
+			return err
+		}
+		return tx.Create(&domain.SysOprLog{
+			OprName:   operator,
+			OprIp:     strings.TrimSpace(correction.OperatorIP),
+			OptAction: "payment.reverse",
+			OptDesc:   fmt.Sprintf("%s on invoice %s: %s", payment.PaymentNo, invoice.InvoiceNo, reason),
+			OptTime:   now,
+		}).Error
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return &payment, &invoice, nil
 }
 
 // NextDocumentSerial atomically allocates the next serial for a document kind

@@ -283,6 +283,11 @@ func appendPaymentTimelineEvents(db *gorm.DB, tenantID, customerID int64, from, 
 		if strings.TrimSpace(row.Reference) != "" {
 			summary += fmt.Sprintf(" (ref %s)", row.Reference)
 		}
+		severity := "success"
+		if row.Status == domain.PaymentReversed {
+			summary += " (reversed)"
+			severity = "warning"
+		}
 		*events = append(*events, customerTimelineEvent{
 			EventID:    fmt.Sprintf("payment:%d:received", row.ID),
 			Source:     "payment",
@@ -292,7 +297,7 @@ func appendPaymentTimelineEvents(db *gorm.DB, tenantID, customerID int64, from, 
 			CustomerID: customerID,
 			Summary:    summary,
 			SourcePath: fmt.Sprintf("/isp/payments/%d/show", row.ID),
-			Severity:   "success",
+			Severity:   severity,
 		})
 	}
 	return nil
