@@ -167,9 +167,11 @@ is a build project, not a method switch — with `missing` (14) still ahead of
 - RFC 9930 §5.1's claims about which combinations "work" are the document's own;
   this round adds no measurement of a peer, and the `Unknown` list still sends
   client behaviour to the `ENG-002` hardware gate.
-- `docs/rfcs/rfc7542-eap-pwd.txt` is still mislabeled (it is the Network Access
-  Identifier, not EAP-PWD; the EAP-PWD specification is RFC 5931). That is M12's
-  blocker, recorded as `M12.1`, and was deliberately not touched here.
+- `docs/rfcs/rfc7542-eap-pwd.txt` was still mislabeled when this round ran (it is
+  the Network Access Identifier, not EAP-PWD; the EAP-PWD specification is
+  RFC 5931). It was deliberately not touched here and was recorded as `M12.1`,
+  which corrected it later the same day: RFC 5931 is now carried and the NAI file
+  is named `rfc7542-network-access-identifier.txt`.
 - RFC 9930 is 5,650 lines of which this round quoted about a dozen phrases. The
   catalog is a readiness inventory, not a conformance checklist; a TEAP
   implementation still has to read the whole document.

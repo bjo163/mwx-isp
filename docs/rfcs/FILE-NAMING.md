@@ -68,7 +68,8 @@
 | RFC 4187 | `rfc4187-eap-aka.txt`             | EAP-AKA (3G)         |
 | RFC 4764 | `rfc4764-eap-psk.txt`             | EAP-PSK (预共享密钥) |
 | RFC 5448 | `rfc5448-eap-ikev2-aka-prime.txt` | EAP-IKEv2 / EAP-AKA' |
-| RFC 7542 | `rfc7542-eap-pwd.txt`             | EAP-PWD (密码)       |
+| RFC 5931 | `rfc5931-eap-pwd.txt`             | EAP-PWD (密码)       |
+| RFC 7542 | `rfc7542-network-access-identifier.txt` | Network Access Identifier (NAI)，匿名外层身份 |
 
 ## EAP 扩展
 

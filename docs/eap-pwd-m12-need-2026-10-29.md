@@ -2,6 +2,15 @@
 
 Date: 2026-10-29 · Backlog: `ENG-007` · Feature: TR-F004 · Milestone: M12 · Prototype: `internal/eappwdneed/`
 
+> **Question 2 was answered, then corrected the same day.** This study found that
+> the archive carried no EAP-PWD text and filed the Network Access Identifier
+> under its name. **M12.1** vendored RFC 5931 as `docs/rfcs/rfc5931-eap-pwd.txt`
+> and renamed the NAI document to `rfc7542-network-access-identifier.txt`, so the
+> `eap-pwd-spec` verdict below moved from **mislabeled** to **carried**, so M12
+> stops being blocked on a document once the M12.1 commit merges. The tables and
+> decisions here were updated in place; the answer to question 1 (11/11 claims
+> confirmed) is unchanged.
+
 ## Question
 
 M12 says "EAP-PWD password authentication", planned P3, on demand. Two things
@@ -72,42 +81,55 @@ So M12 is a real gap, not a rename of something already present.
 
 | Citation | Verdict | Text carried in | File named for the topic | What that file actually is |
 | --- | --- | --- | --- | --- |
-| `eap-pwd-spec` (RFC 5931 EAP-PWD) | **mislabeled** | - none - | `docs/rfcs/rfc7542-eap-pwd.txt` | "The Network Access Identifier" |
+| `eap-pwd-spec` (RFC 5931 EAP-PWD) | **carried** (by M12.1; mislabeled when this study ran) | `docs/rfcs/rfc5931-eap-pwd.txt` | same | "Extensible Authentication Protocol (EAP) Authentication Using Only a Password" |
 | `eap-md5-spec` (RFC 3748 EAP-MD5) | **carried-elsewhere** | `docs/rfcs/rfc3748-eap.txt` | `docs/rfcs/rfc3851-eap-md5.txt` | "Secure/Multipurpose Internet Mail Extensions (S/MIME) Version 3.1 Message Specification" |
 | `teap-spec-control` (RFC 7170 TEAP) | carried | `docs/rfcs/rfc7170-teap.txt` | same | "Tunnel Extensible Authentication Protocol (TEAP) Version 1" |
 
 The RFC numbers are not this study's recollection: each one is read back out of
 the project document that cites it, and
 `TestEverySpecNumberIsCitedByAProjectDocument` fails if a cited number does not
-appear in its `CitedIn` file. No file under `docs/rfcs` prints
-`Request for Comments: 5931`, and the file whose name promises EAP-PWD never
-contains the string "EAP-PWD" at all.
+appear in its `CitedIn` file. When this study first ran, no file under
+`docs/rfcs` printed `Request for Comments: 5931`, and the file whose name
+promised EAP-PWD was RFC 7542. `TestEAPWDSpecIsCarriedUnderTheNameThatPromisesIt`
+now pins the corrected state: RFC 5931 is carried, exactly one file claims the
+`-eap-pwd` name, and the carried text contains the phrases an implementer needs
+(`EAP-pwd`, `shared password`, `Ciphersuite`) rather than merely the right number.
 
-TEAP is included as a positive control, so the audit has to distinguish "the text
-is here but filed under a misleading name" (EAP-MD5, carried inside the RFC 3748
-it belongs to) from "the text is not here" (EAP-PWD).
+TEAP is kept as a positive control, and the archive still supplies a live
+carried-elsewhere case in EAP-MD5, so the audit has to keep distinguishing "the
+text is here but filed under a misleading name" from "the text is not here" and
+from "a file named for the topic is a different document". The third case has no
+example in the real tree anymore, so it is exercised by a fixture
+(`TestAuditReportsMislabeledUnderAFixture`) instead of being left untested.
 
-The curated handbook already knows both cases: `docs-site/src/en/rfc-index.md`
-carries a "Catalog accuracy note" that names `rfc7542-eap-pwd.txt` as the NAI
-specification and RFC 3748 §5.4 as the real home of EAP-MD5. What is still wrong
-is the archive itself and its own index: `docs/rfcs/FILE-NAMING.md` maps
-"RFC 7542 → `rfc7542-eap-pwd.txt` → EAP-PWD" and "RFC 3851 →
-`rfc3851-eap-md5.txt` → EAP-MD5", and the Indonesian handbook repeats neither
-note. RFC 7542 is a document this project does need for NAI handling - it is
-simply not the password method.
+The curated handbook already knew the citation was wrong:
+`docs-site/src/en/rfc-index.md` carried a "Catalog accuracy note" naming
+`rfc7542-eap-pwd.txt` as the NAI specification and RFC 3748 §5.4 as the real home
+of EAP-MD5. What was still wrong was the archive itself and its own index —
+`docs/rfcs/FILE-NAMING.md` mapped "RFC 7542 → `rfc7542-eap-pwd.txt` → EAP-PWD" —
+and that mapping was corrected with the vendoring. RFC 7542 is a document this
+project does need, for NAI and anonymous outer identities (M10.5 cites RFC 7542
+§2.4); it is simply not the password method. The Indonesian side of the docs site
+has no RFC catalog of its own — `docs-site/src/id/rfc-index.md` is a stub that
+links to the English chapter — so there was no second copy of the note to fix.
 
-Number hygiene is otherwise clean: all 56 carried files agree with the number
-they print about themselves (`TestCarriedArchiveHasNoNumberMismatch`).
+Number hygiene is otherwise clean: every carried file agrees with the number it
+prints about itself (`TestCarriedArchiveHasNoNumberMismatch`), and the audit reads
+59 specification documents under `docs/rfcs`.
 
 ## Decisions
 
 1. **Keep M12 as a real, open milestone.** The premise ("every password method
    here needs the server to hold the password") is true today, verified claim by
    claim, and no certificate-free password method exists.
-2. **M12 is blocked on a document, not on code.** Before any EAP-PWD work, the
-   actual specification has to be fetched into `docs/rfcs` under its correct
-   number and `FILE-NAMING.md` corrected. This study did not add or rename
-   anything in the archive; that is a separate, explicitly approved step.
+2. **M12 was blocked on a document, not on code — and M12.1 cleared it.** Before
+   any EAP-PWD work, the actual specification had to be fetched into `docs/rfcs`
+   under its correct number and `FILE-NAMING.md` corrected. This study did not add
+   or rename anything in the archive; that was a separate, explicitly approved
+   step, taken the same day as M12.1: RFC 5931 is carried, the NAI document is
+   named for itself, and the type code the sequence below relies on is now
+   quotable from the archived text ("IANA has allocated a new EAP method type for
+   EAP-pwd (52)", RFC 5931 §5).
 3. **Sequence if M12 is scheduled**: obtain the specification → `TypePWD = 52` in
    `interfaces.go` → DRP/dragonfly primitives → a handler + registration + enum
    entry (the fail-closed contract in `docs/eap-otp-contract.md` is the template)

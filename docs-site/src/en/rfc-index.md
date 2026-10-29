@@ -67,12 +67,18 @@ Where the two differ, the citations in this chapter take precedence.
 | RFC 9427 | TLS 1.3 key derivation for TLS-based EAP types | M10, M11 | `rfc9427-tls-based-eap-types-tls13.txt` |
 | RFC 9930 | TEAP v1 — tunnel EAP, machine + user chaining; obsoletes RFC 7170 | M11 | `rfc9930-teap-version-1.txt` |
 | RFC 7170 | TEAP v1, superseded by RFC 9930 | — | `rfc7170-teap.txt` (history only) |
-| RFC 5931 | EAP-PWD — password-based, no per-client certificate | M12 | not yet archived |
+| RFC 5931 | EAP-PWD — password-based, no per-client certificate | M12 | `rfc5931-eap-pwd.txt` |
+| RFC 7542 | Network Access Identifier (NAI) — the anonymous outer identity | M10.5 | `rfc7542-network-access-identifier.txt` |
 
-> **Catalog accuracy note.** In `docs/rfcs/`, the file `rfc7542-eap-pwd.txt` is
-> mislabeled: **RFC 7542 is the Network Access Identifier (NAI)**, whereas
-> **EAP-PWD is RFC 5931**. Likewise, EAP-MD5 is defined by **RFC 3748 §5.4**, not
-> RFC 3851 (an S/MIME specification). This chapter uses the correct citations.
+> **Catalog accuracy note.** **RFC 7542 is the Network Access Identifier (NAI)**,
+> whereas **EAP-PWD is RFC 5931**. Until 2026-10-29 the archive held the NAI
+> document under the name `rfc7542-eap-pwd.txt` and carried no EAP-PWD text at
+> all; RFC 5931 was added and the NAI file was renamed to what it actually is, and
+> `internal/eappwdneed` now fails if any file other than `rfc5931-eap-pwd.txt`
+> claims the EAP-PWD name. EAP-MD5, on the other hand, is still defined by
+> **RFC 3748 §5.4**, not RFC 3851 (an S/MIME specification), so
+> `rfc3851-eap-md5.txt` remains a misnamed file the audit reports as
+> carried-elsewhere. This chapter uses the correct citations.
 > RFC 9930 and RFC 9427 were added to the archive on 2026-10-29 so that the TEAP
 > readiness catalog (`internal/teapreadiness`) could stop citing clauses it could
 > not read — see [the re-anchoring note](https://github.com/bjo163/mwx-isp/blob/main/docs/teap-citation-anchoring-2026-10-29.md).
