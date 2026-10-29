@@ -31,7 +31,33 @@ the current tree.
 
 ## Progress
 
-Done: 52 / 100.
+Done: 53 / 100.
+
+- `ECO-006` (2026-10-29, `dev` @ `4b2ea0a`): onboarding and migration service
+  validation, measured off the importer instead of argued. `internal/migrationcheck`
+  (read-only, imported by nothing) pins **20 statements** the service rests on to a
+  Go identifier in product code and holds **5 negative claims**; all 20 confirm and
+  all 5 gaps stay open - the importer has no `dry_run` flag, no hashed-password path
+  and no upsert, and there is no profile/package or node/NAS import handler at all,
+  so the plan catalog every customer row depends on is still rebuilt by hand. The
+  vocabulary is measured rather than assumed: **one upload handler** in the whole
+  admin API (`users_import.go:64`) accepts **18 columns under 41 header spellings**,
+  refuses a row for **12 distinct reasons**, and **11 values** a submitted row never
+  states because they are inherited from the billing profile or defaulted. The
+  effort half is deliberately 6 t-shirt-sized items with no clock or currency
+  figure (`TestEstimateCarriesNoInventedNumbers`), because nothing in this tree
+  derives either. Evidence rules carry over from the ENG-006/ENG-007 studies:
+  comment lines blanked first, every citation must land on a code line, drift
+  reported `broken`/`vacated` instead of dropped, and the scan excludes its own
+  package. The dry-run half of the criterion resolved against implementation: the
+  validation phase is already side-effect-free by construction and 8 named tests
+  assert the zero-write outcome, whereas shipping the proposed preview would deploy
+  a surface before its checklist was approved. **4-row no-go register** in
+  `docs/onboarding-migration-service-2026-10-29.md`: client interviews and their
+  willingness-to-pay (needs named respondents and consent), a rehearsal against a
+  real operator export (needs a client file), any price or duration figure (needs
+  the two above), and shipping the dry-run preview (needs a checklist decision).
+  31 tests pass, lint clean.
 
 - `ENG-007` (2026-10-29, `dev` @ `eff93d1`): EAP-PWD need research for M12,
   re-derived from the tree rather than recalled. `internal/eappwdneed` (read-only,
@@ -1021,7 +1047,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-007` TR-F004 P3 — Riset kebutuhan EAP-PWD milestone M12 · LOKAL · PROPOSED_VERIFICATION · commit `eff93d1`
 - [ ] `ECO-004` TR-F020 P2 — Evaluasi lisensi managed support vs self-hosted · RISET · dep ECO-001 · PROPOSED_VERIFICATION
 - [ ] `ECO-005` TR-F020 P2 — Desain paket dukungan & SLA yang realistis · RISET · dep ENG-045 · PROPOSED_VERIFICATION
-- [ ] `ECO-006` TR-F027 P2 — Validasi jasa onboarding dan migrasi pelanggan · RISET · dep ENG-059 · PROPOSED_VERIFICATION
+- [x] `ECO-006` TR-F027 P2 — Validasi jasa onboarding dan migrasi pelanggan · RISET · dep ENG-059 · PROPOSED_VERIFICATION · commit `4b2ea0a`
 - [ ] `ECO-008` TR-F015 P2 — Cost allocation unit per NAS dan subscriber aktif · RISET · dep ECO-003 · PROPOSED_VERIFICATION
 - [ ] `ECO-011` TR-F023 P2 — Kajian strategi distribusi community/open-source · RISET · dep ECO-001 · PROPOSED_VERIFICATION
 - [ ] `FUT-013` TR-F031 P3 — Offline read-only NOC snapshot dengan TTL dan enkripsi · RISET · dep ENG-055 · PROPOSED_VERIFICATION
@@ -1067,33 +1093,31 @@ taken from the checkboxes in the wave lists, not from memory:
 | 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
 | **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-The inventory-wide total adds the 7 Wave 3 rows delivered out of wave order
-because they were locally executable: `ENG-006`, `FUT-006`, `FUT-009`, `FUT-010`,
-`FUT-011`, `FUT-022`, `FUT-023`.
+The inventory-wide total adds the 9 Wave 3 rows delivered out of wave order
+because they were locally executable: `ENG-006`, `ENG-007`, `ECO-006`, `FUT-006`,
+`FUT-009`, `FUT-010`, `FUT-011`, `FUT-022`, `FUT-023`.
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
 complete statement: 44 delivered, 23 no-go, none undecided.
 
 Work continues in Waves 3-4, where the rows that need no asset remain. Ordered so
-each step stays executable without hardware; `ENG-006` (TEAP readiness for M11)
-and `ENG-007` (EAP-PWD need for M12) were the first two and both closed
-2026-10-29:
-1. `ECO-006` — onboarding and migration service validation (`RISET`, dependency
-   `ENG-059` is done).
-2. `FUT-017` — experimental skin from existing design tokens (`RISET`, dependency
+each step stays executable without hardware; `ENG-006` (TEAP readiness for M11),
+`ENG-007` (EAP-PWD need for M12) and `ECO-006` (onboarding and migration
+validation) were the first three and all closed 2026-10-29:
+1. `FUT-017` — experimental skin from existing design tokens (`RISET`, dependency
    `ENG-053` is done).
-3. `FUT-001` — read-only intent search proof of concept (`RISET`, `ENG-052` done).
-4. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
-5. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
+2. `FUT-001` — read-only intent search proof of concept (`RISET`, `ENG-052` done).
+3. `FUT-002` — incident triage over sanitized logs (`RISET`, `ENG-028` done).
+4. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
    `ENG-016` done).
-6. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
+5. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
    `ENG-053` done).
-7. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
+6. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
    `ENG-053` done).
-8. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
-9. `FUT-020` — per-tenant private operational statistics from aggregates
-    (`RISET`, `ENG-017` done).
+7. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
+8. `FUT-020` — per-tenant private operational statistics from aggregates
+   (`RISET`, `ENG-017` done).
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
 the register below: they are `ASET`/`RISET+ASET`, or they depend on a row that is.
