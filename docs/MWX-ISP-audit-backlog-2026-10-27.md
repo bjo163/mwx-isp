@@ -31,7 +31,34 @@ the current tree.
 
 ## Progress
 
-Done: 56 / 100.
+Done: 57 / 100.
+
+- `FUT-007` (2026-10-29, `dev` @ `a02c698`): the bandwidth-profile what-if
+  estimator, delivered as a reproducible wire diff over the product's own answer.
+  The criterion's two halves were both made checkable. Reproducible: held-out keys
+  are **derived**, not listed - shift only `user.ExpireTime` and diff, or parse each
+  `getIntConfig` in `default_enhancer.go`, join it to the attribute it writes and
+  compare with the source's own fallback - so **2** keys (`Session-Timeout`,
+  `Acct-Interim-Interval`) leave the ledger, and the digest carries their keys
+  without their values. That last clause was a bug, not a design choice: the first
+  digest hashed the ticking value and changed every second on an idle tree, while
+  the reproducibility test still passed because its two runs landed in one second;
+  a test now sleeps across a boundary to keep it honest. Non-mutating: the getters'
+  contract is a single `Get(int64)` (verified by reflection against
+  `domain.ProfileCacheGetter`, against the **5** mutators `ProfileCache` itself
+  exposes), and `TestTheEnhancersThemselvesWriteNothing` hands the enhancer chain
+  pointers straight into the tracked tables instead of copies.
+  Measured over **10** subscribers x **8** vendors with **8/8** registered enhancers
+  running: **80** one-column probes, **36** silent; **3** of the **10** inherited
+  columns (`ActiveNum`, `BindMac`, `BindVlan`) are read by a checker and by no
+  enhancer, so they change admission, not the accept; one `UpRate` edit is one
+  combined string on Mikrotik but average plus peak on Huawei and a VSA plus
+  `Framed-Pool` on Cisco; user overrides and static snapshots both freeze the diff
+  to empty, while an unresolvable profile falls back to the subscriber's stale
+  values and emits `0k/0k` with `NA` pools. **23/23** statements pin to code lines,
+  **7** gaps stay open - NAS confirmation, live-session impact, CoA
+  re-authorization, and the preview route itself, which is a `TR-F008` product
+  decision. Memo: `docs/profile-whatif-bandwidth-simulation-2026-10-29.md`.
 
 - `FUT-002` (2026-10-29, `dev` @ `62c80bb`): incident triage over the sanitized
   operator log export, delivered as a measurement rather than a model. The card
@@ -1178,7 +1205,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 - [ ] `ECO-012` TR-F005 P2 — Partner interoperability kit berbasis fixture NAS · RISET · dep ENG-050 · PROPOSED_VERIFICATION
 - [ ] `ECO-010` TR-F031 P3 — Riset risiko churn berbasis sinyal operasional agregat · RISET · dep ECO-002 · PROPOSED_VERIFICATION
-- [ ] `FUT-007` TR-F008 P3 — Simulasi perubahan profil bandwidth tanpa menulis NAS · RISET · dep ENG-016 · PROPOSED_VERIFICATION
+- [x] `FUT-007` TR-F008 P3 — Simulasi perubahan profil bandwidth tanpa menulis NAS · RISET · dep ENG-016 · PROPOSED_VERIFICATION · commit `a02c698`
 - [ ] `FUT-014` TR-F031 P3 — Field diagnostics mini-mode untuk teknisi yang offline · RISET · dep FUT-013 · PROPOSED_VERIFICATION
 - [ ] `FUT-015` TR-F013 P3 — Adaptive contextual workspace dari tugas operator · RISET · dep ENG-053 · PROPOSED_VERIFICATION
 - [ ] `FUT-016` TR-F013 P3 — Voice-assisted navigation untuk aksesibilitas internal · RISET · dep ENG-053 · PROPOSED_VERIFICATION
@@ -1200,10 +1227,10 @@ taken from the checkboxes in the wave lists, not from memory:
 | 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
 | **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-The inventory-wide total adds the 12 Wave 3 rows delivered out of wave order
-because they were locally executable: `ENG-006`, `ENG-007`, `ECO-006`, `FUT-001`,
-`FUT-002`, `FUT-006`, `FUT-009`, `FUT-010`, `FUT-011`, `FUT-017`, `FUT-022`,
-`FUT-023`.
+The inventory-wide total adds the 12 Wave 3 rows and the 1 Wave 4 row delivered
+out of wave order because they were locally executable: `ENG-006`, `ENG-007`,
+`ECO-006`, `FUT-001`, `FUT-002`, `FUT-006`, `FUT-007`, `FUT-009`, `FUT-010`,
+`FUT-011`, `FUT-017`, `FUT-022`, `FUT-023`.
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
@@ -1214,18 +1241,19 @@ each step stays executable without hardware; `ENG-006` (TEAP readiness for M11),
 `ENG-007` (EAP-PWD need for M12), `ECO-006` (onboarding and migration
 validation), `FUT-017` (the manga-ink contrast audit, closed as a measurement
 of the shipped direction), `FUT-001` (the intent search proof of concept, closed
-as a resolver that can only name a read route) and `FUT-002` (incident triage
+as a resolver that can only name a read route), `FUT-002` (incident triage
 over sanitized logs, closed as three engines with a measured hallucination rate
-and no path from a verdict to an action) were the first six and all closed
-2026-10-29:
-1. `FUT-007` — bandwidth profile simulation without writing to a NAS (`RISET`,
-   `ENG-016` done).
-2. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
+and no path from a verdict to an action) and `FUT-007` (the bandwidth-profile
+what-if estimator, closed as a reproducible wire diff that holds the product's
+answer instead of predicting one, with the cache-miss fallback and the
+checker-only columns recorded as the parts a preview must refuse to promise) were
+the first seven and all closed 2026-10-29. These four are what remains:
+1. `FUT-015` — adaptive contextual workspace from operator tasks (`RISET`,
    `ENG-053` done).
-3. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
+2. `FUT-016` — voice-assisted navigation for internal accessibility (`RISET`,
    `ENG-053` done).
-4. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
-5. `FUT-020` — per-tenant private operational statistics from aggregates
+3. `FUT-018` — printable incident-card visual research (`RISET`, after `FUT-017`).
+4. `FUT-020` — per-tenant private operational statistics from aggregates
    (`RISET`, `ENG-017` done).
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
