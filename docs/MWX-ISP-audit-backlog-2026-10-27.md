@@ -31,7 +31,55 @@ the current tree.
 
 ## Progress
 
-Done: 60 / 100.
+Done: 61 / 100.
+
+- `FUT-020` (2026-10-29, `dev` @ `a50f99f`): per-tenant private operational
+  statistics, delivered as a census of what a served response already reconstructs
+  plus a price for the governance that would stop it. The criterion has two halves
+  and neither was checkable: no publication switch, cell floor or suppression rule
+  exists in the tree, and nothing said which served number is already a person.
+  `internal/opstats` reads the **11** statistics surfaces off the router, attributes
+  all **157** served fields to the statement that produces them (same line,
+  lookback, callee walk, chained GORM table), and walks a six-tenant fixture
+  (**1** customer to **120**, **1189** stored rows over **12** tables, every row
+  uniquely marked) through each of the **73** aggregate verbs. Scope is measured per
+  surface, not assumed: **6** reach the database through the shipped tenant callback,
+  **1** through a written comparison, **2** substitute the default tenant, **2** are
+  platform surfaces that are meant to cross tenants, and **0** are unclassified.
+  **Fixture tenant data unik tidak bisa direkonstruksi** is false inside a tenant and
+  true across them: **0** aggregates over a subscriber table are served from a
+  cross-tenant surface today, while **27** are a cell of one — **3** publish a stored
+  value verbatim (`/dashboard/isp-stats outstanding` = `SUM(isp_invoice.balance)`,
+  `today_input_gb`/`today_output_gb` = `SUM` over `radius_accounting`) and **24** say
+  only that the tenant has exactly one subscriber, invoice or session. The extra
+  finding that carries the weight is a rate in disguise: `ipv6_stats.adoption_rate`
+  divides
+  `online_with_ipv6` by `online_users` and the response serves both, the operand
+  resolving through the call at `dashboard.go:150` and the alias at `:309` to the
+  division at `:343`. **Publish hanya bila governance jelas** has no antecedent:
+  **0 of 36** registry keys speak of statistics, benchmarks, aggregates,
+  anonymisation or sharing, **0** suppression-vocabulary lines reach a statistics
+  file, **0** statistics handlers call the shipped redactor, `dashboard_test.go`
+  asserts tenant scope **0** times and the TR-F033 wording never says an aggregate
+  may leave its tenant — while **8** production sites substitute the default tenant
+  when no request context is present, which is exactly how a per-tenant number gets
+  mis-attributed. The one governance shape that ships is the per-tenant notification
+  opt-in (`domain.NotificationSettings`, **7** fields, `RiskAcknowledgedAt`), and
+  that is what a publication gate would copy. A floor is priced, not chosen: `k=1`
+  leaves **27** exposures, `k=2` leaves **0** but blanks **31 of the 73** fields for
+  at least one tenant, and `k=3`/`k=5` add nothing — so the cost falls on `solo` and
+  `pair`, the RT/RW Net end.
+  [Study](per-tenant-operational-statistics-study-2026-10-29.md), `internal/opstats`
+  (read-only, imported by nothing, stdlib-only, 29 gates, digest
+  `7fc52cdec5af2d09bb4aa87aa6584d60d6fe5056f850d0aad2467bd2cbffe461`, **26 of 26**
+  statements confirmed). **No-go, explicitly:** real tenant populations (`G01`), the
+  decision to publish an aggregate outside its tenant, which is a TR-F scope change
+  (`G02`), a live PostgreSQL to answer each parsed statement (`G03`), the threshold
+  `k` itself (`G04`), a collision study over real per-tenant values (`G05`), the
+  platform-admin trust boundary that serves another tenant's `tax_id`, billing
+  address and contact phone (`G06`), and closing the default-tenant fallback, which
+  is product code in `internal/adminapi` (`G07`). Research-only: nothing in this
+  round deploys.
 
 - `FUT-018` (2026-10-29, `dev` @ `de91f23`): printable grunge incident card,
   delivered as a measurement of what such a sheet may say rather than as a mockup.
@@ -1312,7 +1360,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `FUT-015` TR-F013 P3 — Adaptive contextual workspace dari tugas operator · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `e1b5261`
 - [x] `FUT-016` TR-F013 P3 — Voice-assisted navigation untuk aksesibilitas internal · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `808bf61`
 - [x] `FUT-018` TR-F029 P3 — Riset visual incident card grunge yang bisa dicetak · RISET · dep FUT-017 · PROPOSED_VERIFICATION · commit `de91f23`
-- [ ] `FUT-020` TR-F033 P3 — Per-tenant statistik operasional privat berbasis agregat · RISET · dep ENG-017 · PROPOSED_VERIFICATION
+- [x] `FUT-020` TR-F033 P3 — Per-tenant statistik operasional privat berbasis agregat · RISET · dep ENG-017 · PROPOSED_VERIFICATION · commit `a50f99f`
 - [ ] `FUT-019` TR-F031 P3 — Edge collector polling read-only pada jaringan terbatas · RISET+ASET · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `FUT-024` TR-F031 P3 — Prediksi kapasitas network yang dibatasi data SNMP nyata · RISET+ASET · dep ENG-049 · PROPOSED_VERIFICATION
 
@@ -1329,10 +1377,11 @@ taken from the checkboxes in the wave lists, not from memory:
 | 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
 | **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
 
-The inventory-wide total adds the 13 Wave 3 rows and the 2 Wave 4 rows delivered
-out of wave order because they were locally executable: `ENG-006`, `ENG-007`,
-`ECO-006`, `FUT-001`, `FUT-002`, `FUT-006`, `FUT-007`, `FUT-009`, `FUT-010`,
-`FUT-011`, `FUT-015`, `FUT-016`, `FUT-017`, `FUT-022`, `FUT-023`.
+The inventory-wide total adds the rows delivered out of wave order because they
+were locally executable — **12** Wave 3 rows (`ENG-006`, `ENG-007`, `ECO-006`,
+`FUT-001`, `FUT-002`, `FUT-006`, `FUT-009`, `FUT-010`, `FUT-011`, `FUT-017`,
+`FUT-022`, `FUT-023`) and **5** Wave 4 rows (`FUT-007`, `FUT-015`, `FUT-016`,
+`FUT-018`, `FUT-020`).
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
@@ -1358,9 +1407,14 @@ audio-corpus, panel and live-session half it cannot close) the ninth, also
 2026-10-29. `FUT-018` (the printable incident-card study, closed as a measurement
 of what a grunge A4 sheet may say — four independent checks over the 129 slots the
 incident response types serve, greys derived from the shipped tokens, and the
-paper/proof-sheet half recorded no-go) is the tenth. This one is what remains:
-1. `FUT-020` — per-tenant private operational statistics from aggregates
-   (`RISET`, `ENG-017` done).
+paper/proof-sheet half recorded no-go) is the tenth and `FUT-020` (the
+per-tenant operational-statistics study, closed as a census of the 157 fields the
+11 statistics surfaces serve, with the 27 aggregates that are a cell of one, the
+one rate that turns out to be a count, the price of a cell floor and the empty
+governance half recorded as no-go) is the eleventh and last — all eleven closed
+2026-10-29.
+
+Nothing asset-free is left in Waves 3-4.
 
 The other 11 open Wave 3 rows and 5 open Wave 4 rows inherit the same no-go as
 the register below: they are `ASET`/`RISET+ASET`, or they depend on a row that is.
