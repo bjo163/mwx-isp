@@ -107,6 +107,11 @@ to another tenant's row.
 - The audit covers the current source tree; new raw SQL must extend the
   inventory above and add a two-tenant test. `TestRawSQLTenantScopeRatchet`
   enforces the first half mechanically (unscoped calls fail the unit lane).
+- The ratchet is a string check: it accepts a statement where `tenant_id`
+  appears in a comment, in `ORDER BY`, or only in a join equality between two
+  unscoped tables. A table-level prototype that classifies each relation was
+  studied against the same corpus and is not enforced; see
+  [tenant-scope-policy-checker-2026-10-29.md](tenant-scope-policy-checker-2026-10-29.md).
 - SQLite unit tests prove handler behavior; PostgreSQL remains the reference
   for constraint and concurrency behavior.
 - Cross-tenant access through platform-only endpoints is by design and is
