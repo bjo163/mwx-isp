@@ -31,7 +31,26 @@ the current tree.
 
 ## Progress
 
-Done: 46 / 100.
+Done: 47 / 100.
+
+- `FUT-022` (2026-10-29, `dev` @ `31551a4`): event replay simulator. Billing and
+  RADIUS rows record outcomes but not the path to them. The prototype
+  `internal/replay` (read-only, imported by nothing) folds the ordered
+  `isp_billing_event` trail with the payment rows into paid/balance/status, and
+  replays `radius_accounting` plus the online, action-queue, and audit rows into
+  a session lifetime, then reports every disagreement with the stored rows.
+  Findings: the billing trail is sufficient to re-derive money state because
+  event descriptions name payment numbers and the payment rows carry the
+  amounts; interim updates are not stored, so session replay reproduces
+  contradictions, not traffic; a failed billing disconnect that the audit
+  records as successful and the online row contradicts is now one report. A
+  divergence states both values and never writes. Decision: keep it an
+  unenforced prototype until there is a production corpus to measure false
+  positives, a tenant/time bound, and an audited operator surface. Acceptance:
+  `go test ./internal/replay/` passes sixteen cases against pure fixtures and
+  SQLite, coverage of every divergence kind, and
+  `golangci-lint run ./internal/replay/...` reports 0 issues. Evidence:
+  [event-replay-simulator-2026-10-29.md](event-replay-simulator-2026-10-29.md).
 
 - `FUT-009` (2026-10-29, `dev` @ `c372ee3`): billing-suspend explanation
   trace. `suspension_reason=billing_overdue` says that billing suspended a
@@ -880,7 +899,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `FUT-011` TR-F001 P3 — Pembangkitan regression tests untuk paket RADIUS via mutator · RISET · dep ENG-011 · PROPOSED_VERIFICATION
 - [ ] `FUT-012` TR-F004 P3 — Eksperimen adversarial EAP TLS fragment scheduler · RISET · dep ENG-002 · PROPOSED_VERIFICATION
 - [ ] `FUT-021` TR-F005 P3 — Knowledge base kompatibilitas firmware berbasis bukti uji · RISET · dep ENG-050 · PROPOSED_VERIFICATION
-- [ ] `FUT-022` TR-F028 P3 — Event replay simulator untuk reproduksi billing dan NAS · RISET · dep ENG-032 · PROPOSED_VERIFICATION
+- [x] `FUT-022` TR-F028 P3 — Event replay simulator untuk reproduksi billing dan NAS · RISET · dep ENG-032 · PROPOSED_VERIFICATION · commit `31551a4`
 - [ ] `FUT-023` TR-F021 P3 — Graph semantik relasi protokol RADIUS dan feature ID · RISET · dep ENG-016 · PROPOSED_VERIFICATION
 
 ## Wave 4 — 10 item (RISET 8 · RISET+ASET 2)
@@ -900,8 +919,8 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `FUT-022` — event replay simulator for billing and RADIUS reproduction
-   (dependency ENG-032 is done; the billing event trail is the replay input).
+1. `FUT-006` — static NAS-ODP graph from operator-entered relations
+   (dependency ENG-018 is done; the relations already exist in the inventory).
 
 `ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
 `ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
