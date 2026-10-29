@@ -31,7 +31,26 @@ the current tree.
 
 ## Progress
 
-Done: 44 / 100.
+Done: 45 / 100.
+
+- `FUT-010` (2026-10-29, `dev` @ `e521c02`): table-level tenant-scope study.
+  `ENG-019`'s ratchet asks only whether the string `tenant_id` appears in a raw
+  statement, so a comment, an `ORDER BY`, or a join equality between two
+  unscoped tables satisfies it without bounding a row. The prototype
+  `internal/tenancy/policycheck` (analysis only, imported by nothing) extracts
+  each Go statement's literal SQL, restores the clause keyword GORM strips,
+  lexes it, and scopes every relation either through a constant tenant
+  predicate or through a fixpoint over equality edges. Over the corpus: 11 raw
+  statements, 5 analyzable and all 5 fully scoped (including the three-table
+  `noc_impact` chain), 6 opaque (3 runtime SQL, 2 `Model(&X{})` driving tables,
+  1 nested `FROM` already exempted). Decision: keep the string ratchet as the
+  enforced gate; revisit enforcement when the analyzable share grows. Limits:
+  no subquery/CTE descent, no model-to-table mapping, non-literal `Where`
+  fragments are skipped, bare `tenant_id` is ambiguous in joins. Acceptance:
+  `go test ./internal/tenancy/policycheck/` passes its fixture matrix and the
+  corpus survey, `golangci-lint run ./internal/tenancy/policycheck/...` reports
+  0 issues. Evidence:
+  [tenant-scope-policy-checker-2026-10-29.md](tenant-scope-policy-checker-2026-10-29.md).
 
 - `ENG-060` (2026-10-29, `dev` @ `e3e5e57`): redacted support bundle. The log
   export already redacted its output, but an operator with an incident could
@@ -838,7 +857,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `FUT-006` TR-F031 P3 — Visual graph statis NAS-ODP dari relasi yang telah diisi operator · RISET · dep ENG-018 · PROPOSED_VERIFICATION
 - [ ] `FUT-008` TR-F010 P3 — Preview dampak CoA terhadap sesi yang aktif sebelum aksi · RISET · dep ENG-013 · PROPOSED_VERIFICATION
 - [ ] `FUT-009` TR-F028 P3 — Explanation trace billing-suspend dari rule engine existing · RISET · dep ENG-032 · PROPOSED_VERIFICATION
-- [ ] `FUT-010` TR-F033 P3 — Static tenant-scope policy checker dari query AST sederhana · RISET · dep ENG-019 · PROPOSED_VERIFICATION
+- [x] `FUT-010` TR-F033 P3 — Static tenant-scope policy checker dari query AST sederhana · RISET · dep ENG-019 · PROPOSED_VERIFICATION · commit `e521c02`
 - [ ] `FUT-011` TR-F001 P3 — Pembangkitan regression tests untuk paket RADIUS via mutator · RISET · dep ENG-011 · PROPOSED_VERIFICATION
 - [ ] `FUT-012` TR-F004 P3 — Eksperimen adversarial EAP TLS fragment scheduler · RISET · dep ENG-002 · PROPOSED_VERIFICATION
 - [ ] `FUT-021` TR-F005 P3 — Knowledge base kompatibilitas firmware berbasis bukti uji · RISET · dep ENG-050 · PROPOSED_VERIFICATION
@@ -862,9 +881,9 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 Ordered so each step stays executable without new hardware:
 
-1. `FUT-010` — static tenant-scope policy checker from a simple query AST
-   (dependency ENG-019 is done; the tenancy ratchet already enumerates the
-   queries it would classify).
+1. `FUT-009` — explanation trace for billing-suspend decisions (dependency
+   ENG-032 is done; the suspend invariant and its billing events already carry
+   the inputs the trace would explain).
 
 `ENG-005` stays parked: its dependency `ENG-002` is blocked on a real asset.
 `ENG-058` and `ENG-064` stay parked: their dependencies (`ENG-055`,
