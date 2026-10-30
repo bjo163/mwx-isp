@@ -37,7 +37,7 @@ func anonymousRequest(t *testing.T, handler http.Handler, method, path string, p
 // lookup, voucher check and installation intake remain authenticated and fail
 // closed; TR-F034 does not open customer self-service.
 func TestLandingSurfaceEndpointsFailClosedAnonymously(t *testing.T) {
-	handler, db, appCtx := newRoleMatrixServer(t)
+	handler, db, _ := newRoleMatrixServer(t)
 
 	routes := []struct {
 		name    string
