@@ -1,5 +1,13 @@
 # MWX-ISP Changelog
 
+## v0.19.7 — 2026-10-30
+
+Changes since v0.19.6:
+
+### Fixes and Improvements
+
+- move tenant branding route to auth.go for proper registration
+
 ## v0.19.6 — 2026-10-30
 
 Changes since v0.19.5:
