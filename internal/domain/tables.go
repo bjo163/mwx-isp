@@ -6,6 +6,8 @@ var Tables = []interface{}{
 	// Platform tenancy
 	&Tenant{},
 	&TenantBranding{},
+	&TenantWebsite{},
+	&TenantWebsiteVersion{},
 	// System
 	&SysConfig{},
 	&SysOpr{},

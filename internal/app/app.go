@@ -495,7 +495,7 @@ func (a *Application) backfillDefaultTenantRows() error {
 }
 
 var tenantOwnedModels = []interface{}{
-	&domain.TenantBranding{}, &domain.TenantPackagePresentation{},
+	&domain.TenantBranding{}, &domain.TenantPackagePresentation{}, &domain.TenantWebsite{}, &domain.TenantWebsiteVersion{},
 	&domain.SysOpr{}, &domain.TenantMembership{}, &domain.SysOprLog{}, &domain.NetNode{}, &domain.NetNas{},
 	&domain.NetMonitorTarget{}, &domain.NetMonitorSample{}, &domain.NetMonitorIncident{},
 	&domain.NotificationSettings{}, &domain.NotificationOutbox{}, &domain.RadiusAccounting{},

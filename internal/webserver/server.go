@@ -138,6 +138,7 @@ var JwtSkipPrefix = []string{
 	apiBasePath + "/auth/refresh",
 	apiBasePath + "/public/branding",
 	apiBasePath + "/public/packages",
+	apiBasePath + "/tenant-website/public/",
 	apiBasePath + "/tenant-branding",
 }
 
