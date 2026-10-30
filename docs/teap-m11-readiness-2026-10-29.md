@@ -10,13 +10,15 @@ Prototype: `internal/teapreadiness` · Tests: `go test ./internal/teapreadiness/
 > (missing) and `pac-tlv` (missing) became `session-resumption` (blocked, pinned
 > by `tlsengine/engine.go:140`). The report below is kept as the record of what
 > was measured against RFC 7170; the current numbers are `Mechanics: 22 · ready 6
-> · partial 7 · blocked 2 · missing 7`, and the reasons are in
+> · partial 8 · blocked 2 · missing 6`, and the reasons are in
 > [teap-citation-anchoring-2026-10-29.md](teap-citation-anchoring-2026-10-29.md)
-> and, for the seven partial rows, in M11.3's codec
-> [`internal/radiusd/plugins/eap/teaptlv`](../internal/radiusd/plugins/eap/teaptlv/teaptlv.go).
-> Partial means the §4.2 wire format can be encoded and decoded but nothing on the
-> serving path calls it — no Compound MAC, no handler — so it is not a claim that
-> TEAP works.
+> and, for the seven TLV rows, in M11.3's codec
+> [`internal/radiusd/plugins/eap/teaptlv`](../internal/radiusd/plugins/eap/teaptlv/teaptlv.go)
+> and, for the eighth, in M11.6's key schedule
+> [`internal/radiusd/plugins/eap/teapkeys`](../internal/radiusd/plugins/eap/teapkeys/teapkeys.go).
+> Partial means the piece exists in the tree and nothing on the serving path calls
+> it — a §4.2 wire format with no Compound MAC and no handler, a TLS 1.3 key
+> schedule with no session holding a chain — so it is not a claim that TEAP works.
 
 ## Question
 
@@ -44,7 +46,7 @@ proves it. Three rules make that meaningful:
 2. **Test files and `testdata` are excluded.** A test can define exactly the
    identifier a verdict looks for, in a file the server never imports.
    `TestScanReadsOnlyProductCode` proves a `_test.go` and a `testdata` fixture
-   that both declare `TypeTEAP = 39` leave the verdict at `missing`.
+   that both declare `TypeTEAP = 55` leave the verdict at `missing`.
 3. **Word boundaries, not substrings.** The generated Microsoft vendor code
    spells `msaccteaptype_del`, which contains the letters "teap".
    `TestSubstringLookalikesDoNotProveTEAP` keeps that from becoming support for
@@ -105,8 +107,9 @@ one item where the tree both supports and contradicts the mechanism, which is wh
 
 To build (14), grouped by what they cost:
 
-- **Naming, no design needed**: `teap-eap-type` (type 39 is absent — the declared
-  constants stop at `TypeTLV = 33`), `teap-method-name`, `teap-handler-wiring`
+- **Naming, no design needed**: `teap-eap-type` (the constant is absent — the
+  declared ones stop at `TypeTLV = 33`, while RFC 9930 §7.5 assigns TEAP method
+  type 55 and §6.3 writes it as `0x37`), `teap-method-name`, `teap-handler-wiring`
   (a constructor plus a case in the identity-phase name switch in
   `coordinator.go`), `teap-config-choice` (the `radius.EapMethod` enum).
 - **The TLV layer TEAP is built from**: `eap-payload-tlv`,
@@ -122,7 +125,9 @@ To build (14), grouped by what they cost:
   session).
 - **Optional but load-bearing for resumption**: `pac-tlv` — no PAC-Key,
   PAC-Opaque or PAC-Info exists, so every TEAP handshake would be a full one.
-- **Crypto agility**: `rfc9427-key-derivation`, named but not quotable here.
+- **Crypto agility**: `rfc9427-key-derivation`, named but not quotable here. (M11.1
+  vendored the text and M11.6 derives every key §2.2 names; the row is `partial`
+  now, waiting on the session that would hold a chain.)
 
 ## Decisions
 
@@ -150,15 +155,18 @@ The reusable surface is real but it is the transport: framing, fragmentation, th
 tunnel, the Result TLV, key export. Everything that makes TEAP a distinct method —
 the TLV conversation, Crypto-Binding, chaining, PAC provisioning — is absent, and
 the TLS 1.3 pin must be revisited first. `TestTotalsAccountForEveryMechanism`
-asserts `missing > ready` for exactly this reason: M11 is a build project, not a
+asserts `missing + partial > ready` for exactly this reason, counting each piece
+that exists without a caller as work still to do: M11 is a build project, not a
 method switch, which matches the checklist's own advice to prioritize it only once
 the client environment is fully controlled.
 
 ## Verification
 
-- `go test ./internal/teapreadiness/` — 18 tests plus 5 subtests pass, including
+- `go test ./internal/teapreadiness/` — 26 tests plus 5 subtests pass, including
   the negative cases (comment-only mention, test-file definition, substring
-  lookalike, lookalike identifier, missing scan directory).
+  lookalike, lookalike identifier, missing scan directory) and the two pins that
+  keep a piece with no caller out of `ready`: `TestTLVFormatRowsStayPartial` and
+  `TestKeyDerivationRowStaysPartial`.
 - `golangci-lint run ./internal/teapreadiness/...` — 0 issues.
 - `go build ./...` unaffected; `grep -rl "internal/teapreadiness"` outside the
   package returns nothing, so the prototype is inert for the product.
@@ -170,5 +178,6 @@ the client environment is fully controlled.
   write. A TEAP PAC implementation named something else would not be found — and
   would also not exist today.
 - `rfc9427-key-derivation` and the AVP-in-TEAP question cannot be cited locally
-  until those texts are vendored under `docs/rfcs`.
+  until those texts are vendored under `docs/rfcs`. (M11.1 vendored both, so this
+  limit is closed; the catalog now quotes them clause by clause.)
 - Client behavior remains unmeasured; that is `ENG-002`, blocked on hardware.

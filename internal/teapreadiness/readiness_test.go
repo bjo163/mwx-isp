@@ -177,13 +177,13 @@ func TestRealTreeVerdictsForReusedMechanics(t *testing.T) {
 }
 
 // TestRealTreeVerdictsForBuildMechanics keeps the rows that describe the method
-// itself at "missing": a codec sitting in the tree must not read as a TEAP method
-// the server can negotiate.
+// itself at "missing": a codec or a key schedule sitting in the tree must not read
+// as a TEAP method the server can negotiate.
 func TestRealTreeVerdictsForBuildMechanics(t *testing.T) {
 	report := realReport(t)
 	for _, id := range []string{
 		"teap-eap-type", "teap-method-name", "teap-handler-wiring", "teap-config-choice",
-		"teap-version-negotiation", "inner-method-chaining", "rfc9427-key-derivation",
+		"teap-version-negotiation", "inner-method-chaining",
 	} {
 		finding := find(t, report, id)
 		assert.Equal(t, StatusMissing, finding.Status, "%s must not be claimed as built", id)
@@ -209,6 +209,24 @@ func TestTLVFormatRowsStayPartial(t *testing.T) {
 			"%s must stay partial: the format is not the handshake", id)
 		assert.Contains(t, finding.Note, "teaptlv", "%s must say what the codec does", id)
 	}
+}
+
+// TestKeyDerivationRowStaysPartial records what the teapkeys schedule did to the
+// catalog: RFC 9427 §2.2 is now implemented in the tree, so the row is no longer
+// "missing", but nothing runs it inside a handshake, so it must not read as a session
+// whose keys were derived either.
+func TestKeyDerivationRowStaysPartial(t *testing.T) {
+	report := realReport(t)
+	finding := find(t, report, "rfc9427-key-derivation")
+	assert.Equal(t, StatusPartial, finding.Status, "a key schedule with no caller is a library")
+	require.NotEmpty(t, finding.Support)
+	for _, e := range finding.Support {
+		assert.Equal(t, "internal/radiusd/plugins/eap/teapkeys/teapkeys.go", e.File,
+			"only the derivation package may support this row")
+	}
+	assert.Equal(t, 1, finding.MarkerHits, "the absent marker is the caller")
+	assert.Contains(t, finding.Note, "teapkeys", "the note must say what the package derives")
+	assert.Contains(t, finding.Note, "teapChain", "the note must name the caller that is missing")
 }
 
 func TestTLSTunnelVerdictReportsBothSides(t *testing.T) {
@@ -241,25 +259,29 @@ func TestTotalsAccountForEveryMechanism(t *testing.T) {
 	assert.Equal(t, len(Mechanics()), report.Totals.Mechanics)
 	assert.Equal(t, report.Totals.Mechanics,
 		report.Totals.Ready+report.Totals.Partial+report.Totals.Blocked+report.Totals.Missing)
-	assert.Greater(t, report.Totals.Missing, report.Totals.Ready,
+	// The work left is what a TEAP implementation still has to write: the absent
+	// mechanisms plus the half of each partial one. That set must stay larger than the
+	// mechanisms already reusable, or the report would read as a method that only
+	// needs switching on.
+	assert.Greater(t, report.Totals.Missing+report.Totals.Partial, report.Totals.Ready,
 		"TEAP is a build project, not a configuration toggle")
 	// Both blockers are TLS 1.3 tunnel settings the tree pins on purpose, so an
 	// M11 plan starts by revisiting two existing decisions rather than by adding
 	// a handler.
 	assert.Equal(t, 2, report.Totals.Blocked)
 	// Measured against this repository as it stands: six serving-path mechanisms
-	// are reusable, the seven §4.2 TLV formats have a codec but no caller, and the
-	// remaining seven - the method itself, its wiring, its version negotiation, its
-	// chaining and the RFC 9427 derivation - are absent.
+	// are reusable, eight have a piece in the tree and no caller (the seven §4.2 TLV
+	// formats and the RFC 9427 key schedule), and the remaining six - the method
+	// itself, its wiring, its version negotiation and its chaining - are absent.
 	assert.Equal(t, 6, report.Totals.Ready)
-	assert.Equal(t, 7, report.Totals.Partial)
-	assert.Equal(t, 7, report.Totals.Missing)
+	assert.Equal(t, 8, report.Totals.Partial)
+	assert.Equal(t, 6, report.Totals.Missing)
 }
 
 func TestStatusRulesFromASyntheticTree(t *testing.T) {
 	tree := Tree{Files: map[string][]string{
 		"internal/radiusd/plugins/eap/handlers/teap_handler.go": {
-			"const TypeTEAP = 39",
+			"const TypeTEAP = 55",
 			"func NewTEAPHandler() *TEAPHandler { return nil }",
 			"func NewTEAPHandlerWithConfig(p TLSConfigProvider) *TEAPHandler { return nil }",
 		},
@@ -291,14 +313,14 @@ func TestBlockedBeatsReadyMarkers(t *testing.T) {
 func TestLookalikeNamesDoNotProveMarkers(t *testing.T) {
 	// Word boundaries keep a longer or prefixed constant from proving the
 	// mechanism the catalog asked for.
-	for _, line := range []string{"const TypeTEAPv2Extra = 40", "const xTypeTEAP = 39"} {
+	for _, line := range []string{"const TypeTEAPv2Extra = 55", "const xTypeTEAP = 55"} {
 		tree := Tree{Files: map[string][]string{
 			"internal/radiusd/plugins/eap/handlers/other.go": {line},
 		}}
 		assert.Equal(t, StatusMissing, find(t, Analyze(tree), "teap-eap-type").Status, line)
 	}
 	tree := Tree{Files: map[string][]string{
-		"internal/radiusd/plugins/eap/handlers/other.go": {"const TypeTEAP = 39"},
+		"internal/radiusd/plugins/eap/handlers/other.go": {"const TypeTEAP = 55"},
 	}}
 	assert.Equal(t, StatusReady, find(t, Analyze(tree), "teap-eap-type").Status)
 }
@@ -376,8 +398,9 @@ func TestRenderMarkdownSeparatesReuseBuildAndUnknown(t *testing.T) {
 	partial := section(t, rendered, "## Partly present", "## Blocked by existing choices")
 	assert.Contains(t, partial, "| crypto-binding-tlv | RFC 9930 §3.6 |")
 	assert.Contains(t, partial, "internal/radiusd/plugins/eap/teaptlv/teaptlv.go")
+	assert.Contains(t, partial, "internal/radiusd/plugins/eap/teapkeys/teapkeys.go")
 	assert.Contains(t, partial, "1 of 2 markers")
-	assert.Equal(t, 7, dataRows(partial), "every TLV-format row belongs in the partial table")
+	assert.Equal(t, 8, dataRows(partial), "every piece with no caller belongs in the partial table")
 }
 
 // section returns the rendered document between two headings.
