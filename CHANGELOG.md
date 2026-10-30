@@ -1,5 +1,13 @@
 # MWX-ISP Changelog
 
+## v0.19.5 — 2026-10-30
+
+Changes since v0.19.4:
+
+### Fixes and Improvements
+
+- move tenant branding public endpoint to avoid route conflicts
+
 ## v0.19.4 — 2026-10-30
 
 Changes since v0.19.3:
