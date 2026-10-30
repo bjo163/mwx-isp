@@ -101,10 +101,11 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
   const [tenantBranding, setTenantBranding] = useState<TenantBranding | null>(null);
   const effectiveBranding = useMemo<ProductBranding>(() => ({
     ...branding,
-    product_name: tenantBranding?.company_name || branding.product_name,
+    product_name: tenantBranding?.brand_name || tenantBranding?.company_name || branding.product_name,
+    short_name: tenantBranding?.short_name || branding.short_name,
     tagline: tenantBranding?.tagline || branding.tagline,
-    accent_color: tenantBranding?.primary_color || branding.accent_color,
-    logo_url: tenantBranding?.logo_url || branding.logo_url,
+    accent_color: tenantBranding?.accent_color || tenantBranding?.primary_color || branding.accent_color,
+    logo_url: tenantBranding?.dark_logo_url || tenantBranding?.logo_url || branding.logo_url,
   }), [branding, tenantBranding]);
   const darkTheme = useMemo(() => createAppTheme('dark', effectiveBranding.accent_color), [effectiveBranding.accent_color]);
   const lightTheme = useMemo(() => createAppTheme('light', effectiveBranding.accent_color), [effectiveBranding.accent_color]);
