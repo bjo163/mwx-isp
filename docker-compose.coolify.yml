@@ -1,11 +1,14 @@
-# Coolify-specific compose: db + app only.
+# Coolify deployment stack: db + app only.
 #
-# Why a separate file: the main docker-compose.yml includes a caddy service
-# that binds a host Caddyfile (./Caddyfile:/etc/caddy/Caddyfile:ro) and
-# publishes 80/443 — both incompatible with Coolify's Traefik proxy. Coolify
-# terminates TLS itself and forwards to app:1816, so caddy is redundant here.
+# Coolify's Traefik proxy already terminates TLS and owns host ports 80/443, so
+# the Caddy service from docker-compose.yml cannot start there (it would need
+# both the same ports and a host-side Caddyfile bind mount that Coolify does not
+# provision). Point the Coolify resource's "Docker Compose Location" at this
+# file and map the `app` service to a domain so Traefik forwards to app:1816.
 #
-# Point Coolify's "Docker Compose location" at this file.
+# Usage: set in Coolify -> Application -> Configuration -> Docker Compose
+# Location: /docker-compose.coolify.yml
+name: mwx-isp
 
 services:
   db:
@@ -57,6 +60,13 @@ services:
       TOUGHRADIUS_RADIUS_RADSEC_PORT: 2083
       TOUGHRADIUS_LOGGER_MODE: production
       TOUGHRADIUS_LOGGER_FILE_ENABLE: "false"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.mwx-isp.rule=Host(`e-isp.id`)
+      - traefik.http.routers.mwx-isp.entrypoints=https
+      - traefik.http.routers.mwx-isp.tls=true
+      - traefik.http.routers.mwx-isp.tls.certresolver=letsencrypt
+      - traefik.http.services.mwx-isp.loadbalancer.server.port=1816
     ports:
       - "127.0.0.1:${MWX_ISP_WEB_PORT:-1816}:1816/tcp"
       - "1812:1812/udp"
@@ -66,7 +76,7 @@ services:
       - mwx_isp_data:/var/toughradius
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:1816/admin/", "-o", "/dev/null"]
-      interval: 30s
+      interval: 33s
       timeout: 5s
       retries: 5
       start_period: 60s
