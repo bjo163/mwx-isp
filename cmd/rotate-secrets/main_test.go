@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	testOldSecret = "old-web-secret-0123456789abcdef"
-	testNewSecret = "new-web-secret-0123456789abcdef"
+	testOldSecret = "old-web-secret-0123456789abcdef" //nolint:gosec // G101: fixture value, not a deployed credential.
+	testNewSecret = "new-web-secret-0123456789abcdef" //nolint:gosec // G101: fixture value, not a deployed credential.
 	testCommunity = "community-s3cret-value"
 )
 

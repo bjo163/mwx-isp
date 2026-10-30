@@ -90,8 +90,8 @@ func TestAdminTokenAbuseIsRejected(t *testing.T) {
 		{name: "tampered payload", mutate: bearer(tampered), want: http.StatusUnauthorized},
 		{name: "wrong auth scheme", mutate: func(req *http.Request) { req.Header.Set("Authorization", "Token "+valid) }, want: http.StatusUnauthorized},
 		{name: "token in cookie only", mutate: func(req *http.Request) {
-			req.AddCookie(&http.Cookie{Name: "token", Value: valid})
-			req.AddCookie(&http.Cookie{Name: "session", Value: valid})
+			req.AddCookie(&http.Cookie{Name: "token", Value: valid})   //nolint:gosec // G124: the attacker-supplied cookie is the input under test.
+			req.AddCookie(&http.Cookie{Name: "session", Value: valid}) //nolint:gosec // G124: the attacker-supplied cookie is the input under test.
 		}, want: http.StatusUnauthorized},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -252,12 +252,12 @@ func TestAdminBrowserStorageContractKeepsBearerHeaderAuth(t *testing.T) {
 	}))
 	assert.Empty(t, offenders, "cookie-based admin credentials need a CSRF mitigation before use")
 
-	apiClient, err := os.ReadFile(filepath.Join(root, "utils", "apiClient.ts"))
+	apiClient, err := os.ReadFile(filepath.Join(root, "utils", "apiClient.ts")) //nolint:gosec // G304: fixed file inside the repository.
 	require.NoError(t, err)
 	assert.Contains(t, string(apiClient), "localStorage.getItem('token')")
 	assert.Contains(t, string(apiClient), "`Bearer ${token}`")
 
-	storage, err := os.ReadFile(filepath.Join(root, "utils", "storage.ts"))
+	storage, err := os.ReadFile(filepath.Join(root, "utils", "storage.ts")) //nolint:gosec // G304: fixed file inside the repository.
 	require.NoError(t, err)
 	assert.Contains(t, string(storage), "'token'", "client-side logout must clear the token key")
 }

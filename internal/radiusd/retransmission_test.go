@@ -95,9 +95,9 @@ func TestRetransmittedAccountingPacketsHaveNoDoubleEffect(t *testing.T) {
 	}
 
 	first, second := start(nasA), start(nasA)
-	firstBytes, err := first.Request.Packet.Encode()
+	firstBytes, err := first.Request.Encode()
 	require.NoError(t, err)
-	secondBytes, err := second.Request.Packet.Encode()
+	secondBytes, err := second.Request.Encode()
 	require.NoError(t, err)
 	require.Equal(t, firstBytes, secondBytes, "the fixture must replay identical packet bytes")
 
