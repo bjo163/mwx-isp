@@ -26,6 +26,7 @@ const menuItems = [
   { to: '/', labelKey: 'menu.dashboard', icon: <DashboardOutlinedIcon /> },
   { to: '/isp/customers', labelKey: 'menu.customers', sectionKey: 'menu.isp', icon: <PeopleAltOutlinedIcon /> },
   { to: '/isp/packages', labelKey: 'menu.packages', sectionKey: 'menu.services', icon: <Inventory2OutlinedIcon /> },
+  { to: '/isp/package-studio', labelKey: 'menu.package_studio', icon: <Inventory2OutlinedIcon />, permissions: ['super', 'admin'] },
   { to: '/isp/subscriptions', labelKey: 'menu.subscriptions', icon: <AutorenewOutlinedIcon /> },
   { to: '/isp/vouchers', labelKey: 'menu.vouchers', icon: <ConfirmationNumberOutlinedIcon /> },
   { to: '/isp/tickets', labelKey: 'menu.tickets', icon: <SupportAgentOutlinedIcon /> },

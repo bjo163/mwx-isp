@@ -45,6 +45,14 @@ type PublicPackage = {
   down_rate_kbps: number;
   speed_display: string;
   category: string;
+  icon?: string;
+  image_url?: string;
+  badge?: string;
+  featured?: boolean;
+  highlight_color?: string;
+  highlights?: string[];
+  cta_label?: string;
+  terms?: string;
 };
 
 type CustomerLookupResult = {
@@ -1013,7 +1021,7 @@ export const LandingPage: React.FC = () => {
           ) : (
             <Grid container spacing={3.5} alignItems="stretch">
               {filteredPackages.map((pkg, idx) => {
-                const isFeatured = idx === 1 || pkg.category.toLowerCase().includes('corp');
+                const isFeatured = Boolean(pkg.featured);
                 return (
                   <Grid item xs={12} sm={6} md={3} key={pkg.id || idx}>
                     <Paper
@@ -1022,8 +1030,8 @@ export const LandingPage: React.FC = () => {
                         height: '100%',
                         bgcolor: isFeatured ? '#111827' : '#0E1422',
                         border: '2px solid',
-                        borderColor: isFeatured ? accentColor : '#000',
-                        boxShadow: isFeatured ? `6px 6px 0px ${accentColor}` : '5px 5px 0px #000',
+                        borderColor: isFeatured ? (pkg.highlight_color || accentColor) : '#000',
+                        boxShadow: isFeatured ? `6px 6px 0px ${pkg.highlight_color || accentColor}` : '5px 5px 0px #000',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
@@ -1052,11 +1060,12 @@ export const LandingPage: React.FC = () => {
                             boxShadow: '2px 2px 0px #000',
                           }}
                         >
-                          PALING DIMINATI
+                          {pkg.badge || 'FEATURED'}
                         </Box>
                       )}
 
                       <Box>
+                        {pkg.image_url && <Box component="img" src={pkg.image_url} alt={pkg.name} sx={{ width: '100%', height: 116, objectFit: 'cover', mb: 2, border: '1px solid rgba(255,255,255,0.12)' }} />}
                         {/* CATEGORY & SPEED DISPLAY */}
                         <Typography
                           variant="caption"
@@ -1128,18 +1137,12 @@ export const LandingPage: React.FC = () => {
                               {pkg.description || 'Koneksi optik stabil tanpa batas kuota FUP.'}
                             </Typography>
                           </Stack>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <CheckCircleIcon sx={{ fontSize: '1rem', color: accentColor }} />
-                            <Typography variant="caption" sx={{ color: '#CBD5E1' }}>
-                              Gratis Sewa Modem WiFi GPON
-                            </Typography>
-                          </Stack>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <CheckCircleIcon sx={{ fontSize: '1rem', color: accentColor }} />
-                            <Typography variant="caption" sx={{ color: '#CBD5E1' }}>
-                              Prioritas Eskalasi Gangguan
-                            </Typography>
-                          </Stack>
+                          {(pkg.highlights || []).map((highlight, highlightIndex) => (
+                            <Stack key={highlightIndex} direction="row" spacing={1} alignItems="flex-start">
+                              <CheckCircleIcon sx={{ fontSize: '1rem', color: accentColor, mt: 0.2 }} />
+                              <Typography variant="caption" sx={{ color: '#CBD5E1' }}>{highlight}</Typography>
+                            </Stack>
+                          ))}
                           {pkg.fup_limit_gb > 0 ? (
                             <Stack direction="row" spacing={1} alignItems="center">
                               <CheckCircleIcon sx={{ fontSize: '1rem', color: accentColor }} />
@@ -1180,7 +1183,7 @@ export const LandingPage: React.FC = () => {
                             },
                           }}
                         >
-                          Daftar Pasang Baru
+                          {pkg.cta_label || 'Daftar Pasang Baru'}
                         </Button>
                         <Button
                           fullWidth

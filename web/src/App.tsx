@@ -12,6 +12,7 @@ import OperationsPage from './pages/OperationsPage';
 import UserGuidePage from './pages/UserGuidePage';
 import BrandingPage from './pages/BrandingPage';
 import TenantBrandingPage from './pages/TenantBrandingPage';
+import PackageStudioPage from './pages/PackageStudioPage';
 import { PlatformTenantsPage } from './pages/PlatformTenantsPage';
 import { LoginPage } from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
@@ -256,6 +257,7 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
       <Route path="/system/website" element={<WebsiteEditorPage />} />
       <Route path="/system/branding" element={<BrandingPage />} />
       <Route path="/tenant/branding" element={<TenantBrandingPage />} />
+      <Route path="/isp/package-studio" element={<PackageStudioPage />} />
       <Route path="/operations" element={<OperationsPage />} />
       <Route path="/isp/vouchers" element={<HotspotVouchersPage />} />
       <Route path="/network/ipam" element={<IPAMPage />} />
