@@ -543,9 +543,13 @@ type publicPackageDTO struct {
 }
 
 func listPublicPackages(c echo.Context) error {
+	tenantID := domain.DefaultTenantID
+	if scopedID, ok := c.Get("tenant_id").(int64); ok && scopedID > 0 {
+		tenantID = scopedID
+	}
 	db := GetDB(c)
 	var packages []domain.InternetPackage
-	if err := db.Where("status = ?", "active").Find(&packages).Error; err != nil {
+	if err := db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&packages).Error;
 		return fail(c, 500, "DATABASE_ERROR", "Failed to query packages", err.Error())
 	}
 	if len(packages) == 0 { return ok(c, []publicPackageDTO{}) }
@@ -558,7 +562,7 @@ func listPublicPackages(c echo.Context) error {
 	}
 	presentationMap := make(map[int64]domain.TenantPackagePresentation)
 	var presentationRows []domain.TenantPackagePresentation
-	if err := db.Where("package_id IN ?", packageIDs).Find(&presentationRows).Error; err != nil {
+	if err := db.Where("tenant_id = ? AND package_id IN ?", tenantID, packageIDs).Find(&presentationRows).Error; err != nil {
 		return fail(c, 500, "DATABASE_ERROR", "Failed to query package presentation", err.Error())
 	}
 	for _, row := range presentationRows { presentationMap[row.PackageID] = row }
@@ -566,7 +570,7 @@ func listPublicPackages(c echo.Context) error {
 	profileMap := make(map[int64]domain.RadiusProfile)
 	if len(profileIDs) > 0 {
 		var rows []domain.RadiusProfile
-		if err := db.Where("id IN ?", profileIDs).Find(&rows).Error; err != nil {
+		if err := db.Where("tenant_id = ? AND id IN ?", tenantID, profileIDs).Find(&rows).Error; err != nil {
 			return fail(c, 500, "DATABASE_ERROR", "Failed to query package profiles", err.Error())
 		}
 		for _, row := range rows { profileMap[row.ID] = row }

@@ -110,7 +110,7 @@ func publicRegistrationRateLimiter() echo.MiddlewareFunc {
 	}.middleware()
 }
 
-// packageCatalogRateLimiter keeps the anonymous catalogue read-only and bounded.
+// packageCatalogRateLimiter keeps the anonymous catalog read-only and bounded.
 func packageCatalogRateLimiter() echo.MiddlewareFunc {
 	return publicRateLimit{
 		name: "public_package_catalog", limit: rate.Every(2 * time.Second),

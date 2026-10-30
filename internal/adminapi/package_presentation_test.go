@@ -16,7 +16,8 @@ func TestPackagePresentationIsTenantScopedAndOperationalValuesStayAuthoritative(
 	require.NoError(t, db.AutoMigrate(
 		&domain.Tenant{}, &domain.RadiusProfile{}, &domain.InternetPackage{}, &domain.TenantPackagePresentation{},
 	))
-	require.NoError(t, db.Create(&domain.Tenant{ID: domain.DefaultTenantID, Name: "Tenant One", Slug: "tenant-one", Kind: "isp", Status: "active"}).Error)
+	var tenantOne domain.Tenant
+	require.NoError(t, db.Where("id = ?", domain.DefaultTenantID).First(&tenantOne).Error)
 	require.NoError(t, db.Create(&domain.Tenant{ID: 2, Name: "Tenant Two", Slug: "tenant-two", Kind: "isp", Status: "active"}).Error)
 
 	profileOne := domain.RadiusProfile{TenantID: domain.DefaultTenantID, Name: "profile-one", UpRate: 100000, DownRate: 100000, Status: "enabled"}
@@ -31,7 +32,7 @@ func TestPackagePresentationIsTenantScopedAndOperationalValuesStayAuthoritative(
 	oneID := strconv.FormatInt(packageOne.ID, 10)
 	c, recorder := newTenantRequestContext(t, e, db, appCtx, http.MethodPut,
 		"/api/v1/isp/packages/"+oneID+"/presentation",
-		`{"display_name":"Family Fibre 100","category":"Home","badge":"Popular","featured":true,"public_visible":false,"price":1}`,
+		`{"display_name":"Family Fiber 100","category":"Home","badge":"Popular","featured":true,"public_visible":false,"price":1}`,
 		domain.DefaultTenantID, map[string]string{"id": oneID})
 	require.NoError(t, updatePackagePresentation(c))
 	require.Equalf(t, http.StatusOK, recorder.Code, "%s", recorder.Body.String())

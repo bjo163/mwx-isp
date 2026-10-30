@@ -437,27 +437,32 @@ type tenantBrandingResponse struct {
 }
 
 func getPublicTenantBrandingHandler(c echo.Context) error {
-	identifier := c.Param("identifier")
+	identifier := strings.ToLower(strings.TrimSpace(c.Param("identifier")))
 	if identifier == "" {
 		return fail(c, http.StatusBadRequest, "INVALID_IDENTIFIER", "Tenant identifier is required", nil)
 	}
 
-	var branding domain.TenantBranding
-	err := GetDB(c).
-		// tenancy:unscoped: public endpoint resolves one active tenant by exact public slug/subdomain and returns only an allowlisted branding projection.
-		Joins("JOIN tenant ON tenant.id = tenant_branding.tenant_id").
-		Where("(tenant.slug = ? OR tenant.subdomain = ?) AND tenant.status = ?", identifier, identifier, "active").
-		First(&branding).Error
+	var tenant domain.Tenant
+	if err := GetDB(c).Where("(slug = ? OR subdomain = ?) AND status = ?", identifier, identifier, "active").First(&tenant).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fail(c, http.StatusNotFound, "TENANT_NOT_FOUND", "Active tenant not found", nil)
+		}
+		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to resolve tenant", err.Error())
+	}
 
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+	setRequestTenant(c, tenant.ID)
+	var branding domain.TenantBranding
+	if err := GetDB(c).Where("tenant_id = ?", tenant.ID).First(&branding).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fail(c, http.StatusNotFound, "BRANDING_NOT_FOUND", "Branding not found for tenant", nil)
 		}
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to load branding", err.Error())
 	}
 
 	brandName := branding.BrandName
-	if brandName == "" { brandName = branding.CompanyName }
+	if brandName == "" {
+		brandName = branding.CompanyName
+	}
 	return ok(c, tenantBrandingResponse{
 		BrandName: brandName, ShortName: branding.ShortName,
 		LogoURL: branding.LogoURL, CompactLogoURL: branding.CompactLogoURL,

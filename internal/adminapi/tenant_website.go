@@ -214,10 +214,14 @@ func getPublicTenantWebsite(c echo.Context) error {
 		if errors.Is(err,gorm.ErrRecordNotFound) { return fail(c,http.StatusNotFound,"TENANT_NOT_FOUND","Active tenant not found",nil) }
 		return fail(c,http.StatusInternalServerError,"DATABASE_ERROR","Failed to resolve tenant",err.Error())
 	}
+	setRequestTenant(c, tenant.ID)
 	var row domain.TenantWebsite
 	if err := GetDB(c).Where("tenant_id = ?",tenant.ID).First(&row).Error; err != nil {
 		if errors.Is(err,gorm.ErrRecordNotFound) { return fail(c,http.StatusNotFound,"WEBSITE_NOT_PUBLISHED","Tenant website is not published",nil) }
 		return fail(c,http.StatusInternalServerError,"DATABASE_ERROR","Failed to load published website",err.Error())
+	}
+	if row.PublishedVersion <= 0 || strings.TrimSpace(row.PublishedContent) == "" {
+		return fail(c, http.StatusNotFound, "WEBSITE_NOT_PUBLISHED", "Tenant website is not published", nil)
 	}
 	content, err := decodeTenantWebsite(row.PublishedContent)
 	if err != nil { return fail(c,http.StatusInternalServerError,"INVALID_PUBLISHED_CONTENT","Published website content is invalid",nil) }

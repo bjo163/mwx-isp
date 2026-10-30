@@ -148,8 +148,8 @@ func TestNothingImportsTheStudy(t *testing.T) {
 // loses would silently renumber every cost in the memo.
 func TestTheMenuParserReadsEveryRow(t *testing.T) {
 	res := study(t)
-	if len(res.Menu) != 23 {
-		t.Errorf("menu parsed to %d rows, the shipped array has 23", len(res.Menu))
+	if len(res.Menu) != 26 {
+		t.Errorf("menu parsed to %d rows, the shipped array has 26", len(res.Menu)
 	}
 	if res.Menu[0].To != "/" {
 		t.Errorf("the menu's first entry is %q, not the dashboard", res.Menu[0].To)

@@ -33,7 +33,7 @@ func anonymousRequest(t *testing.T, handler http.Handler, method, path string, p
 	return rec.Code, rec.Body.Bytes()
 }
 
-// The package catalogue is a bounded, read-only public surface. Customer bill
+// The package catalog is a bounded, read-only public surface. Customer bill
 // lookup, voucher check and installation intake remain authenticated and fail
 // closed; TR-F034 does not open customer self-service.
 func TestLandingSurfaceEndpointsFailClosedAnonymously(t *testing.T) {
@@ -67,7 +67,9 @@ func TestLandingSurfaceEndpointsFailClosedAnonymously(t *testing.T) {
 		assert.Zero(t, tickets, "anonymous intake must not create an installation ticket")
 	})
 
-	t.Run("anonymous visitors receive only the public read-only package catalogue", func(t *testing.T) {
+	t.Run("anonymous visitors receive only the public read-only package catalog", func(t *testing.T) {
+		require.NoError(t, db.AutoMigrate(&domain.TenantPackagePresentation{}))
+		require.NoError(t, db.Create(&domain.Tenant{ID: 2, Name: "Other Tenant", Slug: "other-tenant", Kind: "isp", Status: "active"}).Error)
 		profile := domain.RadiusProfile{TenantID: domain.DefaultTenantID, Name: "surface-profile", UpRate: 100000, DownRate: 100000, Status: "enabled"}
 		require.NoError(t, db.Create(&profile).Error)
 		pkg := domain.InternetPackage{
@@ -76,16 +78,24 @@ func TestLandingSurfaceEndpointsFailClosedAnonymously(t *testing.T) {
 		}
 		require.NoError(t, db.Create(&pkg).Error)
 		require.NoError(t, db.Create(&domain.TenantPackagePresentation{
-			TenantID: domain.DefaultTenantID, PackageID: pkg.ID, DisplayName: "Family Fibre 100",
+			TenantID: domain.DefaultTenantID, PackageID: pkg.ID, DisplayName: "Family Fiber 100",
 			Category: "Home", Badge: "Popular", PublicVisible: true,
+		}).Error)
+		otherProfile := domain.RadiusProfile{TenantID: 2, Name: "other-profile", UpRate: 50000, DownRate: 50000, Status: "enabled"}
+		require.NoError(t, db.Create(&otherProfile).Error)
+		otherPackage := domain.InternetPackage{TenantID: 2, Code: "PKG-OTHER", Name: "Other Tenant Package", Price: 50000, RadiusProfileID: otherProfile.ID, Status: "active"}
+		require.NoError(t, db.Create(&otherPackage).Error)
+		require.NoError(t, db.Create(&domain.TenantPackagePresentation{
+			TenantID: 2, PackageID: otherPackage.ID, DisplayName: "Other Tenant Fiber",
+			Category: "Home", PublicVisible: true,
 		}).Error)
 
 		status, body := anonymousRequest(t, handler, http.MethodGet, "/api/v1/public/packages", nil)
 		require.Equalf(t, http.StatusOK, status, "%s", body)
 		var public struct { Data []map[string]any `json:"data"` }
 		require.NoError(t, json.Unmarshal(body, &public))
-		require.Len(t, public.Data, 1)
-		assert.Equal(t, "Family Fibre 100", public.Data[0]["name"])
+		require.Len(t, public.Data, 1, "root-domain catalog must not leak another tenant's package")
+		assert.Equal(t, "Family Fiber 100", public.Data[0]["name"])
 		assert.Equal(t, "Home", public.Data[0]["category"])
 		assert.NotContains(t, public.Data[0], "customer_id")
 		assert.NotContains(t, public.Data[0], "support_email")
