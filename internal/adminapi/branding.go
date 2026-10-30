@@ -453,8 +453,8 @@ func getPublicTenantBrandingHandler(c echo.Context) error {
 }
 
 func getTenantBrandingHandler(c echo.Context) error {
-	tenantID, ok := c.Get("tenant_id").(int64)
-	if !ok {
+	tenantID, tenantOK := c.Get("tenant_id").(int64)
+	if !tenantOK {
 		return fail(c, http.StatusBadRequest, "INVALID_TENANT", "Tenant context is required", nil)
 	}
 
@@ -490,8 +490,8 @@ type updateBrandingPayload struct {
 }
 
 func updateTenantBrandingHandler(c echo.Context) error {
-	tenantID, ok := c.Get("tenant_id").(int64)
-	if !ok {
+	tenantID, tenantOK := c.Get("tenant_id").(int64)
+	if !tenantOK {
 		return fail(c, http.StatusBadRequest, "INVALID_TENANT", "Tenant context is required", nil)
 	}
 
