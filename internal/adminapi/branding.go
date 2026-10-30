@@ -10,6 +10,7 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -75,9 +76,10 @@ func registerBrandingRoutes() {
 	webserver.ApiGET("/system/branding", getPublicBranding, requirePlatformAdmin())
 	webserver.ApiPUT("/system/branding", saveBranding, requirePlatformAdmin())
 	webserver.ApiPOST("/system/branding/reset", resetBranding, requirePlatformAdmin())
-	// Authenticated tenant branding management
-	webserver.ApiGET("/branding", getTenantBrandingHandler)
-	webserver.ApiPUT("/branding", updateTenantBrandingHandler)
+	// Tenant branding: public read is an allowlisted projection; management is tenant-admin only.
+	webserver.ApiGET("/tenant-branding/:identifier", getPublicTenantBrandingHandler)
+	webserver.ApiGET("/branding", getTenantBrandingHandler, requireAdmin())
+	webserver.ApiPUT("/branding", updateTenantBrandingHandler, requireAdmin())
 }
 
 func defaultBranding() domain.ProductBranding {
@@ -490,6 +492,60 @@ type updateBrandingPayload struct {
 	SupportPhone   *string `json:"support_phone"`
 }
 
+
+func validTenantBrandingAssetURL(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return true
+	}
+	if strings.HasPrefix(value, "/") {
+		return !strings.HasPrefix(value, "//")
+	}
+	parsed, err := url.Parse(value)
+	return err == nil && parsed.Scheme == "https" && parsed.Host != "" && parsed.User == nil
+}
+
+func validateTenantBrandingPayload(payload updateBrandingPayload) error {
+	limits := []struct {
+		name  string
+		value *string
+		max   int
+	}{
+		{"logo_url", payload.LogoURL, 500},
+		{"favicon_url", payload.FaviconURL, 500},
+		{"company_name", payload.CompanyName, 150},
+		{"tagline", payload.Tagline, 300},
+		{"website_url", payload.WebsiteURL, 500},
+		{"support_email", payload.SupportEmail, 150},
+		{"support_phone", payload.SupportPhone, 32},
+	}
+	for _, field := range limits {
+		if field.value != nil && len(strings.TrimSpace(*field.value)) > field.max {
+			return fmt.Errorf("%s must not exceed %d characters", field.name, field.max)
+		}
+	}
+	for _, field := range []struct {
+		name  string
+		value *string
+	}{{"logo_url", payload.LogoURL}, {"favicon_url", payload.FaviconURL}, {"website_url", payload.WebsiteURL}} {
+		if field.value != nil && !validTenantBrandingAssetURL(*field.value) {
+			return fmt.Errorf("%s must be a relative path or an absolute HTTPS URL", field.name)
+		}
+	}
+	for _, field := range []*string{payload.PrimaryColor, payload.SecondaryColor} {
+		if field != nil && strings.TrimSpace(*field) != "" && !brandingAccentPattern.MatchString(strings.TrimSpace(*field)) {
+			return errors.New("branding colors must be six-digit hexadecimal values such as #16A34A")
+		}
+	}
+	if payload.Theme != nil {
+		theme := strings.ToLower(strings.TrimSpace(*payload.Theme))
+		if theme != "light" && theme != "dark" && theme != "system" {
+			return errors.New("theme must be light, dark, or system")
+		}
+	}
+	return nil
+}
+
 func updateTenantBrandingHandler(c echo.Context) error {
 	tenantID, tenantOK := c.Get("tenant_id").(int64)
 	if !tenantOK {
@@ -499,6 +555,9 @@ func updateTenantBrandingHandler(c echo.Context) error {
 	var payload updateBrandingPayload
 	if err := c.Bind(&payload); err != nil {
 		return fail(c, http.StatusBadRequest, "INVALID_PAYLOAD", "Invalid request body", err.Error())
+	}
+	if err := validateTenantBrandingPayload(payload); err != nil {
+		return fail(c, http.StatusBadRequest, "INVALID_BRANDING", err.Error(), nil)
 	}
 
 	var branding domain.TenantBranding
@@ -517,34 +576,34 @@ func updateTenantBrandingHandler(c echo.Context) error {
 	}
 
 	if payload.LogoURL != nil {
-		branding.LogoURL = *payload.LogoURL
+		branding.LogoURL = strings.TrimSpace(*payload.LogoURL)
 	}
 	if payload.FaviconURL != nil {
-		branding.FaviconURL = *payload.FaviconURL
+		branding.FaviconURL = strings.TrimSpace(*payload.FaviconURL)
 	}
 	if payload.PrimaryColor != nil {
-		branding.PrimaryColor = *payload.PrimaryColor
+		branding.PrimaryColor = strings.TrimSpace(*payload.PrimaryColor)
 	}
 	if payload.SecondaryColor != nil {
-		branding.SecondaryColor = *payload.SecondaryColor
+		branding.SecondaryColor = strings.TrimSpace(*payload.SecondaryColor)
 	}
 	if payload.Theme != nil {
-		branding.Theme = *payload.Theme
+		branding.Theme = strings.TrimSpace(*payload.Theme)
 	}
 	if payload.CompanyName != nil {
-		branding.CompanyName = *payload.CompanyName
+		branding.CompanyName = strings.TrimSpace(*payload.CompanyName)
 	}
 	if payload.Tagline != nil {
-		branding.Tagline = *payload.Tagline
+		branding.Tagline = strings.TrimSpace(*payload.Tagline)
 	}
 	if payload.WebsiteURL != nil {
-		branding.WebsiteURL = *payload.WebsiteURL
+		branding.WebsiteURL = strings.TrimSpace(*payload.WebsiteURL)
 	}
 	if payload.SupportEmail != nil {
-		branding.SupportEmail = *payload.SupportEmail
+		branding.SupportEmail = strings.TrimSpace(*payload.SupportEmail)
 	}
 	if payload.SupportPhone != nil {
-		branding.SupportPhone = *payload.SupportPhone
+		branding.SupportPhone = strings.TrimSpace(*payload.SupportPhone)
 	}
 
 	db := GetDB(c)

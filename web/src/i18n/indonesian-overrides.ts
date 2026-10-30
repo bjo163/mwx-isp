@@ -51,6 +51,7 @@ export const indonesianOverrides: Record<string, unknown> = {
     certificates: 'Sertifikat',
     system_config: 'Konfigurasi Sistem',
     website_editor: 'Editor Website & Beranda',
+    tenant_branding: 'Studio Branding Tenant',
     branding: 'Branding Produk',
     account_settings: 'Pengaturan Akun',
   },

@@ -50,6 +50,7 @@ const customEnglishMessages: TranslationMessages = {
     certificates: 'Certificates',
     system_config: 'System Configuration',
     website_editor: 'Website & Home Editor',
+    tenant_branding: 'Tenant Brand Studio',
     branding: 'Product Branding',
     account_settings: 'Account Settings',
   },
@@ -116,6 +117,12 @@ const customEnglishMessages: TranslationMessages = {
     no_traffic_data: 'No traffic records for the last 24 hours.',
   },
   resources: {
+    branding: {
+      name: 'Tenant Branding',
+      notifications: {
+        updated: 'Tenant branding updated successfully',
+      },
+    },
     'radius/users': {
       name: 'RADIUS User |||| RADIUS Users',
       empty: {
@@ -906,14 +913,6 @@ const customEnglishMessages: TranslationMessages = {
       timeout: {
         title: 'LDAP Timeout',
         description: 'Dial and per-operation timeout in seconds.',
-      },
-    },
-  },
-  resources: {
-    branding: {
-      name: 'Branding',
-      notifications: {
-        updated: 'Branding updated successfully',
       },
     },
   },

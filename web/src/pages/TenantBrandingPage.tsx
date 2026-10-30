@@ -7,13 +7,14 @@ import {
   TextField,
   Button,
   Typography,
-  Grid,
   CircularProgress,
   Divider,
   Alert,
 } from '@mui/material';
+import Grid from '@mui/material/GridLegacy';
 import { ColorLens as ColorLensIcon } from '@mui/icons-material';
-import { dataProvider } from '../providers/dataProvider';
+import { apiRequest } from '../utils/apiClient';
+import { useBranding } from '../branding/BrandingContext';
 
 interface TenantBranding {
   id?: string;
@@ -49,6 +50,7 @@ const TenantBrandingPage = () => {
   const [saving, setSaving] = useState(false);
   const notify = useNotify();
   const translate = useTranslate();
+  const { updateTenantBranding } = useBranding();
 
   useEffect(() => {
     loadBranding();
@@ -56,9 +58,10 @@ const TenantBrandingPage = () => {
 
   const loadBranding = async () => {
     try {
-      const response = await dataProvider.getOne('branding', { id: 'current' });
-      if (response.data) {
-        setBranding(response.data);
+      const response = await apiRequest<TenantBranding>('/branding');
+      if (response) {
+        setBranding((current) => ({ ...current, ...response }));
+        updateTenantBranding(response);
       }
     } catch (error) {
       console.error('Failed to load branding:', error);
@@ -77,10 +80,11 @@ const TenantBrandingPage = () => {
     event.preventDefault();
     setSaving(true);
     try {
-      await dataProvider.update('branding', {
-        id: branding.id || 'current',
-        data: branding,
+      const saved = await apiRequest<TenantBranding>('/branding', {
+        method: 'PUT',
+        body: JSON.stringify(branding),
       });
+      updateTenantBranding(saved);
       notify(translate('resources.branding.notifications.updated'), { type: 'success' });
     } catch (error) {
       notify(translate('ra.notification.http_error'), { type: 'error' });
