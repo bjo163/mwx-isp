@@ -149,7 +149,7 @@ func TestNothingImportsTheStudy(t *testing.T) {
 func TestTheMenuParserReadsEveryRow(t *testing.T) {
 	res := study(t)
 	if len(res.Menu) != 26 {
-		t.Errorf("menu parsed to %d rows, the shipped array has 26", len(res.Menu)
+		t.Errorf("menu parsed to %d rows, the shipped array has 26", len(res.Menu))
 	}
 	if res.Menu[0].To != "/" {
 		t.Errorf("the menu's first entry is %q, not the dashboard", res.Menu[0].To)
