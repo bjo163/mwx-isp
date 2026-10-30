@@ -13,12 +13,14 @@ Prototype: `internal/teapreadiness` · Tests: `go test ./internal/teapreadiness/
 > · partial 8 · blocked 2 · missing 6`, and the reasons are in
 > [teap-citation-anchoring-2026-10-29.md](teap-citation-anchoring-2026-10-29.md)
 > and, for the seven TLV rows, in M11.3's codec
-> [`internal/radiusd/plugins/eap/teaptlv`](../internal/radiusd/plugins/eap/teaptlv/teaptlv.go)
-> and, for the eighth, in M11.6's key schedule
+> [`internal/radiusd/plugins/eap/teaptlv`](../internal/radiusd/plugins/eap/teaptlv/teaptlv.go),
+> in M11.4's §6.3 Compound MAC
+> [`internal/radiusd/plugins/eap/teapbind`](../internal/radiusd/plugins/eap/teapbind/teapbind.go)
+> for the Crypto-Binding one, and, for the eighth, in M11.6's key schedule
 > [`internal/radiusd/plugins/eap/teapkeys`](../internal/radiusd/plugins/eap/teapkeys/teapkeys.go).
 > Partial means the piece exists in the tree and nothing on the serving path calls
-> it — a §4.2 wire format with no Compound MAC and no handler, a TLS 1.3 key
-> schedule with no session holding a chain — so it is not a claim that TEAP works.
+> it — a §4.2 wire format and the MAC over it, plus a TLS 1.3 key schedule, none of
+> which a handler or a session yet holds — so it is not a claim that TEAP works.
 
 ## Question
 
@@ -42,7 +44,7 @@ proves it. Three rules make that meaningful:
    Cryptobinding "are skipped". Reading the RFC and writing about it is not the
    same as doing it, so `TestCommentMentionsAreNotEvidence` asserts the word is
    gone from the scanned tree, and that the only code supporting the Crypto-Binding
-   row is the `teaptlv` codec — never that comment.
+   row is the `teaptlv` codec and the `teapbind` MAC — never that comment.
 2. **Test files and `testdata` are excluded.** A test can define exactly the
    identifier a verdict looks for, in a file the server never imports.
    `TestScanReadsOnlyProductCode` proves a `_test.go` and a `testdata` fixture
@@ -119,7 +121,9 @@ To build (14), grouped by what they cost:
   a version octet first.
 - **The two mechanisms that decide whether M11 is worth scheduling**:
   `crypto-binding-tlv` (RFC 7170 §4.2.13: "Phase 2 MUST always end with a
-  Crypto-Binding TLV" — nothing computes or verifies one) and
+  Crypto-Binding TLV" — nothing computes or verifies one). (M11.3 encodes the TLV
+  and M11.4 computes the MAC over the §6.3 BUFFER with the TLS 1.3 HKDF hash; the
+  row is `partial` now, waiting on the handshake that would send one.) And
   `inner-method-chaining` (the machine-then-user sequence the roadmap calls
   certificate plus password; the tunnel state machines run one inner method per
   session).

@@ -230,8 +230,8 @@ func Mechanics() []Mechanic {
 			ID:      "crypto-binding-tlv",
 			Title:   "Crypto-Binding TLV is constructed and verified",
 			Source:  Source{RFC: rfcTEAP, Section: "3.6", Document: "rfc9930-teap-version-1.txt", Quote: "Phase 2 MUST always end with a Crypto-Binding TLV"},
-			Markers: []string{"CryptoBinding", "compoundMAC"},
-			Note:    "The wire format exists and validates itself: teaptlv encodes and decodes the 76-octet Value of §4.2.13, checks the Reserved octet, the version pair, the Flags and Sub-Type enumerations and the nonce least-significant-bit rule, and derives the Binding Response nonce from the request. What does not exist is the MAC: RFC 9930 §6.3 computes each Compound MAC over the TLV with both MAC slots zeroed plus the Outer TLVs from both directions, and nothing in the tree does that. The peap_inner.go comment that names Cryptobinding as a TLV it skips stays the only mention on the serving path.",
+			Markers: []string{"CryptoBinding", "CompoundMAC", "NewTEAPHandler"},
+			Note:    "Both halves the MAC needs are now in the tree. teaptlv encodes and decodes the 76-octet Value of §4.2.13, checks the Reserved octet, the version pair, the Flags and Sub-Type enumerations and the nonce least-significant-bit rule, and derives the Binding Response nonce from the request; teapbind then builds the §6.3 BUFFER — the TLV with both MAC fields zeroed, the other party's TEAP octet, and the Outer TLVs of the first TEAP message in each direction — takes HMAC with the TLS 1.3 HKDF hash over it, truncates to the 20-octet field, and verifies in constant time. What is still absent is a caller: no handshake holds the Phase 1 Outer TLVs, no one applies the §6.2.4 rule of which Flags a session must send, and the peap_inner.go comment that names Cryptobinding as a TLV it skips stays the only mention on the serving path.",
 		},
 		{
 			ID:      "eap-payload-tlv",
