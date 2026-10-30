@@ -1,5 +1,72 @@
 # MWX-ISP Changelog
 
+## v0.16.0 — 2026-10-30
+
+Changes since v0.15.0:
+
+### Features
+
+- run the TEAP Phase 2 exchange (M11.9)
+- serve the TEAP Phase 1 tunnel on the RFC 9930 §4.1 envelope (M11.8)
+- frame the RFC 9930 §4.1 TEAP envelope (M11.7)
+- open a TLS 1.3 TEAP tunnel with opt-in session tickets (M11.2)
+- chain TEAP Inner Methods under the RFC 9930 §3.6 bounds (M11.5)
+- compute the TEAP Crypto-Binding MAC over the §6.3 BUFFER (M11.4)
+- derive the TEAP key schedule with the RFC 9427 §2.2 labels (M11.6)
+- add the RFC 9930 §4.2 TLV codec and re-anchor its rows
+- re-anchor the TEAP catalog onto RFC 9930 (M11.1)
+- measure which per-tenant statistics a response reconstructs, and price the governance that would stop it (FUT-020)
+- measure a printable grunge incident card over proven fields only (FUT-018)
+- measure what a navigation-only voice layer can be asked to do (FUT-016)
+- price task-grouped navigation against the shipped menu (FUT-015)
+- reproduce a profile-edit wire diff without touching the cache (FUT-007)
+- measure triage over sanitized logs, abstention priced against guessing (FUT-002)
+- measure what a read-only intent search could resolve (FUT-001)
+- measure the shipped manga-ink skin against WCAG AA (FUT-017)
+- measure the real onboarding migration surface (ECO-006)
+- re-derive the EAP-PWD need for M12 from the tree (ENG-007)
+- survey which TEAP mechanisms the EAP server already has (ENG-006)
+- audit billing exceptions against the rules that create them (ECO-009)
+- derive the RFC-to-feature-to-test navigation graph (FUT-023)
+- derive a static NAS-ODP graph from operator relations (FUT-006)
+- reconstruct billing and RADIUS state from stored evidence (FUT-022)
+- add reviewed redacted incident bundle (ENG-060)
+- let admins reverse a mis-entered payment (ENG-034)
+- bound KDF cost compatibility and passphrase policy (ENG-026)
+- gate called govulncheck advisories behind justified exceptions (ENG-062)
+- share one billing/incident status vocabulary across EN and ID (ENG-054)
+- add reproducible SBOM generator and dependency inventory (ENG-030)
+- reload RadSec TLS material without restart (ENG-004)
+- rotate SNMP credentials when the web secret changes (ENG-024)
+- idempotent manual payment retries (ENG-033)
+- redact secrets, customer PII and host IPs on log export (ENG-028)
+- resolve EAP-TLS identity from certificate for anonymous outer NAI (ENG-001)
+
+### Fixes and Improvements
+
+- add HTTP router with redirect for complete Traefik config
+- remove custom network to use Coolify-managed Traefik network
+- add Traefik labels for e-isp.id routing
+- add Coolify-specific compose without caddy
+- carry RFC 5931 as the EAP-PWD text and unname the NAI file (M12.1)
+- pin two M12 claims to the code that actually proves them
+- make RADIUS user import all-or-nothing (ENG-059)
+- bucket series by instant windows and localize nominals (ENG-057)
+- measure list, count and retention plans before changing indexes (ENG-040)
+- enforce the shared list response contract (ENG-063)
+- keep a sample subscription adopted by a real customer (ENG-039)
+- refuse a PNG that only decodes in its header (ENG-029)
+- make EAP-OTP unreachable without a validator (ENG-008)
+- bound probe targets against SSRF (ENG-027)
+- pin RadSec peer verification and stop failed handshakes (ENG-009)
+- make list rows keyboard reachable (ENG-053)
+- answer staff-gated portal actions with an info notice (ENG-056)
+- confine the reachability probe to IP literals and registered inventory (ENG-027)
+- report a failed WhatsApp session revoke instead of swallowing it (ENG-025)
+- stop trusting forwarded headers from private peers (ENG-023)
+- keep finalized accounting history on session-id reuse (ENG-012)
+- reconcile public landing/portal claims that need an operator JWT
+
 ## v0.15.0 — 2026-10-30
 
 Changes since v0.14.1:
