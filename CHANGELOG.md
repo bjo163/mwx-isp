@@ -1,5 +1,13 @@
 # MWX-ISP Changelog
 
+## v0.19.3 — 2026-10-30
+
+Changes since v0.19.2:
+
+### Fixes and Improvements
+
+- resolve variable shadowing in tenant branding handlers
+
 ## v0.19.2 — 2026-10-30
 
 Changes since v0.19.1:
