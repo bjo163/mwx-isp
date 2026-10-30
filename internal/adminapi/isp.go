@@ -549,7 +549,7 @@ func listPublicPackages(c echo.Context) error {
 	}
 	db := GetDB(c)
 	var packages []domain.InternetPackage
-	if err := db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&packages).Error;
+	if err := db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&packages).Error; err != nil {
 		return fail(c, 500, "DATABASE_ERROR", "Failed to query packages", err.Error())
 	}
 	if len(packages) == 0 { return ok(c, []publicPackageDTO{}) }
