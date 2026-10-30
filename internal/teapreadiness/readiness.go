@@ -27,8 +27,6 @@ const (
 	rfcTEAP = "RFC 9930"
 	// rfcTLSTunnel is the TLS 1.3 transport TEAP builds on.
 	rfcTLSTunnel = "RFC 9190"
-	// rfcEAPBase is the EAP framework carrying fragmentation rules.
-	rfcEAPBase = "RFC 3748"
 	// rfcCUI is the chargeable-user-identity specification behind the anonymous
 	// outer identity the server already sends.
 	rfcCUI = "RFC 4372"
@@ -225,7 +223,7 @@ func Mechanics() []Mechanic {
 			Title:   "The TEAP version field is negotiated and re-verified",
 			Source:  Source{RFC: rfcTEAP, Section: "3.1", Document: "rfc9930-teap-version-1.txt", Quote: "The receiver of the Crypto-Binding TLV MUST verify that the version"},
 			Markers: []string{"teapVersion", "TEAPVersion"},
-			Note:    "Nothing parses a TEAP header today, so there is no version octet to negotiate. RFC 9930 §3.1 makes the negotiated version a check the receiver must repeat against the Crypto-Binding TLV, which is why this row cannot be satisfied by a parser alone.",
+			Note:    "teapmsg now parses the Flags/Ver octet and refuses to encode a version the three-bit field cannot hold, but it deliberately does not judge the value it carries: RFC 9930 §3.1 negotiation is the handler's, and this row also requires the Crypto-Binding re-verification of the negotiated version, which nothing performs because no TEAP session exists yet.",
 		},
 		{
 			ID:      "result-tlv",
@@ -339,9 +337,9 @@ func Mechanics() []Mechanic {
 		{
 			ID:      "tls-fragmentation",
 			Title:   "Oversized tunnel records are fragmented and reassembled",
-			Source:  Source{RFC: rfcEAPBase, Document: "rfc3748-eap.txt", Quote: "a fragmented EAP packet will require"},
-			Markers: []string{"tlsfragment.Reassembler", "tlsfragment.Packet"},
-			Note:    "Fragmentation is shared by every tunneled method and needs no TEAP-specific work.",
+			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc9930-teap-version-1.txt", Quote: "More fragments; set on all but the last fragment."},
+			Markers: []string{"FlagOuterTLVs", "Reassembler"},
+			Note:    "§3.10 defers fragmentation to RFC 5216 §2.1.5, but TEAP carries it in its own envelope: §4.1 adds the Ver field, the four-octet Message Length and the Outer TLV Length, none of which the EAP-TLS layout has. teapmsg frames and reassembles that envelope, including the Outer TLVs §6.3 puts in the Crypto-Binding BUFFER; no handler drives it yet.",
 		},
 		{
 			ID:      "protected-success",
