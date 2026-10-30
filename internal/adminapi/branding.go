@@ -75,8 +75,6 @@ func registerBrandingRoutes() {
 	webserver.ApiGET("/system/branding", getPublicBranding, requirePlatformAdmin())
 	webserver.ApiPUT("/system/branding", saveBranding, requirePlatformAdmin())
 	webserver.ApiPOST("/system/branding/reset", resetBranding, requirePlatformAdmin())
-	// Tenant-level branding (per-organization customization) - public read
-	webserver.ApiGET("/tenant/branding/public/:identifier", getPublicTenantBrandingHandler)
 	// Authenticated tenant branding management
 	webserver.ApiGET("/branding", getTenantBrandingHandler)
 	webserver.ApiPUT("/branding", updateTenantBrandingHandler)
