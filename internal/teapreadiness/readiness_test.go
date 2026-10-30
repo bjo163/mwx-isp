@@ -185,12 +185,30 @@ func TestRealTreeVerdictsForBuildMechanics(t *testing.T) {
 	report := realReport(t)
 	for _, id := range []string{
 		"teap-eap-type", "teap-method-name", "teap-handler-wiring", "teap-config-choice",
-		"teap-version-negotiation", "inner-method-chaining",
+		"teap-version-negotiation",
 	} {
 		finding := find(t, report, id)
 		assert.Equal(t, StatusMissing, finding.Status, "%s must not be claimed as built", id)
 		assert.Zero(t, finding.MarkerHits, id)
 	}
+}
+
+// TestChainingRowStaysPartial records what teapinner did to the catalog: the
+// sequence RFC 9930 §3.6.2 describes and the bounds of §3.6.5 are now enforced in
+// the tree, so the row is no longer "missing", but no TEAP handler runs a Plan
+// inside a tunnel, so it must not read as a server that can chain either.
+func TestChainingRowStaysPartial(t *testing.T) {
+	report := realReport(t)
+	finding := find(t, report, "inner-method-chaining")
+	assert.Equal(t, StatusPartial, finding.Status, "a chain no tunnel runs is a library")
+	require.NotEmpty(t, finding.Support)
+	for _, e := range finding.Support {
+		assert.Equal(t, "internal/radiusd/plugins/eap/teapinner/teapinner.go", e.File,
+			"only the chaining package may support this row")
+	}
+	assert.Equal(t, 2, finding.MarkerHits, "the absent marker is the handler that would own a Plan")
+	assert.Contains(t, finding.Note, "teapinner", "the note must say what the package enforces")
+	assert.Contains(t, finding.Note, "NewTEAPHandler", "the note must name the caller that is missing")
 }
 
 // TestTLVFormatRowsStayPartial records what the teaptlv codec did and did not
@@ -272,12 +290,13 @@ func TestTotalsAccountForEveryMechanism(t *testing.T) {
 	// a handler.
 	assert.Equal(t, 2, report.Totals.Blocked)
 	// Measured against this repository as it stands: six serving-path mechanisms
-	// are reusable, eight have a piece in the tree and no caller (the seven §4.2 TLV
-	// formats and the RFC 9427 key schedule), and the remaining six - the method
-	// itself, its wiring, its version negotiation and its chaining - are absent.
+	// are reusable, nine have a piece in the tree and no caller (the seven §4.2 TLV
+	// formats, the RFC 9427 key schedule and the §3.6 chaining rules), and the
+	// remaining five - the method itself, its wiring, its name and its version
+	// negotiation - are absent.
 	assert.Equal(t, 6, report.Totals.Ready)
-	assert.Equal(t, 8, report.Totals.Partial)
-	assert.Equal(t, 6, report.Totals.Missing)
+	assert.Equal(t, 9, report.Totals.Partial)
+	assert.Equal(t, 5, report.Totals.Missing)
 }
 
 func TestStatusRulesFromASyntheticTree(t *testing.T) {
@@ -402,8 +421,9 @@ func TestRenderMarkdownSeparatesReuseBuildAndUnknown(t *testing.T) {
 	assert.Contains(t, partial, "| crypto-binding-tlv | RFC 9930 §3.6 |")
 	assert.Contains(t, partial, "internal/radiusd/plugins/eap/teaptlv/teaptlv.go")
 	assert.Contains(t, partial, "internal/radiusd/plugins/eap/teapkeys/teapkeys.go")
+	assert.Contains(t, partial, "internal/radiusd/plugins/eap/teapinner/teapinner.go")
 	assert.Contains(t, partial, "1 of 2 markers")
-	assert.Equal(t, 8, dataRows(partial), "every piece with no caller belongs in the partial table")
+	assert.Equal(t, 9, dataRows(partial), "every piece with no caller belongs in the partial table")
 }
 
 // section returns the rendered document between two headings.

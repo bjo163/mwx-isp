@@ -259,8 +259,8 @@ func Mechanics() []Mechanic {
 			ID:      "inner-method-chaining",
 			Title:   "Two inner methods chain, machine then user",
 			Source:  Source{RFC: rfcTEAP, Section: "A.26", Document: "rfc9930-teap-version-1.txt", Quote: "TEAPv1 meets this requirement by supporting inner EAP method chaining"},
-			Markers: []string{"InnerMethods", "methodChain"},
-			Note:    "The tunnel state machines run exactly one inner method per session, which is the M11 requirement the roadmap calls certificate plus password. RFC 9930 §3.6.2 defines the chained sequence and §3.6.5 bounds what may be chained: an inner method MUST crypto-bind its own keys to the tunnel, a tunneled method MUST NOT be nested inside TEAP, inner-method resumption is forbidden, and EAP-TLS with EAP-MSCHAPv2 are the pair the document names as widely supported.",
+			Markers: []string{"NewPlan", "NewSession", "NewTEAPHandler"},
+			Note:    "The tunnel state machines run exactly one inner method per session, which is the M11 requirement the roadmap calls certificate plus password. RFC 9930 §3.6.2 defines the chained sequence and §3.6.5 bounds what may be chained; teapinner now holds both halves of that. NewPlan refuses a tunneled method nested inside TEAP, an Inner Method that resumes, and one that binds no keys of its own, and applies the two §6.2.3 ordering checks the policy selects. NewSession hands the methods out one at a time - §3.6.2 allows no two running in parallel - and will not accept the next method's start until the current one's Intermediate-Result statuses and Crypto-Binding Flags are recorded, which is where §6.2.3's rule that an EMSK-deriving method must be bound by an EMSK Compound MAC is applied. KeysFor is §6.2.1's password rule and SwapMSCHAPv2MSK is §3.6.4's. What is still absent is the caller: no NewTEAPHandler owns a Plan and a Session, so nothing chains inside a tunnel yet.",
 		},
 		{
 			ID:      "identity-type-tlv",
@@ -280,8 +280,8 @@ func Mechanics() []Mechanic {
 			ID:      "basic-password-auth-tlv",
 			Title:   "Basic-Password-Auth TLVs carry a password without an inner EAP method",
 			Source:  Source{RFC: rfcTEAP, Section: "4.2.14", Document: "rfc9930-teap-version-1.txt", Quote: "Basic-Password-Auth-Req TLV"},
-			Markers: []string{"basicPasswordAuth", "PasswordAuthTLV", "NewBasicPasswordAuthReq"},
-			Note:    "This is the certificate-plus-password path the roadmap wants, and it is a TLV exchange, not an inner method. The §4.2.14 prompt and the §4.2.15 Userlen/Username/Passlen/Password layout are encodable now - teaptlv refuses a zero length on either field - but no tunnel request or response carries them. RFC 9930 §4.2.8 names Basic-Password-Auth-Req as the case whose MSK and EMSK cannot come from cryptographic primitives and MUST be set to zero, and RFC 9427 §2.2 turns that into 32 zero octets for the inner session key - so a password carried this way contributes no link-layer key material of its own.",
+			Markers: []string{"NewBasicPasswordAuthReq", "NewBasicPasswordAuthResp", "PasswordRounds", "NewTEAPHandler"},
+			Note:    "This is the certificate-plus-password path the roadmap wants, and it is a TLV exchange, not an inner method. The §4.2.14 prompt and the §4.2.15 Userlen/Username/Passlen/Password layout are encodable now - teaptlv refuses a zero length on either field - and teapinner.PasswordRounds enforces the §3.6.3 rules around them: the first request of a session carries a prompt, a later round keeps the username it started with, and the exchange stops at the configured round-trip limit. What is still absent is the caller: no NewTEAPHandler puts either TLV in a tunnel message. RFC 9930 §4.2.8 names Basic-Password-Auth-Req as the case whose MSK and EMSK cannot come from cryptographic primitives and MUST be set to zero, and RFC 9427 §2.2 turns that into 32 zero octets for the inner session key; teapinner.KeysFor is what applies that to the chain.",
 		},
 		{
 			ID:      "tls13-outer-tunnel",

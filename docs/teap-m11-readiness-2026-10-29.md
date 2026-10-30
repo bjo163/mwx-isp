@@ -10,7 +10,7 @@ Prototype: `internal/teapreadiness` · Tests: `go test ./internal/teapreadiness/
 > (missing) and `pac-tlv` (missing) became `session-resumption` (blocked, pinned
 > by `tlsengine/engine.go:140`). The report below is kept as the record of what
 > was measured against RFC 7170; the current numbers are `Mechanics: 22 · ready 6
-> · partial 8 · blocked 2 · missing 6`, and the reasons are in
+> · partial 9 · blocked 2 · missing 5`, and the reasons are in
 > [teap-citation-anchoring-2026-10-29.md](teap-citation-anchoring-2026-10-29.md)
 > and, for the seven TLV rows, in M11.3's codec
 > [`internal/radiusd/plugins/eap/teaptlv`](../internal/radiusd/plugins/eap/teaptlv/teaptlv.go),
@@ -18,9 +18,13 @@ Prototype: `internal/teapreadiness` · Tests: `go test ./internal/teapreadiness/
 > [`internal/radiusd/plugins/eap/teapbind`](../internal/radiusd/plugins/eap/teapbind/teapbind.go)
 > for the Crypto-Binding one, and, for the eighth, in M11.6's key schedule
 > [`internal/radiusd/plugins/eap/teapkeys`](../internal/radiusd/plugins/eap/teapkeys/teapkeys.go).
+> For the ninth, M11.5 put the Phase 2 sequence and its §3.6.2/§3.6.5 bounds in
+> [`internal/radiusd/plugins/eap/teapinner`](../internal/radiusd/plugins/eap/teapinner/teapinner.go),
+> which is also what enforces the §3.6.3 password rules beside the `teaptlv` codec.
 > Partial means the piece exists in the tree and nothing on the serving path calls
-> it — a §4.2 wire format and the MAC over it, plus a TLS 1.3 key schedule, none of
-> which a handler or a session yet holds — so it is not a claim that TEAP works.
+> it — a §4.2 wire format and the MAC over it, a TLS 1.3 key schedule and the
+> chaining rules that decide which Inner Method may run next, none of which a
+> handler or a session yet holds — so it is not a claim that TEAP works.
 
 ## Question
 
@@ -126,7 +130,11 @@ To build (14), grouped by what they cost:
   row is `partial` now, waiting on the handshake that would send one.) And
   `inner-method-chaining` (the machine-then-user sequence the roadmap calls
   certificate plus password; the tunnel state machines run one inner method per
-  session).
+  session). (M11.5 put the sequence and its bounds in `teapinner`: a plan that
+  refuses a nested tunnel, an inner-method resumption and a method that binds no
+  keys, and a session that will not start the next method until the running one's
+  statuses and Crypto-Binding Flags are recorded. The row is `partial` now, waiting
+  on the handler that would own a plan.)
 - **Optional but load-bearing for resumption**: `pac-tlv` — no PAC-Key,
   PAC-Opaque or PAC-Info exists, so every TEAP handshake would be a full one.
 - **Crypto agility**: `rfc9427-key-derivation`, named but not quotable here. (M11.1
@@ -166,11 +174,11 @@ the client environment is fully controlled.
 
 ## Verification
 
-- `go test ./internal/teapreadiness/` — 26 tests plus 5 subtests pass, including
+- `go test ./internal/teapreadiness/` — 27 tests plus 5 subtests pass, including
   the negative cases (comment-only mention, test-file definition, substring
-  lookalike, lookalike identifier, missing scan directory) and the two pins that
-  keep a piece with no caller out of `ready`: `TestTLVFormatRowsStayPartial` and
-  `TestKeyDerivationRowStaysPartial`.
+  lookalike, lookalike identifier, missing scan directory) and the three pins that
+  keep a piece with no caller out of `ready`: `TestTLVFormatRowsStayPartial`,
+  `TestKeyDerivationRowStaysPartial` and `TestChainingRowStaysPartial`.
 - `golangci-lint run ./internal/teapreadiness/...` — 0 issues.
 - `go build ./...` unaffected; `grep -rl "internal/teapreadiness"` outside the
   package returns nothing, so the prototype is inert for the product.
