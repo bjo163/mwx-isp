@@ -1,5 +1,13 @@
 # MWX-ISP Changelog
 
+## v0.17.0 — 2026-10-30
+
+Changes since v0.16.0:
+
+### Features
+
+- add subdomain-based tenant routing
+
 ## v0.16.0 — 2026-10-30
 
 Changes since v0.15.0:
