@@ -69,12 +69,15 @@ type brandingDTO struct {
 }
 
 func registerBrandingRoutes() {
+	// Platform-level branding (product identity)
 	webserver.ApiGET("/public/branding", getPublicBranding)
 	webserver.ApiGET("/public/branding/logo", getPublicBrandLogo)
+	// Tenant-level branding (per-organization customization)
 	webserver.ApiGET("/public/branding/tenant/:identifier", getPublicTenantBrandingHandler)
 	webserver.ApiGET("/system/branding", getPublicBranding, requirePlatformAdmin())
 	webserver.ApiPUT("/system/branding", saveBranding, requirePlatformAdmin())
 	webserver.ApiPOST("/system/branding/reset", resetBranding, requirePlatformAdmin())
+	// Authenticated tenant branding management
 	webserver.ApiGET("/branding", getTenantBrandingHandler)
 	webserver.ApiPUT("/branding", updateTenantBrandingHandler)
 }
