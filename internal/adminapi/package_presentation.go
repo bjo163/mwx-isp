@@ -116,7 +116,9 @@ func updatePackagePresentation(c echo.Context) error {
 	if input.PublicVisible != nil { row.PublicVisible = *input.PublicVisible }
 	row.UpdatedAt = time.Now().UTC()
 	if row.ID == 0 {
-		if err := db.Create(&row).Error; err != nil { return fail(c, http.StatusConflict, "PRESENTATION_SAVE_FAILED", "Failed to create package presentation", err.Error()) }
+		// Select all fields so an explicit false value (notably public_visible)
+		// is not replaced by the database default on INSERT.
+		if err := db.Select("*").Create(&row).Error; err != nil { return fail(c, http.StatusConflict, "PRESENTATION_SAVE_FAILED", "Failed to create package presentation", err.Error()) }
 	} else if err := db.Save(&row).Error; err != nil {
 		return fail(c, http.StatusInternalServerError, "PRESENTATION_SAVE_FAILED", "Failed to update package presentation", err.Error())
 	}
