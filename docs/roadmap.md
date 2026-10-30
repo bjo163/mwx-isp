@@ -9,7 +9,7 @@ This is the canonical planning surface and task source: milestone status, guardr
 1. Milestones use `M<number>` IDs and map to one or more `TR-F` feature IDs.
 2. Each milestone is split into MVP subtasks that are independently deliverable, reversible, and verifiable.
 3. Status flows as `Planned -> In progress -> Delivered`; delivery means merged to `main` with passing CI.
-4. Do not schedule non-goals from `TR-N001` through `TR-N003`, `TR-N005`, or `TR-N006`: generic payment/orders/finance, CRM/ticketing/customer portal, general observability, protocol-stack/framework rewrites, or hosted captive portal products. Tenant work is allowed only within `TR-F033`; `TR-N004` prohibits unbounded expansion beyond that scope. Surfaces reconciled by the [A20 inventory](feature-checklist.md#existing-surface-scope-inventory-a20-2026-10-27) are containment-only: repair and harden them when defects require it, but do not schedule expansion without first updating the feature checklist.
+4. Do not schedule non-goals from `TR-N001` through `TR-N003`, `TR-N005`, or `TR-N006`: generic payment/orders/finance, CRM/ticketing/customer portal, general observability, protocol-stack/framework rewrites, or hosted captive portal products. Tenant data isolation and authorization remain governed by `TR-F033`; the approved presentation layers are limited to `TR-F034` and `TR-F035`. `TR-N004` prohibits expansion beyond those explicit boundaries. Surfaces reconciled by the [A20 inventory](feature-checklist.md#existing-surface-scope-inventory-a20-2026-10-27) are containment-only: repair and harden them when defects require it, but do not schedule expansion without first updating the feature checklist.
 5. Agent output must go through pull request, CI, and human review. Direct pushes to `main` are forbidden.
 6. After each delivered subtask, use `.agents/skills/groom-roadmap/SKILL.md` to update status, split or reorder work, and keep the roadmap consistent with the checklist.
 7. Delivered subtasks should keep only outcome, evidence, residual risk, and traceable entry points. Long implementation narratives belong in PRs, commits, or changelogs.
@@ -46,6 +46,8 @@ This is the canonical planning surface and task source: milestone status, guardr
 | M16 | Automated dev-to-main versioning, changelog, and releases | TR-F022 | P2 | Delivered |
 | M17 | Safe VPS installation and first-run onboarding | TR-F020 / TR-F016 | P1 | Delivered |
 | M18 | Existing-feature containment, integrity and operational verification | TR-F012 / TR-F013 / TR-F017 / TR-F018 / TR-F020 / TR-F027 / TR-F028 / TR-F030 / TR-F031 / TR-F033 | P0 first | Delivered |
+| M19 | Tenant brand, website and package catalog experience | TR-F034 / TR-F033 | P1 | In progress (#62) |
+| M20 | Tenant invoice and receipt branding | TR-F035 / TR-F034 / TR-F033 | P2 | Planned (#63) |
 
 ## Cross-Cutting Baseline
 
@@ -67,6 +69,44 @@ This is the canonical planning surface and task source: milestone status, guardr
 - [x] M18.8 Complete frontend error/cache/language checks, deployment matrix and safe fixtures (H12–H15; TR-F013/TR-F020/TR-F022/TR-F023/TR-F029/TR-F032); H12, H13 and H15 are delivered, and H14 adds the local install/update/release verification matrix, fixes the reinstall `.env` ordering, the unhealthy "already up to date" path, and container version/commit metadata ([report](installer-update-release-verification-2026-10-27.md)). A clean-host VPS install/upgrade matrix, real registry/port failures, timer execution and production RTO remain external operational checks and are not claimed.
 
 M18 is **Delivered**. M18.1 is delivered by PR #31; M18.2, M18.4 and M18.5 are delivered by the v0.12.0 hardening batch (`8abeac7`, `18f7bf5`, `309c0b4`, `3ecb715`, `77f8fde`) together with the 2026-10-27 close-out. The 2026-10-27 audit close-out delivered A05–A09, A11–A14, A16–A18, A10 (atomic registration + idempotency), A15 (full-batch print pagination), A20 (scope inventory), H01–H04 (tenant join/raw-SQL audit, access matrix, public rate limits, payment concurrency), H05 (manual and billing suspension share the durable Disconnect queue with retry and audit), H07–H12 (ODP/IPAM integrity, traffic/syslog scope, notification durability, UI state/pagination), H13 (locale ID-ID, entire custom-page catalog in EN/ID, browser keyboard check), H15 (seeding, cleanup and PostgreSQL fixture), and H14 (installer/update/release verification matrix with reinstall, unhealthy-update, and version-metadata fixes; clean-host VPS execution remains an external operational check and is not claimed). Existing milestone completion below is preserved as historical evidence.
+
+### M19 — Tenant Brand, Website & Package Catalog (TR-F034)
+
+- [ ] M19.0.1 Scope/data model/ADR and acceptance boundaries (#71).
+- [ ] M19.0.2 Tenant role matrix, verified host mapping and public-surface policy (#72).
+- [ ] M19.1.1 Repair tenant branding API/UI contract (#64).
+- [ ] M19.1.2 Register public tenant branding read endpoint (#65).
+- [ ] M19.1.3 Guard tenant branding read/write by tenant admin role (#66).
+- [ ] M19.1.4 Add Tenant Brand Studio navigation and permissions (#67).
+- [ ] M19.1.5 Restore frontend CI build (#68).
+- [ ] M19.1.6 Separate platform Product Branding and tenant brand state (#69).
+- [ ] M19.1.7 Add tenant branding role and isolation regression coverage (#70).
+- [ ] M19.2.1 Extend tenant brand schema and safe defaults (#73).
+- [ ] M19.2.2 Tenant-isolated asset upload/lifecycle (#74).
+- [ ] M19.2.3 Validated design tokens and app-shell theme (#75).
+- [ ] M19.2.4 Brand Studio with preview and validation (#76).
+- [ ] M19.3.1 Website content draft/publish/version model (#77).
+- [ ] M19.3.2 Section-based Tenant Website Studio (#78).
+- [ ] M19.3.3 Verified subdomain/custom-domain resolution (#79).
+- [ ] M19.3.4 Public website projection without opening self-service APIs (#80).
+- [ ] M19.4.1 Tenant package presentation model (#81).
+- [ ] M19.4.2 Package presentation API with ownership checks (#82).
+- [ ] M19.4.3 Explicit package categories and display ordering (#83).
+- [ ] M19.4.4 Catalog settings, Package Studio and live previews (#104).
+- [ ] M19.4.5 Minimal read-only tenant package catalog (#105).
+- [ ] M19.4.6 Price/speed/FUP and tenant isolation tests (#106).
+- [ ] M19.5.1 PostgreSQL and browser E2E two-tenant acceptance (#107).
+- [ ] M19.5.2 Roadmap, handbook, API, domain and release documentation (#108).
+
+### M20 — Tenant Invoice & Receipt Branding (TR-F035)
+
+- [ ] M20.1 Immutable legal issuer snapshot on invoice issue (#109).
+- [ ] M20.2 Tenant invoice and receipt templates (#110).
+- [ ] M20.3 PDF/print preview with historical fidelity (#111).
+- [ ] M20.4 Verified payment instructions and QR presentation (#112).
+- [ ] M20.5 PostgreSQL history, tenant isolation and billing invariant tests (#113).
+
+**Delivery rule:** M19 and M20 remain in progress/planned until their PRs reach `main` and required backend, frontend, PostgreSQL and browser acceptance gates pass. Public package read is read-only; existing customer lookup, voucher, registration and payment actions stay protected.
 
 The scheduled **M5 vendor VSA expansion** batch (M5.1 inventory + M5.2/M5.3/M5.4 parsers/enhancers) is delivered — M5.4 shipped the Cisco `cisco-avpair` Access-Accept enhancer (#543) — and the remaining vendor enhancers stay demand-driven. **M10.1** (TLS 1.3 negotiation + RFC 9190 protected success indication, #562), **M10.2** (version-branched MSK derivation → MS-MPPE keys on pure EAP-TLS Accepts, #564), and **M10.3** (tolerate the peer's `close_notify` after the success point, #607), and **M10.5** (anonymous outer NAI resolved from the certificate identity) are delivered; M10.4's CI acceptance-test scope is satisfied incrementally by each subtask's `test/integration/` subtests. M14.6 now has CI-backed OpenLDAP acceptance coverage; M14.5 remains blocked until load evidence justifies connection pooling / reconnect work.
 
@@ -130,7 +170,7 @@ Agent-facing unchecked tasks:
 - Do not build a billing, order, or finance system.
 - Do not turn the admin UI into CRM, ticketing, or a customer self-service portal.
 - Do not turn the dashboard into a generic monitoring platform.
-- Do not implement tenant behavior outside the approved isolation, authorization, RADIUS-resolution, and migration boundaries in `TR-F033`.
+- Do not implement tenant behavior outside the approved isolation, authorization, RADIUS-resolution, and migration boundaries in `TR-F033`, or brand/website/package presentation in `TR-F034`, or document presentation in `TR-F035`.
 - Do not rewrite the RADIUS protocol stack or replace the management framework without a specific defect and migration plan.
 - Do not build, host, or operate captive portal login pages, voucher/SMS/WeChat/payment onboarding, or vendor portal-server state machines. Portal belongs to another product; MWX-ISP only integrates as the RADIUS auth/accounting backend.
 
