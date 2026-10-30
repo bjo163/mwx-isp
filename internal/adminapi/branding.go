@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -78,8 +79,11 @@ func registerBrandingRoutes() {
 	webserver.ApiPOST("/system/branding/reset", resetBranding, requirePlatformAdmin())
 	// Tenant branding: public read is an allowlisted projection; management is tenant-admin only.
 	webserver.ApiGET("/tenant-branding/:identifier", getPublicTenantBrandingHandler)
+	webserver.ApiGET("/tenant-branding/assets/:tenant/:filename", getPublicTenantBrandingAsset)
 	webserver.ApiGET("/branding", getTenantBrandingHandler, requireAdmin())
 	webserver.ApiPUT("/branding", updateTenantBrandingHandler, requireAdmin())
+	webserver.ApiPOST("/branding/assets", uploadTenantBrandingAsset, requireAdmin())
+	webserver.ApiDELETE("/branding/assets/:filename", deleteTenantBrandingAsset, requireAdmin())
 }
 
 func defaultBranding() domain.ProductBranding {
@@ -673,4 +677,147 @@ func updateTenantBrandingHandler(c echo.Context) error {
 	}
 
 	return ok(c, branding)
+}
+
+
+const tenantBrandingAssetPattern = regexp.MustCompile(`^asset-[a-f0-9]{32}\\.png$`)
+
+// writeTenantBrandingAsset stores a fully decoded PNG beneath a tenant-specific
+// directory. The opaque filename prevents callers from choosing filesystem paths.
+func writeTenantBrandingAsset(dataDir string, tenantID int64, content []byte) (string, error) {
+	if tenantID <= 0 {
+		return "", fmt.Errorf("tenant ID is required")
+	}
+	var random [16]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		return "", err
+	}
+	filename := "asset-" + hex.EncodeToString(random[:]) + ".png"
+	directory := filepath.Join(dataDir, "tenant-branding", strconv.FormatInt(tenantID, 10))
+	if err := os.MkdirAll(directory, 0o750); err != nil {
+		return "", err
+	}
+	temporary := filepath.Join(directory, filename+".tmp")
+	if err := os.WriteFile(temporary, content, 0o600); err != nil {
+		return "", err
+	}
+	if err := os.Rename(temporary, filepath.Join(directory, filename)); err != nil {
+		_ = os.Remove(temporary)
+		return "", err
+	}
+	return filename, nil
+}
+
+func uploadTenantBrandingAsset(c echo.Context) error {
+	tenantID, ok := c.Get("tenant_id").(int64)
+	if !ok || tenantID <= 0 {
+		return fail(c, http.StatusBadRequest, "INVALID_TENANT", "Tenant context is required", nil)
+	}
+	c.Request().Body = http.MaxBytesReader(c.Response().Writer, c.Request().Body, maxBrandLogoSize+(64<<10))
+	file, _, err := c.Request().FormFile("asset")
+	if err != nil {
+		return fail(c, http.StatusBadRequest, "INVALID_ASSET", "A PNG asset file is required", nil)
+	}
+	defer func() { _ = file.Close() }()
+	content, err := readBrandLogo(file)
+	if err != nil {
+		return fail(c, http.StatusBadRequest, "INVALID_ASSET", err.Error(), nil)
+	}
+	filename, err := writeTenantBrandingAsset(GetAppContext(c).Config().GetDataDir(), tenantID, content)
+	if err != nil {
+		return fail(c, http.StatusInternalServerError, "ASSET_WRITE_FAILED", "Could not store tenant asset", err.Error())
+	}
+	assetURL := fmt.Sprintf("/api/v1/tenant-branding/assets/%d/%s", tenantID, filename)
+	return c.JSON(http.StatusCreated, Response{Data: map[string]string{"file_name": filename, "url": assetURL}})
+}
+
+func getPublicTenantBrandingAsset(c echo.Context) error {
+	tenantID, err := strconv.ParseInt(c.Param("tenant"), 10, 64)
+	filename := c.Param("filename")
+	if err != nil || tenantID <= 0 || !tenantBrandingAssetPattern.MatchString(filename) {
+		return fail(c, http.StatusNotFound, "ASSET_NOT_FOUND", "Tenant asset not found", nil)
+	}
+	var tenant domain.Tenant
+	if err := GetDB(c).Where("id = ? AND status = ?", tenantID, "active").First(&tenant).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fail(c, http.StatusNotFound, "ASSET_NOT_FOUND", "Tenant asset not found", nil)
+		}
+		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to resolve tenant asset", err.Error())
+	}
+	assetPath := filepath.Join(GetAppContext(c).Config().GetDataDir(), "tenant-branding", strconv.FormatInt(tenantID, 10), filename)
+	file, err := os.Open(assetPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return fail(c, http.StatusNotFound, "ASSET_NOT_FOUND", "Tenant asset not found", nil)
+		}
+		return fail(c, http.StatusInternalServerError, "ASSET_READ_FAILED", "Unable to read tenant asset", err.Error())
+	}
+	defer func() { _ = file.Close() }()
+	c.Response().Header().Set(echo.HeaderContentType, "image/png")
+	c.Response().Header().Set(echo.HeaderXContentTypeOptions, "nosniff")
+	c.Response().Header().Set(echo.HeaderCacheControl, "public, max-age=31536000, immutable")
+	return c.Stream(http.StatusOK, "image/png", file)
+}
+
+func tenantBrandingAssetInUse(db *gorm.DB, tenantID int64, filename string) (bool, error) {
+	assetURL := fmt.Sprintf("/api/v1/tenant-branding/assets/%d/%s", tenantID, filename)
+	var count int64
+	if err := db.Model(&domain.TenantBranding{}).Where(
+		"tenant_id = ? AND (logo_url = ? OR compact_logo_url = ? OR light_logo_url = ? OR dark_logo_url = ? OR favicon_url = ? OR social_image_url = ?)",
+		tenantID, assetURL, assetURL, assetURL, assetURL, assetURL, assetURL,
+	).Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+	if err := db.Model(&domain.TenantWebsite{}).Where(
+		"tenant_id = ? AND (draft_content LIKE ? OR published_content LIKE ?)",
+		tenantID, "%"+filename+"%", "%"+filename+"%",
+	).Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+	if err := db.Model(&domain.TenantWebsiteVersion{}).Where(
+		"tenant_id = ? AND content_json LIKE ?", tenantID, "%"+filename+"%",
+	).Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+	if err := db.Model(&domain.TenantPackagePresentation{}).Where(
+		"tenant_id = ? AND image_url = ?", tenantID, assetURL,
+	).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func deleteTenantBrandingAsset(c echo.Context) error {
+	tenantID, ok := c.Get("tenant_id").(int64)
+	filename := c.Param("filename")
+	if !ok || tenantID <= 0 {
+		return fail(c, http.StatusBadRequest, "INVALID_TENANT", "Tenant context is required", nil)
+	}
+	if !tenantBrandingAssetPattern.MatchString(filename) {
+		return fail(c, http.StatusBadRequest, "INVALID_ASSET", "Invalid tenant asset name", nil)
+	}
+	inUse, err := tenantBrandingAssetInUse(GetDB(c), tenantID, filename)
+	if err != nil {
+		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to check tenant asset references", err.Error())
+	}
+	if inUse {
+		return fail(c, http.StatusConflict, "ASSET_IN_USE", "Remove the asset from branding, website and package content before deleting it", nil)
+	}
+	assetPath := filepath.Join(GetAppContext(c).Config().GetDataDir(), "tenant-branding", strconv.FormatInt(tenantID, 10), filename)
+	if err := os.Remove(assetPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return fail(c, http.StatusNotFound, "ASSET_NOT_FOUND", "Tenant asset not found", nil)
+		}
+		return fail(c, http.StatusInternalServerError, "ASSET_DELETE_FAILED", "Could not delete tenant asset", err.Error())
+	}
+	return ok(c, map[string]string{"file_name": filename, "deleted": "true"})
 }

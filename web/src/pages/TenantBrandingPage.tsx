@@ -74,6 +74,24 @@ const TenantBrandingPage = () => {
   const updateField = (key: keyof TenantBranding, value: string) => {
     setBranding(current => ({ ...current, [key]: value }));
   };
+  const uploadAsset = async (key: keyof TenantBranding, file: File) => {
+    if (file.type !== 'image/png') {
+      notify('Only PNG images are accepted for tenant branding assets.', { type: 'warning' });
+      return;
+    }
+    const body = new FormData();
+    body.set('asset', file, file.name);
+    try {
+      const uploaded = await apiRequest<{ url: string }>('/branding/assets', { method: 'POST', body });
+      const next = { ...branding, [key]: uploaded.url };
+      setBranding(next);
+      updateTenantBranding(next);
+      notify('Tenant asset uploaded and linked to this brand field.', { type: 'success' });
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Tenant asset upload failed.', { type: 'error' });
+    }
+  };
+
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -112,10 +130,22 @@ const TenantBrandingPage = () => {
                 <Grid container spacing={2}>
                   {fields.map(field => (
                     <Grid item xs={12} sm={6} key={field.key}>
-                      <TextField fullWidth size="small" label={field.label}
-                        value={String(branding[field.key] ?? '')}
-                        helperText={field.helper}
-                        onChange={event => updateField(field.key, event.target.value)} />
+                      <Stack spacing={1}>
+                        <TextField fullWidth size="small" label={field.label}
+                          value={String(branding[field.key] ?? '')}
+                          helperText={field.helper}
+                          onChange={event => updateField(field.key, event.target.value)} />
+                        {(['logo_url', 'compact_logo_url', 'light_logo_url', 'dark_logo_url', 'favicon_url', 'social_image_url'] as Array<keyof TenantBranding>).includes(field.key) && (
+                          <Button component="label" size="small" variant="outlined" sx={{ alignSelf: 'flex-start' }}>
+                            Upload PNG
+                            <input hidden type="file" accept="image/png" onChange={event => {
+                              const file = event.target.files?.[0];
+                              if (file) void uploadAsset(field.key, file);
+                              event.target.value = '';
+                            }} />
+                          </Button>
+                        )}
+                      </Stack>
                     </Grid>
                   ))}
                 </Grid>
