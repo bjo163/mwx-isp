@@ -153,7 +153,7 @@ func TestWhatsAppTransportOnlyUsesSilentLogger(t *testing.T) {
 		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
 			continue
 		}
-		source, err := os.ReadFile(name)
+		source, err := os.ReadFile(name) //nolint:gosec // G304: name comes from this package's own directory listing.
 		require.NoError(t, err)
 		text := string(source)
 		scanned++

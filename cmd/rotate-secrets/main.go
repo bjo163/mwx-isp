@@ -35,8 +35,8 @@ import (
 )
 
 const (
-	oldSecretEnvVar = "MWX_ISP_OLD_WEB_SECRET"
-	newSecretEnvVar = "MWX_ISP_NEW_WEB_SECRET"
+	oldSecretEnvVar = "MWX_ISP_OLD_WEB_SECRET" //nolint:gosec // G101: an environment variable name, not a credential.
+	newSecretEnvVar = "MWX_ISP_NEW_WEB_SECRET" //nolint:gosec // G101: an environment variable name, not a credential.
 )
 
 func main() {
@@ -54,18 +54,18 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) in
 
 	oldSecret, newSecret := getenv(oldSecretEnvVar), getenv(newSecretEnvVar)
 	if strings.TrimSpace(oldSecret) == "" || strings.TrimSpace(newSecret) == "" {
-		fmt.Fprintf(stderr, "Error: set %s and %s to the old and new web secret\n", oldSecretEnvVar, newSecretEnvVar)
+		_, _ = fmt.Fprintf(stderr, "Error: set %s and %s to the old and new web secret\n", oldSecretEnvVar, newSecretEnvVar)
 		return 2
 	}
 
 	if *apply {
-		fmt.Fprintln(stdout, "Stop the service before applying and restart it with the new web secret afterwards.")
+		_, _ = fmt.Fprintln(stdout, "Stop the service before applying and restart it with the new web secret afterwards.")
 	}
 
 	cfg := config.LoadConfig(*configFile)
 	db, err := openDatabase(cfg)
 	if err != nil {
-		fmt.Fprintf(stderr, "Error: connect to database: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "Error: connect to database: %v\n", err)
 		return 1
 	}
 	if sqlDB, err := db.DB(); err == nil {
@@ -74,13 +74,13 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) in
 
 	report, err := networkmonitor.RotateSNMPSecrets(context.Background(), db, oldSecret, newSecret, *apply)
 	if err != nil {
-		fmt.Fprintf(stderr, "Error: rotation aborted, no row was changed: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "Error: rotation aborted, no row was changed: %v\n", err)
 		return 1
 	}
 
-	fmt.Fprintf(stdout, "ok apply=%t targets=%d fields=%d\n", *apply, report.Targets, report.Fields)
+	_, _ = fmt.Fprintf(stdout, "ok apply=%t targets=%d fields=%d\n", *apply, report.Targets, report.Fields)
 	if !*apply {
-		fmt.Fprintln(stdout, "dry run: writes were rolled back; re-run with -apply to persist them.")
+		_, _ = fmt.Fprintln(stdout, "dry run: writes were rolled back; re-run with -apply to persist them.")
 	}
 	return 0
 }

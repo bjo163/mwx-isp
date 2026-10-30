@@ -47,7 +47,7 @@ func (h *accountingOrderHarness) send(t *testing.T, nas *domain.NetNas, status r
 
 func (h *accountingOrderHarness) dispatch(t *testing.T, ctx *accounting.AccountingContext) error {
 	t.Helper()
-	switch rfc2866.AcctStatusType(ctx.StatusType) {
+	switch rfc2866.AcctStatusType(ctx.StatusType) { //nolint:gosec // G115: the fixture only ever sets the three start/interim/stop values.
 	case rfc2866.AcctStatusType_Value_Start:
 		return h.start.Handle(ctx)
 	case rfc2866.AcctStatusType_Value_InterimUpdate:
