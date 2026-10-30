@@ -170,6 +170,8 @@ func (c *Coordinator) handleIdentityResponse(ctx *EAPContext, configuredMethod s
 		handler, _ = c.handlerRegistry.GetHandler(TypeTTLS)
 	case "eap-peap":
 		handler, _ = c.handlerRegistry.GetHandler(TypePEAP)
+	case "eap-teap":
+		handler, _ = c.handlerRegistry.GetHandler(TypeTEAP)
 	case MethodUnavailable:
 		return false, false, fmt.Errorf("no configured EAP method has a registered handler")
 	default:

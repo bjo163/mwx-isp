@@ -360,25 +360,31 @@ func TestReassemblerRejectsOuterTLVsOnAContinuation(t *testing.T) {
 }
 
 func TestLoadReassemblerContinuesAcrossRounds(t *testing.T) {
-	r := LoadReassembler([]byte{1, 2}, 4, true, 0)
+	r := LoadReassembler([]byte{1, 2}, []byte{0x00, 0x01}, 4, true, 0)
 	declared, ok := r.Declared()
 	assert.True(t, ok)
 	assert.Equal(t, uint32(4), declared)
 	assert.Equal(t, []byte{1, 2}, r.Buffer())
+	assert.Equal(t, []byte{0x00, 0x01}, r.OuterTLVs())
 
 	complete, err := r.Accept(&Packet{Version: Version, TLSData: []byte{3, 4}})
 	require.NoError(t, err)
 	assert.True(t, complete)
 	assert.Equal(t, []byte{1, 2, 3, 4}, r.Buffer())
-	assert.Empty(t, r.OuterTLVs())
 
 	// A loaded reassembler has already seen its first fragment, so a fresh L
 	// header is a continuation violation rather than a restart.
-	fresh := LoadReassembler(nil, 0, false, 0)
+	fresh := LoadReassembler(nil, nil, 0, false, 0)
 	_, err = fresh.Accept(&Packet{Version: Version, Flags: FlagMoreFragments, TLSData: []byte{1}})
 	require.NoError(t, err)
 	_, err = fresh.Accept(&Packet{Version: Version, HasLength: true, MessageLength: 2, TLSData: []byte{2}})
 	assert.ErrorIs(t, err, ErrLengthOnContinuation)
+
+	// Outer TLVs alone mark a message as started: §4.1 allows them only on the
+	// first fragment, so a loaded reassembler carrying them has seen that one.
+	withOuter := LoadReassembler(nil, []byte{0x00, 0x01}, 0, false, 0)
+	_, err = withOuter.Accept(&Packet{Version: Version, HasOuterTLVs: true, OuterTLVs: []byte{0x00, 0x02}})
+	assert.ErrorIs(t, err, ErrOuterTLVsOnContinuation)
 }
 
 func TestFragmentReassemblesByteForByte(t *testing.T) {

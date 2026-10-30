@@ -269,6 +269,16 @@ func mapEAPDispatchError(err error) error {
 		return newEAPDispatchAuthError(app.MetricsRadiusRejectOther, "eap-ttls inner avp protocol violation", err)
 	case stderrs.Is(err, eap.ErrTTLSInnerNotImplemented):
 		return newEAPDispatchAuthError(app.MetricsRadiusRejectOther, "eap-ttls inner method unavailable", err)
+	case stderrs.Is(err, eap.ErrTEAPVersionUnsupported):
+		return newEAPDispatchAuthError(app.MetricsRadiusRejectOther, "eap-teap version negotiation failed", err)
+	case stderrs.Is(err, eap.ErrTEAPProtocol):
+		return newEAPDispatchAuthError(app.MetricsRadiusRejectOther, "eap-teap outer protocol violation", err)
+	case stderrs.Is(err, eap.ErrTEAPUnexpectedFragment):
+		return newEAPDispatchAuthError(app.MetricsRadiusRejectOther, "eap-teap fragmentation exchange failed", err)
+	case stderrs.Is(err, eap.ErrTEAPRequiresTLS13):
+		return newEAPDispatchAuthError(app.MetricsRadiusRejectOther, "eap-teap tunnel is not tls 1.3", err)
+	case stderrs.Is(err, eap.ErrTEAPPhase2NotImplemented):
+		return newEAPDispatchAuthError(app.MetricsRadiusRejectOther, "eap-teap phase 2 unavailable", err)
 	case stderrs.Is(err, eap.ErrStateNotFound):
 		return newEAPDispatchAuthError(app.MetricsRadiusRejectOther, "eap session state not found", err)
 	case stderrs.Is(err, eap.ErrUnsupportedEAPType):

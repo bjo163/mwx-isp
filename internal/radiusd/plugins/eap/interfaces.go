@@ -30,6 +30,9 @@ const (
 	// TypeTLV is EAP-TLV (IANA type 33). PEAPv0 uses it for the Result /
 	// Cryptobinding TLVs after the inner method (Microsoft [MS-PEAP] §2.2.8).
 	TypeTLV = 33
+	// TypeTEAP is EAP-TEAP (IANA type 55, RFC 9930 §7.5). The same octet is
+	// spelled 0x37 in the Crypto-Binding BUFFER of §6.3.
+	TypeTEAP = 55
 )
 
 // EAPState holds EAP status data

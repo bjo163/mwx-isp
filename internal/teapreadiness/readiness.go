@@ -195,35 +195,35 @@ func Mechanics() []Mechanic {
 			Title:   "TEAP has an assigned EAP method type the server can send",
 			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc9930-teap-version-1.txt", Quote: "TEAP Message Format"},
 			Markers: []string{"TypeTEAP"},
-			Note:    "interfaces.go declares types up to EAP-TLV (33) and has no TEAP constant, so the server cannot send the method yet. RFC 9930 §7.5 records the IANA assignment of method type 55 and §6.3 spells the octet as 0x37, which is what teapkeys.Type carries.",
+			Note:    "interfaces.go declares TypeTEAP = 55, the IANA assignment RFC 9930 §7.5 records, and the handler builds every EAP-Request with it. The same value is what teapkeys.Type carries as the TLS exporter context octet.",
 		},
 		{
 			ID:      "teap-method-name",
 			Title:   "The method has a name the registry and configuration can address",
 			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc9930-teap-version-1.txt", Quote: "TEAP Message Format"},
 			Markers: []string{"EAPMethodTEAP"},
-			Note:    "Handlers export EAPMethodTLS, EAPMethodPEAP, EAPMethodTTLS and EAPMethodOTP; there is no TEAP name.",
+			Note:    "teap_handler.go exports EAPMethodTEAP = \"eap-teap\" alongside the EAPMethodTLS, EAPMethodPEAP, EAPMethodTTLS and EAPMethodOTP names, which is the string the registry and the configuration use to address the method.",
 		},
 		{
 			ID:      "teap-handler-wiring",
 			Title:   "A TEAP handler is registered and reachable from the identity phase",
 			Source:  Source{RFC: rfcTEAP, Section: "3.1", Document: "rfc9930-teap-version-1.txt", Quote: "In the first EAP-Request sent with EAP type=TEAP"},
 			Markers: []string{"NewTEAPHandler", "NewTEAPHandlerWithConfig"},
-			Note:    "Registration is central in plugins/init.go, and the identity-phase dispatch in coordinator.go is a name switch, so a new method needs both a constructor and a case there.",
+			Note:    "plugins/init.go registers NewTEAPHandlerWithConfig with the settings-backed TEAP provider (and the bare constructor when no application context exists), and coordinator.go routes \"eap-teap\" to the handler registered under TypeTEAP. A peer that selects the method therefore reaches HandleIdentity and the Phase 1 tunnel.",
 		},
 		{
 			ID:      "teap-config-choice",
 			Title:   "Operators can select TEAP as radius.EapMethod",
 			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc9930-teap-version-1.txt", Quote: "TEAP Message Format"},
 			Markers: []string{"eap-teap"},
-			Note:    "The config enum lists eap-md5, eap-mschapv2, eap-tls, eap-peap and eap-ttls; the allowlist would drop an unregistered name anyway.",
+			Note:    "The radius.EapMethod enum now lists eap-md5, eap-mschapv2, eap-tls, eap-peap, eap-ttls and eap-teap, and the schema description states that the method completes its Phase 1 tunnel and rejects Phase 2 with a clean error until that half lands.",
 		},
 		{
 			ID:      "teap-version-negotiation",
 			Title:   "The TEAP version field is negotiated and re-verified",
 			Source:  Source{RFC: rfcTEAP, Section: "3.1", Document: "rfc9930-teap-version-1.txt", Quote: "The receiver of the Crypto-Binding TLV MUST verify that the version"},
-			Markers: []string{"teapVersion", "TEAPVersion"},
-			Note:    "teapmsg now parses the Flags/Ver octet and refuses to encode a version the three-bit field cannot hold, but it deliberately does not judge the value it carries: RFC 9930 §3.1 negotiation is the handler's, and this row also requires the Crypto-Binding re-verification of the negotiated version, which nothing performs because no TEAP session exists yet.",
+			Markers: []string{"stateKeyTEAPVersion", "verifyCryptoBinding"},
+			Note:    "The handler performs §3.1 negotiation: it answers the Start with version 1, accepts the peer's first message only when it carries version 1 (otherwise eap.ErrTEAPVersionUnsupported terminates the exchange) and refuses a version that changes mid-conversation. The second half of the row is still open: §3.1 asks the receiver of the Crypto-Binding TLV to re-verify that the negotiated version is the one the TLV names, and no Phase 2 code constructs or verifies a Crypto-Binding yet. verifyCryptoBinding is the Phase 2 symbol that would close it.",
 		},
 		{
 			ID:      "result-tlv",
@@ -236,8 +236,8 @@ func Mechanics() []Mechanic {
 			ID:      "crypto-binding-tlv",
 			Title:   "Crypto-Binding TLV is constructed and verified",
 			Source:  Source{RFC: rfcTEAP, Section: "3.6", Document: "rfc9930-teap-version-1.txt", Quote: "Phase 2 MUST always end with a Crypto-Binding TLV"},
-			Markers: []string{"CryptoBinding", "CompoundMAC", "NewTEAPHandler"},
-			Note:    "Both halves the MAC needs are now in the tree. teaptlv encodes and decodes the 76-octet Value of §4.2.13, checks the Reserved octet, the version pair, the Flags and Sub-Type enumerations and the nonce least-significant-bit rule, and derives the Binding Response nonce from the request; teapbind then builds the §6.3 BUFFER — the TLV with both MAC fields zeroed, the other party's TEAP octet, and the Outer TLVs of the first TEAP message in each direction — takes HMAC with the TLS 1.3 HKDF hash over it, truncates to the 20-octet field, and verifies in constant time. What is still absent is a caller: no handshake holds the Phase 1 Outer TLVs, no one applies the §6.2.4 rule of which Flags a session must send, and the peap_inner.go comment that names Cryptobinding as a TLV it skips stays the only mention on the serving path.",
+			Markers: []string{"CryptoBinding", "CompoundMAC", "verifyCryptoBinding"},
+			Note:    "teaptlv encodes and decodes the 76-octet Value of §4.2.13 — Reserved octet, version pair, Flags and Sub-Type enumerations, the nonce least-significant-bit rule and the Binding Response nonce derived from the request — and teapbind builds the §6.3 BUFFER over the TLV with both MAC fields zeroed, the other party's TEAP octet and the Phase 1 Outer TLVs of the first TEAP message in each direction, HMACs it with the TLS 1.3 HKDF hash, truncates to 20 octets and verifies in constant time. The TEAP handler now supplies this row's Phase 1 half: it keeps the peer's initial Outer TLVs on stateKeyTEAPPeerOuter and sends its own Authority-ID in the Start, so both ends of the BUFFER exist. What is absent is the Phase 2 caller, verifyCryptoBinding: nothing yet applies §6.2.4's Flags rule or verifies the peer's Compound MAC before a Result TLV is sent.",
 		},
 		{
 			ID:      "eap-payload-tlv",
@@ -257,7 +257,7 @@ func Mechanics() []Mechanic {
 			ID:      "session-resumption",
 			Title:   "Phase 1 resumption runs on TLS 1.3 session tickets, not on the deprecated PAC",
 			Source:  Source{RFC: rfcTEAP, Section: "2", Document: "rfc9930-teap-version-1.txt", Quote: "the PAC has been deprecated"},
-			Markers: []string{"EnableSessionTickets", "SessionTicketsDisabled", "NewTEAPHandler"},
+			Markers: []string{"EnableSessionTickets", "SessionTicketsDisabled", "associateSessionTicket"},
 			Against: []string{"SessionTicketsDisabled: true"},
 			// PEAP and EAP-TTLS may keep tickets off; only a method that means to
 			// resume may not pin them off, and only these two files decide that.
@@ -265,14 +265,14 @@ func Mechanics() []Mechanic {
 				"internal/radiusd/plugins/eap/handlers/teap_config.go",
 				"internal/radiusd/plugins/eap/tlsengine/engine.go",
 			},
-			Note: "RFC 9930 deprecated the PAC that RFC 7170 borrowed from EAP-FAST and resumes a TEAP session with the TLS 1.3 NewSessionTicket message instead. The engine now keeps tickets behind an opt-in that carries a caller-supplied key, so a ticket survives the handshake that issued it, and NewSettingsTEAPConfigProvider is the method that opts in; the contradiction is scoped to those two files because PEAP and EAP-TTLS are entitled to issue none. What is still absent is the serving path: no NewTEAPHandler opens a tunnel, and RFC 9930 §3.11 still requires the credentials authenticated in Phase 2 to be associated with the ticket, or the ticket invalidated when that cannot be done.",
+			Note: "RFC 9930 deprecated the PAC that RFC 7170 borrowed from EAP-FAST and resumes a TEAP session with the TLS 1.3 NewSessionTicket message instead. The engine keeps tickets behind an opt-in that carries a caller-supplied key, so a ticket survives the handshake that issued it, and NewSettingsTEAPConfigProvider is the method that opts in; the contradiction is scoped to those two files because PEAP and EAP-TTLS are entitled to issue none. The TEAP handler now opens its tunnel through that provider, so Phase 1 can resume. What is still absent is §3.11's binding: associateSessionTicket names the Phase 2 step that must record which credentials were authenticated under a ticket, and invalidate it when they cannot be recorded.",
 		},
 		{
 			ID:      "inner-method-chaining",
 			Title:   "Two inner methods chain, machine then user",
 			Source:  Source{RFC: rfcTEAP, Section: "A.26", Document: "rfc9930-teap-version-1.txt", Quote: "TEAPv1 meets this requirement by supporting inner EAP method chaining"},
-			Markers: []string{"NewPlan", "NewSession", "NewTEAPHandler"},
-			Note:    "The tunnel state machines run exactly one inner method per session, which is the M11 requirement the roadmap calls certificate plus password. RFC 9930 §3.6.2 defines the chained sequence and §3.6.5 bounds what may be chained; teapinner now holds both halves of that. NewPlan refuses a tunneled method nested inside TEAP, an Inner Method that resumes, and one that binds no keys of its own, and applies the two §6.2.3 ordering checks the policy selects. NewSession hands the methods out one at a time - §3.6.2 allows no two running in parallel - and will not accept the next method's start until the current one's Intermediate-Result statuses and Crypto-Binding Flags are recorded, which is where §6.2.3's rule that an EMSK-deriving method must be bound by an EMSK Compound MAC is applied. KeysFor is §6.2.1's password rule and SwapMSCHAPv2MSK is §3.6.4's. What is still absent is the caller: no NewTEAPHandler owns a Plan and a Session, so nothing chains inside a tunnel yet.",
+			Markers: []string{"NewPlan", "NewSession", "runTEAPPhase2"},
+			Note:    "The tunnel state machines run exactly one inner method per session, which is the M11 requirement the roadmap calls certificate plus password. RFC 9930 §3.6.2 defines the chained sequence and §3.6.5 bounds what may be chained; teapinner now holds both halves of that. NewPlan refuses a tunneled method nested inside TEAP, an Inner Method that resumes, and one that binds no keys of its own, and applies the two §6.2.3 ordering checks the policy selects. NewSession hands the methods out one at a time - §3.6.2 allows no two running in parallel - and will not accept the next method's start until the current one's Intermediate-Result statuses and Crypto-Binding Flags are recorded, which is where §6.2.3's rule that an EMSK-deriving method must be bound by an EMSK Compound MAC is applied. KeysFor is §6.2.1's password rule and SwapMSCHAPv2MSK is §3.6.4's. What is still absent is the caller: the handler stops after Phase 1 with eap.ErrTEAPPhase2NotImplemented, so no runTEAPPhase2 owns a Plan and a Session and nothing chains inside a tunnel yet.",
 		},
 		{
 			ID:      "identity-type-tlv",
@@ -285,15 +285,15 @@ func Mechanics() []Mechanic {
 			ID:      "authority-id-tlv",
 			Title:   "Authority-ID TLV identifies the provisioning authority",
 			Source:  Source{RFC: rfcTEAP, Section: "4.2.2", Document: "rfc9930-teap-version-1.txt", Quote: "Authority-ID TLV"},
-			Markers: []string{"authorityID", "AuthorityID", "NewAuthorityID"},
-			Note:    "teaptlv encodes the opaque Authority-ID value of §4.2.2, so the format is not the missing piece. RFC 9930 keeps this TLV for certificate provisioning inside the tunnel (§3.11), not for the deprecated PAC, so it stays a build item only if provisioning is scheduled; it is listed so the build set is complete rather than implied.",
+			Markers: []string{"NewAuthorityID", "teapAuthorityID", "provisionTEAPAuthority"},
+			Note:    "teaptlv encodes the opaque Authority-ID value of §4.2.2 and the handler now sends one in its Start, deriving it from the realm the peer addressed so §3.4's realm-versus-certificate check has something to compare. RFC 9930 keeps the TLV for certificate provisioning inside the tunnel (§3.11) as well, not for the deprecated PAC, and provisionTEAPAuthority names that step: nothing yet consumes an Authority-ID the peer returns.",
 		},
 		{
 			ID:      "basic-password-auth-tlv",
 			Title:   "Basic-Password-Auth TLVs carry a password without an inner EAP method",
 			Source:  Source{RFC: rfcTEAP, Section: "4.2.14", Document: "rfc9930-teap-version-1.txt", Quote: "Basic-Password-Auth-Req TLV"},
-			Markers: []string{"NewBasicPasswordAuthReq", "NewBasicPasswordAuthResp", "PasswordRounds", "NewTEAPHandler"},
-			Note:    "This is the certificate-plus-password path the roadmap wants, and it is a TLV exchange, not an inner method. The §4.2.14 prompt and the §4.2.15 Userlen/Username/Passlen/Password layout are encodable now - teaptlv refuses a zero length on either field - and teapinner.PasswordRounds enforces the §3.6.3 rules around them: the first request of a session carries a prompt, a later round keeps the username it started with, and the exchange stops at the configured round-trip limit. What is still absent is the caller: no NewTEAPHandler puts either TLV in a tunnel message. RFC 9930 §4.2.8 names Basic-Password-Auth-Req as the case whose MSK and EMSK cannot come from cryptographic primitives and MUST be set to zero, and RFC 9427 §2.2 turns that into 32 zero octets for the inner session key; teapinner.KeysFor is what applies that to the chain.",
+			Markers: []string{"NewBasicPasswordAuthReq", "NewBasicPasswordAuthResp", "PasswordRounds", "runTEAPPhase2"},
+			Note:    "This is the certificate-plus-password path the roadmap wants, and it is a TLV exchange, not an inner method. The §4.2.14 prompt and the §4.2.15 Userlen/Username/Passlen/Password layout are encodable now - teaptlv refuses a zero length on either field - and teapinner.PasswordRounds enforces the §3.6.3 rules around them: the first request of a session carries a prompt, a later round keeps the username it started with, and the exchange stops at the configured round-trip limit. What is still absent is the caller: no NewTEAPHandler puts either TLV in a tunnel message. RFC 9930 §4.2.8 names Basic-Password-Auth-Req as the case whose MSK and EMSK cannot come from cryptographic primitives and MUST be set to zero, and RFC 9427 §2.2 turns that into 32 zero octets for the inner session key; teapinner.KeysFor is what applies that to the chain. What is absent is the Phase 2 caller, runTEAPPhase2: the handler stops at the tunnel gate, so neither TLV is ever placed in a tunnel message.",
 		},
 		{
 			ID:      "tls13-outer-tunnel",
@@ -304,7 +304,7 @@ func Mechanics() []Mechanic {
 			// EAP-TTLS caps its own tunnel by design; that decision is not a
 			// contradiction of what TEAP must do, so only the TEAP provider counts.
 			AgainstIn: []string{"internal/radiusd/plugins/eap/handlers/teap_config.go"},
-			Note:      "NewSettingsTEAPConfigProvider builds the TEAP tunnel with no version cap, so TEAP negotiates TLS 1.3 whenever the configured floor allows it, which is the transport RFC 9930's definitions are written for. The TLS 1.2 pin EAP-TTLS keeps in tls_config.go stays correct for that method's phase-2 framing and is therefore outside this row's scope. What is still absent is the serving path: no NewTEAPHandler opens the tunnel this provider configures.",
+			Note:      "NewSettingsTEAPConfigProvider builds the TEAP tunnel with no version cap, so TEAP negotiates TLS 1.3 whenever the configured floor allows it, which is the transport RFC 9930's definitions are written for; the TLS 1.2 pin EAP-TTLS keeps in tls_config.go stays correct for that method's phase-2 framing and is outside this row's scope. The handler is now the caller: it builds its engine from that provider and, once the handshake reports done, reads NegotiatedVersion and terminates with eap.ErrTEAPRequiresTLS13 unless it is TLS 1.3, because teapkeys implements only the RFC 9427 TLS 1.3 exporter form.",
 		},
 		{
 			ID:      "rfc9427-key-derivation",
@@ -339,7 +339,7 @@ func Mechanics() []Mechanic {
 			Title:   "Oversized tunnel records are fragmented and reassembled",
 			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc9930-teap-version-1.txt", Quote: "More fragments; set on all but the last fragment."},
 			Markers: []string{"FlagOuterTLVs", "Reassembler"},
-			Note:    "§3.10 defers fragmentation to RFC 5216 §2.1.5, but TEAP carries it in its own envelope: §4.1 adds the Ver field, the four-octet Message Length and the Outer TLV Length, none of which the EAP-TLS layout has. teapmsg frames and reassembles that envelope, including the Outer TLVs §6.3 puts in the Crypto-Binding BUFFER; no handler drives it yet.",
+			Note:    "§3.10 defers fragmentation to RFC 5216 §2.1.5, but TEAP carries it in its own envelope: §4.1 adds the Ver field, the four-octet Message Length and the Outer TLV Length, none of which the EAP-TLS layout has. teapmsg frames and reassembles that envelope, including the Outer TLVs §6.3 puts in the Crypto-Binding BUFFER, and the handler drives both halves: every outbound flight is cut by teapmsg.Fragment into a queue released one ACK at a time, and inbound fragments pass through a Reassembler whose partial state is persisted between rounds.",
 		},
 		{
 			ID:      "protected-success",

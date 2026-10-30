@@ -109,8 +109,8 @@ func TestObsoletedSpecificationIsStillArchived(t *testing.T) {
 // TestCommentMentionsAreNotEvidence pins the rule that sets the Crypto-Binding
 // verdict: the word appears in peap_inner.go only inside a comment saying the TLV
 // is skipped, and that mention is not evidence. What supports the row is the teaptlv
-// codec and the teapbind Compound MAC, and the row stays "partial" because no
-// handshake puts either of them on the wire.
+// codec and the teapbind Compound MAC, and the row stays "partial" because no Phase 2
+// code computes or verifies a Crypto-Binding.
 func TestCommentMentionsAreNotEvidence(t *testing.T) {
 	report := realReport(t)
 	finding := find(t, report, "crypto-binding-tlv")
@@ -139,9 +139,11 @@ func TestCommentMentionsAreNotEvidence(t *testing.T) {
 	assert.NotContains(t, stripped.String(), "ryptobinding", "comments must not survive into the scanned tree")
 }
 
-// TestSubstringLookalikesDoNotProveTEAP keeps the four naming verdicts honest on
-// a real tree: the generated Microsoft vendor code spells the letters "teap"
-// inside msaccteaptype_del, and that must not read as support for the method.
+// TestSubstringLookalikesDoNotProveTEAP keeps marker matching on identifier
+// boundaries rather than on substrings: the generated Microsoft vendor code spells
+// the letters "teap" inside msaccteaptype_del, and the vendor's name must not read
+// as support for the method. The real tree now declares the identifiers, so the
+// lookalike is checked against a tree that carries only the near-miss names.
 func TestSubstringLookalikesDoNotProveTEAP(t *testing.T) {
 	tree, err := Scan(repoRoot(t))
 	require.NoError(t, err)
@@ -156,9 +158,19 @@ func TestSubstringLookalikesDoNotProveTEAP(t *testing.T) {
 	}
 	assert.Positive(t, hits, "the tree must still contain the lookalike substring for this test to mean anything")
 
+	// The real tree reaches these verdicts through the declarations, not the
+	// substring: the same catalog run over a tree holding only lookalikes must not.
 	report := Analyze(tree)
 	for _, id := range []string{"teap-eap-type", "teap-method-name", "teap-handler-wiring", "teap-config-choice"} {
-		assert.Equal(t, StatusMissing, find(t, report, id).Status, "%s was proved by a substring", id)
+		assert.Equal(t, StatusReady, find(t, report, id).Status, "%s must rest on the real identifier", id)
+	}
+
+	lookalike := Tree{Files: map[string][]string{
+		"internal/vendor/ms_ad.go": {"msaccteaptype_del := 1", "eapTeapFlag := 2", "teapx := 3"},
+	}}
+	for _, id := range []string{"teap-eap-type", "teap-method-name", "teap-handler-wiring", "teap-config-choice"} {
+		assert.Equal(t, StatusMissing, find(t, Analyze(lookalike), id).Status,
+			"%s was proved by a substring", id)
 	}
 }
 
@@ -178,19 +190,25 @@ func TestRealTreeVerdictsForReusedMechanics(t *testing.T) {
 	}
 }
 
-// TestRealTreeVerdictsForBuildMechanics keeps the rows that describe the method
-// itself at "missing": a codec or a key schedule sitting in the tree must not read
-// as a TEAP method the server can negotiate.
-func TestRealTreeVerdictsForBuildMechanics(t *testing.T) {
+// TestRealTreeVerdictsForTheMethodItself records what M11.8 changed: the method now
+// has its type, its name, a registered handler and a configuration entry, so those
+// four rows are ready on the strength of the serving path, not a codec. The version
+// row stays partial because §3.1's Crypto-Binding re-verification is Phase 2 work.
+func TestRealTreeVerdictsForTheMethodItself(t *testing.T) {
 	report := realReport(t)
 	for _, id := range []string{
 		"teap-eap-type", "teap-method-name", "teap-handler-wiring", "teap-config-choice",
-		"teap-version-negotiation",
 	} {
 		finding := find(t, report, id)
-		assert.Equal(t, StatusMissing, finding.Status, "%s must not be claimed as built", id)
-		assert.Zero(t, finding.MarkerHits, id)
+		assert.Equal(t, StatusReady, finding.Status, "%s is wired end to end", id)
+		require.NotEmpty(t, finding.Support, id)
 	}
+
+	version := find(t, report, "teap-version-negotiation")
+	assert.Equal(t, StatusPartial, version.Status, "negotiation exists; the Crypto-Binding check does not")
+	assert.Equal(t, 1, version.MarkerHits, "the absent marker is the Phase 2 verification")
+	assert.Contains(t, version.Note, "ErrTEAPVersionUnsupported",
+		"the note must name what the handler does with a version it cannot speak")
 }
 
 // TestChainingRowStaysPartial records what teapinner did to the catalog: the
@@ -206,9 +224,9 @@ func TestChainingRowStaysPartial(t *testing.T) {
 		assert.Equal(t, "internal/radiusd/plugins/eap/teapinner/teapinner.go", e.File,
 			"only the chaining package may support this row")
 	}
-	assert.Equal(t, 2, finding.MarkerHits, "the absent marker is the handler that would own a Plan")
+	assert.Equal(t, 2, finding.MarkerHits, "the absent marker is the Phase 2 loop that would own a Plan")
 	assert.Contains(t, finding.Note, "teapinner", "the note must say what the package enforces")
-	assert.Contains(t, finding.Note, "NewTEAPHandler", "the note must name the caller that is missing")
+	assert.Contains(t, finding.Note, "runTEAPPhase2", "the note must name the caller that is missing")
 }
 
 // TestTLVFormatRowsStayPartial records what the teaptlv codec did and did not
@@ -249,13 +267,14 @@ func TestKeyDerivationRowStaysPartial(t *testing.T) {
 	assert.Contains(t, finding.Note, "teapChain", "the note must name the caller that is missing")
 }
 
-// TestTLSTunnelVerdictKeepsMethodsApart is the finding M11.2 closes: the TEAP
-// provider negotiates TLS 1.3 for its own tunnel, and the TLS 1.2 cap EAP-TTLS
-// keeps is recorded as that method's own decision rather than as a contradiction.
+// TestTLSTunnelVerdictKeepsMethodsApart is the finding M11.2 closes and M11.8
+// completes: the TEAP provider negotiates TLS 1.3 for its own tunnel, the handler
+// serves it, and the TLS 1.2 cap EAP-TTLS keeps stays that method's own decision
+// rather than a contradiction.
 func TestTLSTunnelVerdictKeepsMethodsApart(t *testing.T) {
 	report := realReport(t)
 	finding := find(t, report, "tls13-outer-tunnel")
-	assert.Equal(t, StatusPartial, finding.Status, "the tunnel exists; the handler that serves it does not")
+	assert.Equal(t, StatusReady, finding.Status, "the provider and the handler that serves it are both in the tree")
 	assert.Empty(t, finding.Against, "the TTLS cap must not be attributed to TEAP")
 	require.NotEmpty(t, finding.Support, "the TEAP provider that negotiates TLS 1.3 must be quoted")
 	var files []string
@@ -263,7 +282,9 @@ func TestTLSTunnelVerdictKeepsMethodsApart(t *testing.T) {
 		files = append(files, e.File)
 	}
 	assert.Contains(t, files, "internal/radiusd/plugins/eap/handlers/teap_config.go")
-	assert.Contains(t, finding.Note, "NewTEAPHandler", "the note must name the caller that is missing")
+	assert.Contains(t, files, "internal/radiusd/plugins/eap/handlers/teap_handler.go",
+		"the caller that refuses a non-TLS-1.3 tunnel must be quoted too")
+	assert.Contains(t, finding.Note, "ErrTEAPRequiresTLS13", "the note must say what the handler enforces")
 }
 
 // TestResumptionVerdictReportsTheTicketOptIn records the M11.2 reversal of the
@@ -272,7 +293,7 @@ func TestTLSTunnelVerdictKeepsMethodsApart(t *testing.T) {
 func TestResumptionVerdictReportsTheTicketOptIn(t *testing.T) {
 	report := realReport(t)
 	finding := find(t, report, "session-resumption")
-	assert.Equal(t, StatusPartial, finding.Status, "the ticket path exists; the TEAP handshake that owns it does not")
+	assert.Equal(t, StatusPartial, finding.Status, "the ticket path exists; the §3.11 credential binding does not")
 	assert.Empty(t, finding.Against, "nothing pins tickets off in the TEAP tunnel")
 	require.NotEmpty(t, finding.Support)
 
@@ -280,7 +301,7 @@ func TestResumptionVerdictReportsTheTicketOptIn(t *testing.T) {
 	// row cannot quietly turn back into "build the PAC".
 	assert.Contains(t, collapseSpace(finding.Mechanic.Source.Quote), "the PAC has been deprecated")
 	assert.Contains(t, finding.Note, "deprecated", "the note must say the PAC is not the mechanism to build")
-	assert.Contains(t, finding.Note, "NewTEAPHandler", "the note must name the caller that is missing")
+	assert.Contains(t, finding.Note, "associateSessionTicket", "the note must name the caller that is missing")
 }
 
 func TestTotalsAccountForEveryMechanism(t *testing.T) {
@@ -288,23 +309,20 @@ func TestTotalsAccountForEveryMechanism(t *testing.T) {
 	assert.Equal(t, len(Mechanics()), report.Totals.Mechanics)
 	assert.Equal(t, report.Totals.Mechanics,
 		report.Totals.Ready+report.Totals.Partial+report.Totals.Blocked+report.Totals.Missing)
-	// The work left is what a TEAP implementation still has to write: the absent
-	// mechanisms plus the half of each partial one. That set must stay larger than the
-	// mechanisms already reusable, or the report would read as a method that only
-	// needs switching on.
-	assert.Greater(t, report.Totals.Missing+report.Totals.Partial, report.Totals.Ready,
-		"TEAP is a build project, not a configuration toggle")
+	// Every row either serves a handshake or names the Phase 2 half that is still
+	// missing, so the partial table must not empty out and the missing table must:
+	// M11.8 built the method, its name, its wiring and its version negotiation.
+	assert.Positive(t, report.Totals.Partial, "Phase 2 remains a build item and must stay visible")
 	// No mechanism contradicts the tree any more: M11.2 removed both TLS 1.3 tunnel
 	// pins, so the remaining work is writing code, not revisiting decisions.
 	assert.Equal(t, 0, report.Totals.Blocked)
-	// Measured against this repository as it stands: six serving-path mechanisms
-	// are reusable, eleven have a piece in the tree and no caller (the seven §4.2 TLV
-	// formats, the RFC 9427 key schedule, the §3.6 chaining rules, the TLS 1.3 tunnel
-	// and its ticket path), and the remaining five - the method itself, its wiring,
-	// its name and its version negotiation - are absent.
-	assert.Equal(t, 6, report.Totals.Ready)
+	assert.Equal(t, 0, report.Totals.Missing, "every cataloged mechanism now has code on the serving path or a codec")
+	// Measured against this repository as it stands: eleven mechanisms serve Phase 1
+	// or a reusable exchange, and eleven are a codec, a policy or a key schedule whose
+	// Phase 2 caller is still absent (the §4.2 TLV formats, the RFC 9427 schedule, the
+	// §3.6 chaining rules, the ticket binding and the Crypto-Binding verification).
+	assert.Equal(t, 11, report.Totals.Ready)
 	assert.Equal(t, 11, report.Totals.Partial)
-	assert.Equal(t, 5, report.Totals.Missing)
 }
 
 func TestStatusRulesFromASyntheticTree(t *testing.T) {
@@ -420,7 +438,7 @@ func TestFindingStringNamesVerdictClauseAndEvidence(t *testing.T) {
 	assert.Contains(t, blocked, "contradicted-by=")
 	assert.Contains(t, blocked, "teap_config.go")
 
-	missing := find(t, report, "teap-handler-wiring").String()
+	missing := find(t, Analyze(Tree{Files: map[string][]string{}}), "teap-handler-wiring").String()
 	assert.Contains(t, missing, "evidence=none")
 
 	partial := find(t, report, "crypto-binding-tlv").String()
@@ -436,15 +454,19 @@ func TestRenderMarkdownSeparatesReuseBuildAndUnknown(t *testing.T) {
 	assert.Contains(t, rendered, "## Partly present, not yet wired")
 	assert.Contains(t, rendered, "## To build")
 	assert.Contains(t, rendered, "## What this scan cannot answer")
-	assert.Contains(t, rendered, "`teap-handler-wiring` — ")
 	assert.Contains(t, rendered, "Which supplicants offer TEAP")
+
+	// Nothing is entirely absent any more: every cataloged mechanism has code, so
+	// the build list is empty and its heading is all that remains.
+	toBuild := section(t, rendered, "## To build", "## Notes per mechanism")
+	assert.NotContains(t, toBuild, "- `", "no mechanism may still be listed as missing")
 
 	// A codec nothing calls is evidence, not machinery an implementer can reuse, so
 	// it must not sit in the "Reusable now" table.
 	reusable := section(t, rendered, "## Reusable now", "## Partly present")
 	assert.Contains(t, reusable, "| result-tlv | RFC 9930 §4.2.4 | internal/radiusd/plugins/eap")
 	assert.NotContains(t, reusable, "teaptlv", "the TLV codec belongs to the partial table")
-	assert.Equal(t, 6, dataRows(reusable), "only ready rows may be claimed as reusable now")
+	assert.Equal(t, 11, dataRows(reusable), "only ready rows may be claimed as reusable now")
 
 	partial := section(t, rendered, "## Partly present", "## Blocked by existing choices")
 	assert.Contains(t, partial, "| crypto-binding-tlv | RFC 9930 §3.6 |")

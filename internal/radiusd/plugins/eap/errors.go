@@ -56,4 +56,26 @@ var (
 	// payload (RFC 5281 §10). It guarantees a malformed inner flight rejects
 	// rather than grants.
 	ErrTTLSInnerProtocol = errors.New("EAP-TTLS inner AVP protocol violation")
+	// ErrTEAPVersionUnsupported is returned when a peer answers the TEAP Start
+	// with a version this server does not implement. RFC 9930 §3.1 step 5 lets the
+	// server terminate the conversation with an EAP Failure in that case.
+	ErrTEAPVersionUnsupported = errors.New("EAP-TEAP version negotiation failed")
+	// ErrTEAPProtocol is returned when a TEAP packet violates the outer framing
+	// rules of RFC 9930 §4.1 beyond what the codec can reject — a Start bit in a
+	// peer message, a version that changes mid-conversation, or Outer TLVs
+	// outside the initial message.
+	ErrTEAPProtocol = errors.New("EAP-TEAP outer-layer protocol violation")
+	// ErrTEAPUnexpectedFragment is returned when a peer response arrives while the
+	// server is still sending TEAP fragments and is not the expected
+	// acknowledgment (RFC 9930 §4.1).
+	ErrTEAPUnexpectedFragment = errors.New("EAP-TEAP unexpected fragment in handshake exchange")
+	// ErrTEAPRequiresTLS13 is returned when the TEAP tunnel negotiates a TLS
+	// version below 1.3. RFC 9930 §6.2 defines a TLS 1.2 key schedule over the
+	// RFC 5246 TLS-PRF as well, and teapkeys implements only the RFC 9427 §2.2
+	// TLS 1.3 form, so a 1.2 tunnel cannot be keyed by this server.
+	ErrTEAPRequiresTLS13 = errors.New("EAP-TEAP requires a TLS 1.3 tunnel")
+	// ErrTEAPPhase2NotImplemented is returned once the Phase 1 tunnel is up but
+	// the Phase 2 TLV exchange (RFC 9930 §3.6) is not implemented yet. It
+	// guarantees the handler never grants access without the Phase 2 Result TLV.
+	ErrTEAPPhase2NotImplemented = errors.New("EAP-TEAP Phase 2 is not implemented yet")
 )

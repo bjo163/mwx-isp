@@ -254,14 +254,16 @@ func NewReassembler(maxLength int) *Reassembler {
 }
 
 // LoadReassembler reconstructs a Reassembler from state persisted between EAP
-// rounds. declared is the Message Length advertised by the first fragment (0
-// when unknown) and hasLength reports whether it was advertised.
-func LoadReassembler(buf []byte, declared uint32, hasLength bool, maxLength int) *Reassembler {
+// rounds. buf is the TLS Data accumulated so far, outer the Outer TLVs that came
+// with the first fragment, declared the Message Length advertised by that
+// fragment (0 when unknown) and hasLength whether it was advertised.
+func LoadReassembler(buf, outer []byte, declared uint32, hasLength bool, maxLength int) *Reassembler {
 	r := NewReassembler(maxLength)
 	r.buf = buf
+	r.outer = outer
 	r.declared = declared
 	r.hasLength = hasLength
-	r.started = len(buf) > 0 || hasLength
+	r.started = len(buf) > 0 || len(outer) > 0 || hasLength
 	return r
 }
 
