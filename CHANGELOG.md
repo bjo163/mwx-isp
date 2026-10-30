@@ -1,5 +1,18 @@
 # MWX-ISP Changelog
 
+## v0.18.0 — 2026-10-30
+
+Changes since v0.17.0:
+
+### Features
+
+- add per-tenant branding system
+
+### Fixes and Improvements
+
+- explicitly add subdomain endpoint to JWT skip list
+- add wildcard subdomain routing for multi-tenant support
+
 ## v0.17.0 — 2026-10-30
 
 Changes since v0.16.0:
