@@ -437,17 +437,26 @@ func (t *tlsTunnel) sendNextAppFragment(ctx *eap.EAPContext, state *eap.EAPState
 	return false, t.writeChallenge(ctx, state.StateID, t.buildEAPRequest(ctx.EAPMessage.Identifier+1, next))
 }
 
+// engineFor returns the tunnel's TLS engine for state, building one from its
+// config provider on first use.
 func (t *tlsTunnel) engineFor(state *eap.EAPState) (*tlsengine.Engine, error) {
+	return engineForState(state, t.configProvider)
+}
+
+// engineForState returns the live TLS engine for state, creating one from
+// provider on first use and persisting it there so later EAP rounds resume the
+// same handshake. A nil engine on the state means the tunnel has none yet.
+func engineForState(state *eap.EAPState, provider TLSConfigProvider) (*tlsengine.Engine, error) {
 	if state.Data != nil {
 		if e, ok := state.Data[stateKeyEngine].(*tlsengine.Engine); ok && e != nil {
 			return e, nil
 		}
 	}
 
-	if t.configProvider == nil {
+	if provider == nil {
 		return nil, eap.ErrTLSNotConfigured
 	}
-	cfg, err := t.configProvider()
+	cfg, err := provider()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", eap.ErrTLSNotConfigured, err)
 	}
