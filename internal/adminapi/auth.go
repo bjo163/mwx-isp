@@ -68,6 +68,7 @@ func loginRateLimiter() echo.MiddlewareFunc {
 func registerAuthRoutes() {
 	webserver.ApiPOST("/auth/login", loginHandler, loginRateLimiter())
 	webserver.ApiGET("/auth/tenants", listLoginTenantsHandler)
+	webserver.ApiGET("/auth/tenants/by-subdomain/:subdomain", getTenantBySubdomainHandler)
 	webserver.ApiGET("/auth/me", currentUserHandler)
 }
 
@@ -80,6 +81,30 @@ func listLoginTenantsHandler(c echo.Context) error {
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to list organizations", err.Error())
 	}
 	return ok(c, tenants)
+}
+
+func getTenantBySubdomainHandler(c echo.Context) error {
+	subdomain := strings.ToLower(strings.TrimSpace(c.Param("subdomain")))
+	if subdomain == "" {
+		return fail(c, http.StatusBadRequest, "INVALID_SUBDOMAIN", "Subdomain parameter is required", nil)
+	}
+
+	var tenant domain.Tenant
+	// Try matching by subdomain first
+	if err := GetDB(c).Where("subdomain = ? AND status = ?", subdomain, "active").First(&tenant).Error; err != nil {
+		// Fallback: try matching by slug for backward compatibility
+		if err := GetDB(c).Where("slug = ? AND status = ?", subdomain, "active").First(&tenant).Error; err != nil {
+			return fail(c, http.StatusNotFound, "TENANT_NOT_FOUND", "Tenant not found for subdomain", nil)
+		}
+	}
+
+	return ok(c, map[string]any{
+		"id":        tenant.ID,
+		"name":      tenant.Name,
+		"slug":      tenant.Slug,
+		"subdomain": tenant.Subdomain,
+		"kind":      tenant.Kind,
+	})
 }
 
 func tenantContextMiddleware() echo.MiddlewareFunc {

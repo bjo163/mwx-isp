@@ -20,6 +20,7 @@ package adminapi
 
 import (
 	"github.com/bjo163/mwx-isp/internal/app"
+	"github.com/bjo163/mwx-isp/internal/tenancy"
 	"github.com/bjo163/mwx-isp/internal/webserver"
 )
 
@@ -33,6 +34,7 @@ import (
 // functions; handlers resolve the live application context per request from the
 // echo context (see [GetAppContext]) rather than capturing it here.
 func Init(appCtx app.AppContext) {
+	webserver.ApiUse(tenancy.SubdomainResolver(appCtx.DB()))
 	webserver.ApiUse(tenantContextMiddleware())
 	registerAuthRoutes()
 	registerUserRoutes()

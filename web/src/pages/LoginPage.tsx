@@ -69,6 +69,37 @@ export const LoginPage = () => {
     }
   }, []);
 
+  // Auto-detect tenant from subdomain
+  useEffect(() => {
+    const host = window.location.hostname;
+    const parts = host.split('.');
+    
+    // Check if we have a subdomain (e.g., emil.e-isp.id)
+    if (parts.length >= 3 && host.endsWith('e-isp.id')) {
+      const subdomain = parts[0];
+      
+      // Skip if it's www or e-isp (root domain)
+      if (subdomain && subdomain !== 'www' && subdomain !== 'e-isp') {
+        // Fetch tenant by subdomain
+        fetch(`/api/v1/auth/tenants/by-subdomain/${subdomain}`, {
+          headers: { Accept: 'application/json' }
+        })
+          .then(async response => {
+            if (response.ok) {
+              const result = await response.json();
+              const tenant = result?.data;
+              if (tenant && tenant.slug) {
+                setTenantSlug(tenant.slug);
+              }
+            }
+          })
+          .catch(() => {
+            // Silently fail - user can still select tenant manually
+          });
+      }
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

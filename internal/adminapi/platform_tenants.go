@@ -23,6 +23,7 @@ var tenantSlugPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])
 type createTenantPayload struct {
 	Name           string `json:"name"`
 	Slug           string `json:"slug"`
+	Subdomain      string `json:"subdomain"`
 	Kind           string `json:"kind"`
 	CompanyName    string `json:"company_name"`
 	TaxID          string `json:"tax_id"`
@@ -304,10 +305,19 @@ func createPlatformTenant(c echo.Context) error {
 	}
 	payload.Name = strings.TrimSpace(payload.Name)
 	payload.Slug = strings.ToLower(strings.TrimSpace(payload.Slug))
+	payload.Subdomain = strings.ToLower(strings.TrimSpace(payload.Subdomain))
 	payload.Kind = strings.ToLower(strings.TrimSpace(payload.Kind))
 	payload.AdminUsername = strings.TrimSpace(payload.AdminUsername)
 	if payload.Name == "" || len(payload.Name) > 120 || !tenantSlugPattern.MatchString(payload.Slug) {
 		return fail(c, http.StatusBadRequest, "INVALID_TENANT", "Tenant name or slug is invalid", nil)
+	}
+	// Default subdomain to slug if not provided
+	if payload.Subdomain == "" {
+		payload.Subdomain = payload.Slug
+	}
+	// Validate subdomain format
+	if !tenantSlugPattern.MatchString(payload.Subdomain) {
+		return fail(c, http.StatusBadRequest, "INVALID_TENANT_SUBDOMAIN", "Tenant subdomain is invalid", nil)
 	}
 	if payload.Kind != "isp" && payload.Kind != "rtrw" {
 		return fail(c, http.StatusBadRequest, "INVALID_TENANT_KIND", "Tenant kind must be isp or rtrw", nil)
@@ -321,7 +331,7 @@ func createPlatformTenant(c echo.Context) error {
 	}
 	now := time.Now()
 	tenant := domain.Tenant{
-		Name: payload.Name, Slug: payload.Slug, Kind: payload.Kind, Status: "active",
+		Name: payload.Name, Slug: payload.Slug, Subdomain: payload.Subdomain, Kind: payload.Kind, Status: "active",
 		CompanyName: strings.TrimSpace(payload.CompanyName), TaxID: strings.TrimSpace(payload.TaxID),
 		BillingAddress: strings.TrimSpace(payload.BillingAddress), ContactEmail: strings.TrimSpace(payload.ContactEmail),
 		ContactPhone: strings.TrimSpace(payload.ContactPhone), CreatedAt: now, UpdatedAt: now,
@@ -342,7 +352,7 @@ func createPlatformTenant(c echo.Context) error {
 	})
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "unique") || strings.Contains(strings.ToLower(err.Error()), "duplicate") {
-			return fail(c, http.StatusConflict, "TENANT_EXISTS", "Tenant slug or administrator username already exists", nil)
+			return fail(c, http.StatusConflict, "TENANT_EXISTS", "Tenant slug, subdomain, or administrator username already exists", nil)
 		}
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to create tenant", err)
 	}

@@ -11,6 +11,7 @@ type Tenant struct {
 	ID             int64     `json:"id,string" gorm:"primaryKey"`
 	Name           string    `json:"name" gorm:"size:120;not null"`
 	Slug           string    `json:"slug" gorm:"size:64;not null;uniqueIndex"`
+	Subdomain      string    `json:"subdomain" gorm:"size:64;uniqueIndex"`
 	Kind           string    `json:"kind" gorm:"size:16;not null;default:isp"`
 	Status         string    `json:"status" gorm:"size:16;not null;default:active;index"`
 	CompanyName    string    `json:"company_name" gorm:"size:150"`
