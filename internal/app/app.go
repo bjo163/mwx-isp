@@ -510,6 +510,7 @@ func (a *Application) dropLegacyTenantUniqueIndices() error {
 		model interface{}
 		name  string
 	}{
+		{&domain.Tenant{}, "idx_tenant_subdomain"},
 		{&domain.SysOpr{}, "idx_sys_opr_username"},
 		{&domain.SysOpr{}, "sys_opr_username_key"},
 		{&domain.RadiusUser{}, "idx_radius_user_username"},

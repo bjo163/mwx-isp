@@ -430,6 +430,7 @@ func getPublicTenantBrandingHandler(c echo.Context) error {
 
 	var branding domain.TenantBranding
 	err := GetDB(c).
+		// tenancy:unscoped: public endpoint resolves one active tenant by exact public slug/subdomain and returns only an allowlisted branding projection.
 		Joins("JOIN tenant ON tenant.id = tenant_branding.tenant_id").
 		Where("(tenant.slug = ? OR tenant.subdomain = ?) AND tenant.status = ?", identifier, identifier, "active").
 		First(&branding).Error
