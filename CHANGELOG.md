@@ -1,5 +1,21 @@
 # MWX-ISP Changelog
 
+## v0.19.1 — 2026-10-30
+
+Changes since v0.19.0:
+
+### Fixes and Improvements
+
+- add tenant branding endpoint to JWT skip list
+
+## v0.19.0 — 2026-10-30
+
+Changes since v0.18.0:
+
+### Features
+
+- add tenant branding management UI
+
 ## v0.18.0 — 2026-10-30
 
 Changes since v0.17.0:
