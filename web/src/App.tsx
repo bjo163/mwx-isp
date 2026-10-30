@@ -108,7 +108,7 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
     if (parts.length >= 3 && host.endsWith('e-isp.id')) {
       const subdomain = parts[0];
       if (subdomain && subdomain !== 'www' && subdomain !== 'e-isp') {
-        fetch(`/api/v1/public/branding/tenant/${subdomain}`, {
+        fetch(`/api/v1/public/tenant-branding/${subdomain}`, {
           headers: { Accept: 'application/json' }
         })
         .then(async response => {
