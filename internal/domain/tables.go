@@ -5,6 +5,7 @@ package domain
 var Tables = []interface{}{
 	// Platform tenancy
 	&Tenant{},
+	&TenantBranding{},
 	// System
 	&SysConfig{},
 	&SysOpr{},

@@ -23,7 +23,7 @@ import WebsiteEditorPage from './pages/WebsiteEditorPage';
 import { CustomLayout, CustomError } from './components';
 import { createAppTheme } from './theme';
 import { BrandingContext, defaultProductBranding, useBranding } from './branding/BrandingContext';
-import type { ProductBranding } from './branding/BrandingContext';
+import type { ProductBranding, TenantBranding } from './branding/BrandingContext';
 import {
   CustomerList, CustomerCreate, CustomerEdit, CustomerShow,
   PackageList, PackageCreate, PackageEdit,
@@ -97,8 +97,44 @@ type AppProps = { initialBranding?: ProductBranding };
 
 const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
   const [branding, setBranding] = useState(initialBranding);
+  const [tenantBranding, setTenantBranding] = useState<TenantBranding | null>(null);
   const darkTheme = useMemo(() => createAppTheme('dark', branding.accent_color), [branding.accent_color]);
   const lightTheme = useMemo(() => createAppTheme('light', branding.accent_color), [branding.accent_color]);
+
+  useEffect(() => {
+    const host = window.location.hostname;
+    const parts = host.split('.');
+    if (parts.length >= 3 && host.endsWith('e-isp.id')) {
+      const subdomain = parts[0];
+      if (subdomain && subdomain !== 'www' && subdomain !== 'e-isp') {
+        fetch(`/api/v1/public/branding/tenant/${subdomain}`, {
+          headers: { Accept: 'application/json' }
+        })
+        .then(async response => {
+          if (response.ok) {
+            const result = await response.json();
+            const tb = result?.data;
+            if (tb) {
+              setTenantBranding(tb);
+              if (tb.company_name) {
+                setBranding(prev => ({ ...prev, product_name: tb.company_name! }));
+              }
+              if (tb.tagline) {
+                setBranding(prev => ({ ...prev, tagline: tb.tagline! }));
+              }
+              if (tb.primary_color) {
+                setBranding(prev => ({ ...prev, accent_color: tb.primary_color! }));
+              }
+              if (tb.logo_url) {
+                setBranding(prev => ({ ...prev, logo_url: tb.logo_url! }));
+              }
+            }
+          }
+        })
+        .catch(() => {});
+      }
+    }
+  }, []);
 
   useEffect(() => {
     document.title = `${branding.product_name} - ISP Management`;
@@ -110,10 +146,19 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
     }
     icon.href = branding.logo_url || '/admin/mwx-isp.svg';
     icon.type = branding.logo_url ? 'image/png' : 'image/svg+xml';
-  }, [branding.product_name, branding.logo_url]);
+    if (tenantBranding?.favicon_url) {
+      let favicon = document.querySelector<HTMLLinkElement>('link[rel="shortcut icon"]');
+      if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.rel = 'shortcut icon';
+        document.head.appendChild(favicon);
+      }
+      favicon.href = tenantBranding.favicon_url;
+    }
+  }, [branding.product_name, branding.logo_url, tenantBranding?.favicon_url]);
 
   return (
-  <BrandingContext.Provider value={{ branding, updateBranding: setBranding }}>
+  <BrandingContext.Provider value={{ branding, tenantBranding, updateBranding: setBranding, updateTenantBranding: setTenantBranding }}>
   <Admin
     dataProvider={dataProvider}
     authProvider={authProvider}

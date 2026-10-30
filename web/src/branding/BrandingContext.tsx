@@ -19,9 +19,24 @@ export type ProductBranding = {
   updated_at?: string;
 };
 
+export type TenantBranding = {
+  logo_url?: string;
+  favicon_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  theme?: string;
+  company_name?: string;
+  tagline?: string;
+  website_url?: string;
+  support_email?: string;
+  support_phone?: string;
+};
+
 export type BrandingContextValue = {
   branding: ProductBranding;
+  tenantBranding: TenantBranding | null;
   updateBranding: (next: ProductBranding) => void;
+  updateTenantBranding: (next: TenantBranding | null) => void;
 };
 
 export const defaultProductBranding: ProductBranding = {
@@ -43,7 +58,9 @@ export const defaultProductBranding: ProductBranding = {
 
 export const BrandingContext = createContext<BrandingContextValue>({
   branding: defaultProductBranding,
+  tenantBranding: null,
   updateBranding: () => undefined,
+  updateTenantBranding: () => undefined,
 });
 
 export const useBranding = () => useContext(BrandingContext);
