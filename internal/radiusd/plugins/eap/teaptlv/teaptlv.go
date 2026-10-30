@@ -1,6 +1,7 @@
 // Package teaptlv encodes and decodes the TEAP TLVs defined by RFC 9930 §4.2,
 // the payload format an EAP server exchanges inside the TLS tunnel it builds for
-// EAP type 39.
+// EAP method type 55, which RFC 9930 §7.5 assigns and §6.3 writes as one octet of
+// 0x37.
 //
 // Every TLV is laid out as documented in RFC 9930 §4.2.1: a two-octet field
 // holding the Mandatory bit, a reserved bit and the 14-bit TLV Type, then a

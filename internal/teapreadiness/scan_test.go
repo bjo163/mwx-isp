@@ -19,9 +19,9 @@ func TestStripCommentsRemovesCommentsAndKeepsLiterals(t *testing.T) {
 	}{
 		{
 			name:    "line comment",
-			src:     "const TypeTEAP = 39 // TEAP is type 39\nconst TypeTLS = 13\n",
-			removed: []string{"is type 39"},
-			kept:    []string{"const TypeTEAP = 39", "const TypeTLS = 13"},
+			src:     "const TypeTEAP = 55 // TEAP is type 55\nconst TypeTLS = 13\n",
+			removed: []string{"is type 55"},
+			kept:    []string{"const TypeTEAP = 55", "const TypeTLS = 13"},
 		},
 		{
 			name:    "block comment across lines",
@@ -71,12 +71,12 @@ func TestScanReadsOnlyProductCode(t *testing.T) {
 		require.NoError(t, os.WriteFile(full, []byte(content), 0o600))
 	}
 	write("internal/radiusd/plugins/eap/interfaces.go", "// TypeTEAP is unused here.\nconst TypeTLS = 13\nconst TypeTLV = 33\n")
-	write("internal/radiusd/plugins/eap/interfaces_test.go", "const TypeTEAP = 39\n")
-	write("internal/radiusd/plugins/eap/testdata/fixture.go", "const TypeTEAP = 39\n")
+	write("internal/radiusd/plugins/eap/interfaces_test.go", "const TypeTEAP = 55\n")
+	write("internal/radiusd/plugins/eap/testdata/fixture.go", "const TypeTEAP = 55\n")
 	write("internal/radiusd/plugins/eap/handlers/peap_inner.go", "const tlvTypeResult = 3\n")
 	write("internal/radiusd/auth_stages.go", "// nothing\n")
 	write("internal/app/config_manager.go", "Enum: []string{\"eap-tls\"}\n")
-	write("docs/teap-notes.md", "const TypeTEAP = 39\n")
+	write("docs/teap-notes.md", "const TypeTEAP = 55\n")
 
 	tree, err := Scan(root)
 	require.NoError(t, err)

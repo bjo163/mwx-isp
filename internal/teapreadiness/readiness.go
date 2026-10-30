@@ -189,7 +189,7 @@ func Mechanics() []Mechanic {
 			Title:   "TEAP has an assigned EAP method type the server can send",
 			Source:  Source{RFC: rfcTEAP, Section: "4.1", Document: "rfc9930-teap-version-1.txt", Quote: "TEAP Message Format"},
 			Markers: []string{"TypeTEAP"},
-			Note:    "interfaces.go declares types 1-33 and stops at EAP-TLV; type 39 is the first one missing.",
+			Note:    "interfaces.go declares types up to EAP-TLV (33) and has no TEAP constant, so the server cannot send the method yet. RFC 9930 §7.5 records the IANA assignment of method type 55 and §6.3 spells the octet as 0x37, which is what teapkeys.Type carries.",
 		},
 		{
 			ID:      "teap-method-name",
@@ -295,8 +295,8 @@ func Mechanics() []Mechanic {
 			ID:      "rfc9427-key-derivation",
 			Title:   "Session keys derive through the RFC 9427 KDF",
 			Source:  Source{RFC: rfcCryptoAgility, Section: "2.2", Document: "rfc9427-tls-based-eap-types-tls13.txt", Quote: `IMSK[j] = TLS-Exporter("TEAPbindkey@ietf.org", secret, 32)`},
-			Markers: []string{"cfs4", "KdfLabel"},
-			Note:    "The exporter call sites in the tree use the RFC 5705 labels of the inner methods; RFC 9427 §2.2 gives TEAP its own TLS 1.3 exporter labels for every compound key, and §2.1 warns that TLS 1.3 exporter output depends on the length passed to it, so requesting more and truncating produces a different key rather than a shorter one.",
+			Markers: []string{"SessionKeySeed", "teapChain"},
+			Note:    "teapkeys derives every key RFC 9427 §2.2 names for the method: the session key seed exported with the TEAP Type as its context, IMSK[j] from the Inner Method's EMSK or MSK with 32 zero octets when it produced neither, the two IMCK chains that split into S-IMCK[j] and CMK[j], and the outer MSK and EMSK as two separate 64-octet exports. §2.1's warning that TLS 1.3 export output depends on the length is enforced by refusing any other octet count rather than truncating. What is absent is the caller: teapChain names the per-session chain the TEAP handler of M11.7 must carry, so today the derivation is a library, not part of a handshake. Only the TLS 1.3 form lives there - RFC 9930 §6.2 gives the TLS 1.2 TLS-PRF version, and the two derive different keys from the same inputs.",
 		},
 		{
 			ID:      "exported-keying-material",
