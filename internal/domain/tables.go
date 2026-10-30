@@ -31,6 +31,7 @@ var Tables = []interface{}{
 	// ISP management and billing (additive; existing RADIUS tables remain intact).
 	&Customer{},
 	&InternetPackage{},
+	&TenantPackagePresentation{},
 	&Subscription{},
 	&Invoice{},
 	&InvoiceItem{},

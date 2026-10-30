@@ -305,7 +305,7 @@ func (a *Application) seedSamplesOnFreshInstall() {
 	}
 	models := []interface{}{
 		&domain.NetNas{}, &domain.RadiusProfile{}, &domain.RadiusUser{}, &domain.RadiusOnline{}, &domain.RadiusAccounting{},
-		&domain.Customer{}, &domain.InternetPackage{}, &domain.Subscription{}, &domain.Invoice{},
+		&domain.Customer{}, &domain.InternetPackage{}, &domain.TenantPackagePresentation{}, &domain.Subscription{}, &domain.Invoice{},
 		&domain.Payment{}, &domain.NetMonitorTarget{}, &domain.NetMonitorSample{}, &domain.NetMonitorIncident{}, &domain.SysCert{},
 	}
 	for _, model := range models {
