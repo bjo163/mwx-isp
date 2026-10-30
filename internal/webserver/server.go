@@ -137,6 +137,7 @@ var JwtSkipPrefix = []string{
 	apiBasePath + "/auth/tenants/by-subdomain",
 	apiBasePath + "/auth/refresh",
 	apiBasePath + "/public/branding",
+	apiBasePath + "/public/branding/tenant",
 }
 
 var server *AdminServer
