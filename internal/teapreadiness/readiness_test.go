@@ -108,20 +108,22 @@ func TestObsoletedSpecificationIsStillArchived(t *testing.T) {
 
 // TestCommentMentionsAreNotEvidence pins the rule that sets the Crypto-Binding
 // verdict: the word appears in peap_inner.go only inside a comment saying the TLV
-// is skipped, and that mention is not evidence. What moved the row off "missing" is
-// the teaptlv encoder, and the row stays "partial" because the Compound MAC that
-// makes the TLV mean anything is still absent.
+// is skipped, and that mention is not evidence. What supports the row is the teaptlv
+// codec and the teapbind Compound MAC, and the row stays "partial" because no
+// handshake puts either of them on the wire.
 func TestCommentMentionsAreNotEvidence(t *testing.T) {
 	report := realReport(t)
 	finding := find(t, report, "crypto-binding-tlv")
 	assert.Equal(t, StatusPartial, finding.Status)
-	require.NotEmpty(t, finding.Support, "the codec is real code and must be quoted")
+	require.NotEmpty(t, finding.Support, "the codec and the MAC are real code and must be quoted")
 	for _, e := range finding.Support {
-		assert.Equal(t, "internal/radiusd/plugins/eap/teaptlv/teaptlv.go", e.File,
-			"only the codec may support this row, never a comment")
+		assert.Contains(t,
+			[]string{"internal/radiusd/plugins/eap/teaptlv/teaptlv.go",
+				"internal/radiusd/plugins/eap/teapbind/teapbind.go"},
+			e.File, "only the TLV codec and the MAC computation may support this row, never a comment")
 	}
 	assert.Less(t, finding.MarkerHits, len(finding.Mechanic.Markers),
-		"an unimplemented Compound MAC must keep the row out of ready")
+		"a Crypto-Binding no handshake sends must keep the row out of ready")
 	assert.Contains(t, finding.Note, "§6.3", "the note must name the clause that is unimplemented")
 
 	raw := readRepoFile(t, "internal/radiusd/plugins/eap/handlers/peap_inner.go")
@@ -375,7 +377,8 @@ func TestFindingStringNamesVerdictClauseAndEvidence(t *testing.T) {
 
 	partial := find(t, report, "crypto-binding-tlv").String()
 	assert.Contains(t, partial, "partial")
-	assert.Contains(t, partial, "teaptlv/teaptlv.go")
+	assert.Contains(t, partial, "markers=2/3", "the MAC is in the tree, the handshake that sends it is not")
+	assert.Contains(t, partial, "teapbind/teapbind.go")
 }
 
 func TestRenderMarkdownSeparatesReuseBuildAndUnknown(t *testing.T) {

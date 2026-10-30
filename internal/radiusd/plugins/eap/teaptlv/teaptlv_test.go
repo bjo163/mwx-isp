@@ -574,7 +574,7 @@ func TestCryptoBindingEncodeDecode(t *testing.T) {
 	msk := bytes.Repeat([]byte{0x4d}, compoundMACLen)
 
 	t.Run("76 octets with both MACs", func(t *testing.T) {
-		tlv, err := NewCryptoBinding(Version, flagEMSKPresent|flagMSKPresent, SubTypeBindingRequest, request, emsk, msk)
+		tlv, err := NewCryptoBinding(Version, FlagEMSKPresent|FlagMSKPresent, SubTypeBindingRequest, request, emsk, msk)
 		require.NoError(t, err)
 		require.True(t, tlv.Mandatory)
 		require.Len(t, tlv.Value, cryptoBindingLen)
@@ -584,7 +584,7 @@ func TestCryptoBindingEncodeDecode(t *testing.T) {
 		assert.Zero(t, wire[4], "the Value opens with the Reserved octet")
 		assert.Equal(t, Version, wire[5])
 		assert.Equal(t, Version, wire[6])
-		assert.Equal(t, flagEMSKPresent|flagMSKPresent, wire[7]>>4, "Flags is the high nibble")
+		assert.Equal(t, FlagEMSKPresent|FlagMSKPresent, wire[7]>>4, "Flags is the high nibble")
 		assert.Equal(t, SubTypeBindingRequest, wire[7]&0x0f, "Sub-Type is the low nibble")
 
 		tlvs, err := Parse(wire)
@@ -592,7 +592,7 @@ func TestCryptoBindingEncodeDecode(t *testing.T) {
 		cb, err := tlvs[0].CryptoBinding()
 		require.NoError(t, err)
 		assert.Equal(t, Version, cb.ReceivedVersion)
-		assert.Equal(t, flagEMSKPresent|flagMSKPresent, cb.Flags)
+		assert.Equal(t, FlagEMSKPresent|FlagMSKPresent, cb.Flags)
 		assert.Equal(t, SubTypeBindingRequest, cb.SubType)
 		assert.Equal(t, request, cb.Nonce)
 		assert.Equal(t, emsk, cb.EMSKCompoundMAC)
@@ -602,7 +602,7 @@ func TestCryptoBindingEncodeDecode(t *testing.T) {
 	t.Run("a decoded binding re-encodes byte for byte", func(t *testing.T) {
 		// M11.4 will compare a peer's Binding Response against the expected value, so a
 		// decoded TLV must round-trip without shifting a field between the two slots.
-		for _, flags := range []uint8{flagEMSKPresent, flagMSKPresent, flagEMSKPresent | flagMSKPresent} {
+		for _, flags := range []uint8{FlagEMSKPresent, FlagMSKPresent, FlagEMSKPresent | FlagMSKPresent} {
 			tlv, err := NewCryptoBinding(Version, flags, SubTypeBindingResponse, response, emsk, msk)
 			require.NoError(t, err)
 			tlvs, err := Parse(mustMarshal(t, tlv))
@@ -622,8 +622,8 @@ func TestCryptoBindingEncodeDecode(t *testing.T) {
 			wantEMSK []byte
 			wantMSK  []byte
 		}{
-			{"emsk only", flagEMSKPresent, emsk, nil},
-			{"msk only", flagMSKPresent, nil, msk},
+			{"emsk only", FlagEMSKPresent, emsk, nil},
+			{"msk only", FlagMSKPresent, nil, msk},
 		}
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
@@ -642,12 +642,12 @@ func TestCryptoBindingEncodeDecode(t *testing.T) {
 	t.Run("the absent MAC keeps its slot and is zero-filled", func(t *testing.T) {
 		// §6.3 computes the MAC over the TLV with both MAC fields zeroed, so a slot the
 		// Flags do not announce has to stay zero on the wire, in its own position.
-		emskOnly, err := NewCryptoBinding(Version, flagEMSKPresent, SubTypeBindingRequest, request, emsk, msk)
+		emskOnly, err := NewCryptoBinding(Version, FlagEMSKPresent, SubTypeBindingRequest, request, emsk, msk)
 		require.NoError(t, err)
 		assert.Equal(t, bytes.Repeat([]byte{0}, compoundMACLen), emskOnly.Value[4+nonceLen+compoundMACLen:])
 		assert.Equal(t, emsk, emskOnly.Value[4+nonceLen:4+nonceLen+compoundMACLen])
 
-		mskOnly, err := NewCryptoBinding(Version, flagMSKPresent, SubTypeBindingRequest, request, emsk, msk)
+		mskOnly, err := NewCryptoBinding(Version, FlagMSKPresent, SubTypeBindingRequest, request, emsk, msk)
 		require.NoError(t, err)
 		assert.Equal(t, bytes.Repeat([]byte{0}, compoundMACLen), mskOnly.Value[4+nonceLen:4+nonceLen+compoundMACLen])
 		assert.Equal(t, msk, mskOnly.Value[4+nonceLen+compoundMACLen:])
@@ -671,15 +671,15 @@ func TestCryptoBindingEncodeDecode(t *testing.T) {
 			msk     []byte
 			msg     string
 		}{
-			{"short nonce", Version, flagEMSKPresent, SubTypeBindingRequest, request[:nonceLen-1], emsk, nil, "fixes it at 32"},
+			{"short nonce", Version, FlagEMSKPresent, SubTypeBindingRequest, request[:nonceLen-1], emsk, nil, "fixes it at 32"},
 			{"zero flags", Version, 0, SubTypeBindingRequest, request, emsk, nil, "Flags 0"},
 			{"unknown flags", Version, 4, SubTypeBindingRequest, request, emsk, nil, "Flags 4"},
-			{"unknown sub-type", Version, flagEMSKPresent, 2, request, emsk, nil, "Sub-Type 2"},
-			{"wrong received version", 0, flagEMSKPresent, SubTypeBindingRequest, request, emsk, nil, "Received-Ver is 0"},
-			{"response nonce bit clear", Version, flagEMSKPresent, SubTypeBindingResponse, request, emsk, nil, "Response nonce must end"},
-			{"request nonce bit set", Version, flagEMSKPresent, SubTypeBindingRequest, response, emsk, nil, "Request nonce must end"},
-			{"emsk too short", Version, flagEMSKPresent, SubTypeBindingRequest, request, emsk[:19], nil, "EMSK Compound MAC is 19"},
-			{"msk too short", Version, flagMSKPresent, SubTypeBindingRequest, request, nil, msk[:19], "MSK Compound MAC is 19"},
+			{"unknown sub-type", Version, FlagEMSKPresent, 2, request, emsk, nil, "Sub-Type 2"},
+			{"wrong received version", 0, FlagEMSKPresent, SubTypeBindingRequest, request, emsk, nil, "Received-Ver is 0"},
+			{"response nonce bit clear", Version, FlagEMSKPresent, SubTypeBindingResponse, request, emsk, nil, "Response nonce must end"},
+			{"request nonce bit set", Version, FlagEMSKPresent, SubTypeBindingRequest, response, emsk, nil, "Request nonce must end"},
+			{"emsk too short", Version, FlagEMSKPresent, SubTypeBindingRequest, request, emsk[:19], nil, "EMSK Compound MAC is 19"},
+			{"msk too short", Version, FlagMSKPresent, SubTypeBindingRequest, request, nil, msk[:19], "MSK Compound MAC is 19"},
 		}
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
@@ -691,7 +691,7 @@ func TestCryptoBindingEncodeDecode(t *testing.T) {
 	})
 
 	t.Run("decode rejects a tampered value", func(t *testing.T) {
-		good, err := NewCryptoBinding(Version, flagEMSKPresent|flagMSKPresent, SubTypeBindingRequest, request, emsk, msk)
+		good, err := NewCryptoBinding(Version, FlagEMSKPresent|FlagMSKPresent, SubTypeBindingRequest, request, emsk, msk)
 		require.NoError(t, err)
 
 		tests := []struct {
@@ -705,10 +705,10 @@ func TestCryptoBindingEncodeDecode(t *testing.T) {
 			{"version", func(v []byte) []byte { v[1] = 2; return v }, "Version is 2"},
 			{"received version", func(v []byte) []byte { v[2] = 0; return v }, "Received-Ver is 0"},
 			{"flags", func(v []byte) []byte { v[3] = 0x40 | SubTypeBindingRequest; return v }, "Flags 4"},
-			{"sub-type", func(v []byte) []byte { v[3] = flagEMSKPresent<<4 | 9; return v }, "Sub-Type 9"},
+			{"sub-type", func(v []byte) []byte { v[3] = FlagEMSKPresent<<4 | 9; return v }, "Sub-Type 9"},
 			{"request nonce lsb", func(v []byte) []byte { v[4+nonceLen-1] |= 1; return v }, "Request nonce must end"},
 			{"response nonce lsb", func(v []byte) []byte {
-				v[3] = flagEMSKPresent<<4 | SubTypeBindingResponse
+				v[3] = FlagEMSKPresent<<4 | SubTypeBindingResponse
 				v[4+nonceLen-1] &= 0xfe
 				return v
 			}, "Response nonce must end"},

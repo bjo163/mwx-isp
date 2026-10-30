@@ -17,7 +17,8 @@
 //
 // This package knows the wire format and the constraints the specification states
 // for each TLV it models. It does not compute the Crypto-Binding Compound MACs
-// (RFC 9930 §6.3) and it holds no handshake state: those live with the method
+// (RFC 9930 §6.3) and it holds no handshake state: the MACs are
+// internal/radiusd/plugins/eap/teapbind's job, and the state belongs to the method
 // handler. The PAC TLV (type 11) is named here for completeness only — RFC 9930 §2
 // deprecated it, so resumption rides on TLS 1.3 NewSessionTicket instead.
 package teaptlv
@@ -115,10 +116,12 @@ const (
 	IdentityMachine uint16 = 2
 )
 
-// Crypto-Binding flag bits (§4.2.13). Every other combination is invalid.
+// Crypto-Binding flag bits (§4.2.13). Every other combination is invalid. They are
+// exported because a sender announces which Compound MAC fields it filled, and the
+// package that fills them has to name the slots it is claiming.
 const (
-	flagEMSKPresent uint8 = 1
-	flagMSKPresent  uint8 = 2
+	FlagEMSKPresent uint8 = 1
+	FlagMSKPresent  uint8 = 2
 )
 
 // Crypto-Binding sub-types (§4.2.13).
@@ -501,16 +504,16 @@ type CryptoBinding struct {
 	// ReceivedVersion is the TEAP version the sender received during version
 	// negotiation; RFC 9930 requires TEAPv1 implementations to set and check one (1).
 	ReceivedVersion uint8
-	// Flags reports which Compound MAC fields are present: flagEMSKPresent,
-	// flagMSKPresent, or both.
+	// Flags reports which Compound MAC fields are present: FlagEMSKPresent,
+	// FlagMSKPresent, or both.
 	Flags uint8
 	// SubType is SubTypeBindingRequest or SubTypeBindingResponse.
 	SubType uint8
 	// Nonce is the 32-octet value used for the Compound MAC key derivation.
 	Nonce []byte
-	// EMSKCompoundMAC is present when Flags includes flagEMSKPresent.
+	// EMSKCompoundMAC is present when Flags includes FlagEMSKPresent.
 	EMSKCompoundMAC []byte
-	// MSKCompoundMAC is present when Flags includes flagMSKPresent.
+	// MSKCompoundMAC is present when Flags includes FlagMSKPresent.
 	MSKCompoundMAC []byte
 }
 
@@ -567,10 +570,10 @@ func (t TLV) CryptoBinding() (*CryptoBinding, error) {
 	// regardless of which one the Flags announce: RFC 9930 §6.3 computes the MAC over
 	// "the entire Crypto-Binding TLV attribute with both the EMSK and MSK Compound MAC
 	// fields zeroed out", which only holds if each field has one fixed slot.
-	if flags&flagEMSKPresent != 0 {
+	if flags&FlagEMSKPresent != 0 {
 		cb.EMSKCompoundMAC = t.Value[4+nonceLen : 4+nonceLen+compoundMACLen]
 	}
-	if flags&flagMSKPresent != 0 {
+	if flags&FlagMSKPresent != 0 {
 		cb.MSKCompoundMAC = t.Value[4+nonceLen+compoundMACLen : cryptoBindingLen]
 	}
 	if err := cb.checkNonce(); err != nil {
@@ -601,13 +604,13 @@ func (cb *CryptoBinding) Value() ([]byte, error) {
 	value[2] = cb.ReceivedVersion
 	value[3] = cb.Flags<<4 | cb.SubType
 	copy(value[4:4+nonceLen], cb.Nonce)
-	if cb.Flags&flagEMSKPresent != 0 {
+	if cb.Flags&FlagEMSKPresent != 0 {
 		if len(cb.EMSKCompoundMAC) != compoundMACLen {
 			return nil, fmt.Errorf("%w: the EMSK Compound MAC is %d octets, §4.2.13 fixes it at %d", ErrInvalidTLV, len(cb.EMSKCompoundMAC), compoundMACLen)
 		}
 		copy(value[4+nonceLen:], cb.EMSKCompoundMAC)
 	}
-	if cb.Flags&flagMSKPresent != 0 {
+	if cb.Flags&FlagMSKPresent != 0 {
 		if len(cb.MSKCompoundMAC) != compoundMACLen {
 			return nil, fmt.Errorf("%w: the MSK Compound MAC is %d octets, §4.2.13 fixes it at %d", ErrInvalidTLV, len(cb.MSKCompoundMAC), compoundMACLen)
 		}
@@ -651,7 +654,7 @@ func (cb *CryptoBinding) checkNonce() error {
 // checkCryptoBindingFlags rejects the combinations §4.2.13 leaves undefined.
 func checkCryptoBindingFlags(flags uint8) error {
 	switch flags {
-	case flagEMSKPresent, flagMSKPresent, flagEMSKPresent | flagMSKPresent:
+	case FlagEMSKPresent, FlagMSKPresent, FlagEMSKPresent | FlagMSKPresent:
 		return nil
 	default:
 		return fmt.Errorf("%w: Flags %d is not one of the values §4.2.13 defines", ErrInvalidTLV, flags)
