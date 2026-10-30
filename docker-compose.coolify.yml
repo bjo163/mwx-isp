@@ -61,10 +61,10 @@ services:
       TOUGHRADIUS_LOGGER_FILE_ENABLE: "false"
     labels:
       - traefik.enable=true
-      - traefik.http.routers.mwx-isp-http.rule=Host(`e-isp.id`)
+      - traefik.http.routers.mwx-isp-http.rule=Host(`e-isp.id`) || HostRegexp(`{subdomain:[a-z0-9-]+}.e-isp.id`)
       - traefik.http.routers.mwx-isp-http.entrypoints=http
       - traefik.http.routers.mwx-isp-http.middlewares=redirect-to-https
-      - traefik.http.routers.mwx-isp-https.rule=Host(`e-isp.id`)
+      - traefik.http.routers.mwx-isp-https.rule=Host(`e-isp.id`) || HostRegexp(`{subdomain:[a-z0-9-]+}.e-isp.id`)
       - traefik.http.routers.mwx-isp-https.entrypoints=https
       - traefik.http.routers.mwx-isp-https.tls=true
       - traefik.http.routers.mwx-isp-https.tls.certresolver=letsencrypt
