@@ -483,6 +483,8 @@ func ServerRecover(debug bool) echo.MiddlewareFunc {
 }
 
 // skipFunc filters web requests in middleware
+// jwtSkipFunc returns a Skipper function for the JWT middleware that checks
+// the request URL path against the JwtSkipPrefix list.
 func jwtSkipFunc() func(c echo.Context) bool {
 	return func(c echo.Context) bool {
 		requestPath := c.Request().URL.Path
