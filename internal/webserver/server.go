@@ -485,8 +485,9 @@ func ServerRecover(debug bool) echo.MiddlewareFunc {
 // skipFunc filters web requests in middleware
 func jwtSkipFunc() func(c echo.Context) bool {
 	return func(c echo.Context) bool {
+		requestPath := c.Request().URL.Path
 		for _, prefix := range JwtSkipPrefix {
-			if strings.HasPrefix(c.Path(), prefix) {
+			if strings.HasPrefix(requestPath, prefix) {
 				return true
 			}
 		}
