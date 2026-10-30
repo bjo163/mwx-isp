@@ -909,6 +909,14 @@ const customEnglishMessages: TranslationMessages = {
       },
     },
   },
+  resources: {
+    branding: {
+      name: 'Branding',
+      notifications: {
+        updated: 'Branding updated successfully',
+      },
+    },
+  },
   common: {
     status: 'Status',
     enabled: 'Enabled',
