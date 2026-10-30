@@ -1,5 +1,13 @@
 # MWX-ISP Changelog
 
+## v0.14.1 — 2026-10-30
+
+Changes since v0.14.0:
+
+### Fixes and Improvements
+
+- add Coolify-specific compose without caddy
+
 ## v0.14.0 — 2026-10-27
 
 Changes since v0.13.0:
