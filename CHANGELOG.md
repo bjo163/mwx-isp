@@ -1,5 +1,13 @@
 # MWX-ISP Changelog
 
+## v0.19.8 — 2026-10-30
+
+Changes since v0.19.7:
+
+### Fixes and Improvements
+
+- use request URL path instead of route pattern for JWT skip list
+
 ## v0.19.7 — 2026-10-30
 
 Changes since v0.19.6:
