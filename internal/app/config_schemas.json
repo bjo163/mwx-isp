@@ -123,7 +123,7 @@
       ],
       "title": "EAP Method",
       "title_i18n": "config.radius.eap_method.title",
-      "description": "EAP authentication method. eap-peap reuses the EAP-TLS server certificate/key (EapTlsServerCert) to build the outer TLS tunnel and runs EAP-MSCHAPv2 inside it for Windows/AD compatibility; the inner MS-CHAPv2 carries an NTLMv1-like attack surface (per Microsoft), so keep the outer TLS strong and prefer eap-tls where clients support certificates. eap-ttls (RFC 5281) likewise builds a server-only TLS tunnel and authenticates legacy inner credentials for LDAP / legacy / mixed back ends: inner PAP (the cleartext password is protected only by the TLS tunnel) and inner MS-CHAP-V2 (which shares the same NTLMv1-like attack surface). Both eap-peap and eap-ttls require a server certificate (EapTlsServerCert) and pin the tunnel to TLS 1.2; choose eap-tls when every client can present a certificate. eap-teap (RFC 9930) opens a server-only TLS 1.3 tunnel and is still being built: Phase 1 runs, but the Phase 2 TLV exchange is not implemented, so a peer that selects it authenticates and then fails cleanly.",
+      "description": "EAP authentication method. eap-peap reuses the EAP-TLS server certificate/key (EapTlsServerCert) to build the outer TLS tunnel and runs EAP-MSCHAPv2 inside it for Windows/AD compatibility; the inner MS-CHAPv2 carries an NTLMv1-like attack surface (per Microsoft), so keep the outer TLS strong and prefer eap-tls where clients support certificates. eap-ttls (RFC 5281) likewise builds a server-only TLS tunnel and authenticates legacy inner credentials for LDAP / legacy / mixed back ends: inner PAP (the cleartext password is protected only by the TLS tunnel) and inner MS-CHAP-V2 (which shares the same NTLMv1-like attack surface). Both eap-peap and eap-ttls require a server certificate (EapTlsServerCert) and pin the tunnel to TLS 1.2; choose eap-tls when every client can present a certificate. eap-teap (RFC 9930) opens a server-only TLS 1.3 tunnel and runs the inner EAP-TLS method inside it, bound by the Crypto-Binding TLV; set EapTeapPasswordPrompt to chain the Basic-Password-Auth exchange as a second factor.",
       "description_i18n": "config.radius.eap_method.description",
       "group": "eap"
     },
@@ -194,6 +194,16 @@
       "title_i18n": "config.radius.eap_tls_cipher_suites.title",
       "description": "Comma-separated TLS 1.2 cipher suite names or 0xNNNN ids used only when EapTlsCipherProfile=custom (e.g. TLS_RSA_WITH_AES_128_CBC_SHA256). RC4 and 3DES are always rejected. Leave empty for modern/legacy profiles.",
       "description_i18n": "config.radius.eap_tls_cipher_suites.description",
+      "group": "eap"
+    },
+    {
+      "key": "radius.EapTeapPasswordPrompt",
+      "type": "string",
+      "default": "",
+      "title": "TEAP Password Prompt",
+      "title_i18n": "config.radius.eap_teap_password_prompt.title",
+      "description": "Prompt text for the RFC 9930 §3.6.3 Basic-Password-Auth exchange inside a TEAP Phase 2. Leave empty to run only the inner EAP-TLS method; a non-empty value chains password authentication after it, with the password checked against the stored credential or the LDAP bind. The prompt is sent inside the TLS tunnel.",
+      "description_i18n": "config.radius.eap_teap_password_prompt.description",
       "group": "eap"
     },
     {

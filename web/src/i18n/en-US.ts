@@ -799,7 +799,7 @@ const customEnglishMessages: TranslationMessages = {
     radius: {
       eap_method: {
         title: 'EAP Method',
-        description: 'Select the EAP authentication algorithm exposed to NAS clients (e.g., eap-md5, eap-mschapv2). eap-peap reuses the EAP-TLS server certificate/key to build the outer TLS tunnel and runs EAP-MSCHAPv2 inside it for Windows/AD compatibility; the inner MS-CHAPv2 has an NTLMv1-like attack surface, so keep the outer TLS strong and prefer eap-tls where clients support certificates. eap-ttls (RFC 5281) likewise builds a server-only TLS tunnel and authenticates legacy inner credentials for LDAP / legacy / mixed back ends: inner PAP (the cleartext password is protected only by the TLS tunnel) and inner MS-CHAP-V2 (which shares the same NTLMv1-like attack surface). Both eap-peap and eap-ttls require a server certificate (EapTlsServerCert) and pin the tunnel to TLS 1.2; choose eap-tls when every client can present a certificate. eap-teap (RFC 9930) opens a server-only TLS 1.3 tunnel and is still being built: Phase 1 runs, but the Phase 2 TLV exchange is not implemented, so a peer that selects it authenticates and then fails cleanly.',
+        description: 'Select the EAP authentication algorithm exposed to NAS clients (e.g., eap-md5, eap-mschapv2). eap-peap reuses the EAP-TLS server certificate/key to build the outer TLS tunnel and runs EAP-MSCHAPv2 inside it for Windows/AD compatibility; the inner MS-CHAPv2 has an NTLMv1-like attack surface, so keep the outer TLS strong and prefer eap-tls where clients support certificates. eap-ttls (RFC 5281) likewise builds a server-only TLS tunnel and authenticates legacy inner credentials for LDAP / legacy / mixed back ends: inner PAP (the cleartext password is protected only by the TLS tunnel) and inner MS-CHAP-V2 (which shares the same NTLMv1-like attack surface). Both eap-peap and eap-ttls require a server certificate (EapTlsServerCert) and pin the tunnel to TLS 1.2; choose eap-tls when every client can present a certificate. eap-teap (RFC 9930) opens a server-only TLS 1.3 tunnel and runs the inner EAP-TLS method inside it, bound by the Crypto-Binding TLV; set EapTeapPasswordPrompt to chain the Basic-Password-Auth exchange as a second factor.',
       },
       eap_enabled_handlers: {
         title: 'Enabled EAP Handlers',
@@ -824,6 +824,10 @@ const customEnglishMessages: TranslationMessages = {
       eap_tls_cipher_suites: {
         title: 'EAP TLS Cipher Suites',
         description: 'Comma-separated TLS 1.2 suite names or 0xNNNN ids used only when EapTlsCipherProfile=custom. RC4 and 3DES are always rejected.',
+      },
+      eap_teap_password_prompt: {
+        title: 'TEAP Password Prompt',
+        description: 'Prompt text for the RFC 9930 Basic-Password-Auth exchange inside TEAP Phase 2. Leave empty to run only the inner EAP-TLS method; a non-empty value chains password authentication after it, checked against the stored credential or the LDAP bind.',
       },
       ignore_password: {
         title: 'Ignore Password Check',

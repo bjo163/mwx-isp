@@ -147,6 +147,29 @@ func (e *Engine) NegotiatedVersion() uint16 {
 	return e.conn.ConnectionState().Version
 }
 
+// NegotiatedCipherSuite returns the cipher suite negotiated by the completed
+// handshake. It returns 0 if the handshake has not completed. RFC 9930 §6 makes
+// the TEAP Compound MAC use the hash the TLS key schedule negotiated, which
+// RFC 8446 §7.1 fixes per TLS 1.3 suite, so the handshake that owns a TEAP
+// session reads the suite here and maps it to a hash in teapbind.
+func (e *Engine) NegotiatedCipherSuite() uint16 {
+	if !e.HandshakeComplete() {
+		return 0
+	}
+	return e.conn.ConnectionState().CipherSuite
+}
+
+// DidResume reports whether the completed handshake resumed a TLS session from
+// a ticket. RFC 9930 §3.5 makes a resumed TEAP session skip Phase 2 entirely:
+// "If the server agrees to resume the session, Phase 2 is bypassed entirely."
+// It returns false before the handshake completes.
+func (e *Engine) DidResume() bool {
+	if !e.HandshakeComplete() {
+		return false
+	}
+	return e.conn.ConnectionState().DidResume
+}
+
 // readTimeout returns the configured ReadApplication timeout, defaulting to
 // DefaultAppReadTimeout when unset.
 func (e *Engine) readTimeout() time.Duration {
