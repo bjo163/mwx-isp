@@ -61,11 +61,15 @@ services:
       TOUGHRADIUS_LOGGER_FILE_ENABLE: "false"
     labels:
       - traefik.enable=true
-      - traefik.http.routers.mwx-isp.rule=Host(`e-isp.id`)
-      - traefik.http.routers.mwx-isp.entrypoints=https
-      - traefik.http.routers.mwx-isp.tls=true
-      - traefik.http.routers.mwx-isp.tls.certresolver=letsencrypt
+      - traefik.http.routers.mwx-isp-http.rule=Host(`e-isp.id`)
+      - traefik.http.routers.mwx-isp-http.entrypoints=http
+      - traefik.http.routers.mwx-isp-http.middlewares=redirect-to-https
+      - traefik.http.routers.mwx-isp-https.rule=Host(`e-isp.id`)
+      - traefik.http.routers.mwx-isp-https.entrypoints=https
+      - traefik.http.routers.mwx-isp-https.tls=true
+      - traefik.http.routers.mwx-isp-https.tls.certresolver=letsencrypt
       - traefik.http.services.mwx-isp.loadbalancer.server.port=1816
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
     ports:
       - "127.0.0.1:${MWX_ISP_WEB_PORT:-1816}:1816/tcp"
       - "1812:1812/udp"
