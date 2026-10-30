@@ -1,5 +1,13 @@
 # MWX-ISP Changelog
 
+## v0.19.6 — 2026-10-30
+
+Changes since v0.19.5:
+
+### Fixes and Improvements
+
+- separate tenant branding routes into dedicated file
+
 ## v0.19.5 — 2026-10-30
 
 Changes since v0.19.4:
