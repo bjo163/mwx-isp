@@ -9,8 +9,13 @@ Prototype: `internal/teapreadiness` · Tests: `go test ./internal/teapreadiness/
 > moved two verdicts: `inner-avp-codec` (ready) became `vendor-specific-tlv`
 > (missing) and `pac-tlv` (missing) became `session-resumption` (blocked, pinned
 > by `tlsengine/engine.go:140`). The report below is kept as the record of what
-> was measured against RFC 7170; the current numbers are `Mechanics: 22 · ready 6
-> · partial 9 · blocked 2 · missing 5`, and the reasons are in
+> was measured against RFC 7170; the current numbers are `Mechanics: 22 · ready 20
+> · partial 2 · blocked 0 · missing 0`. M11.8 built the serving path and M11.9
+> closed Phase 2 — chaining, Basic-Password-Auth, Intermediate-Result,
+> Crypto-Binding and Result — so the only partial rows left are the §3.11
+> Authority-ID provisioning step, which this server does not offer, and the
+> Vendor-Specific envelope, which no handshake sends. The reasons behind the
+> catalog are in
 > [teap-citation-anchoring-2026-10-29.md](teap-citation-anchoring-2026-10-29.md)
 > and, for the seven TLV rows, in M11.3's codec
 > [`internal/radiusd/plugins/eap/teaptlv`](../internal/radiusd/plugins/eap/teaptlv/teaptlv.go),

@@ -108,6 +108,19 @@ type Config struct {
 	// HandshakeTimeout bounds the total handshake duration. Zero selects
 	// DefaultHandshakeTimeout.
 	HandshakeTimeout time.Duration
+	// WrapSession, when set, replaces the sealing of a TLS 1.3 session ticket:
+	// crypto/tls passes it the connection state and the session state and takes
+	// back the opaque identity to put in the ticket. It is how a method records
+	// what its authorization concluded about a session so a later ticket can be
+	// tied to those credentials — RFC 9930 §3.11 requires TEAP to associate the
+	// Phase 2 credentials with the ticket, or to invalidate the ticket.
+	WrapSession func(tls.ConnectionState, *tls.SessionState) ([]byte, error)
+	// UnwrapSession, when set, replaces the opening of a TLS 1.3 session ticket:
+	// crypto/tls passes it the identity a previous WrapSession produced and takes
+	// back the session state, or a nil state (and nil error) to refuse resumption
+	// and fall back to a full handshake. Both callbacks are crypto/tls's own
+	// tls.Config fields and are passed through unchanged.
+	UnwrapSession func([]byte, tls.ConnectionState) (*tls.SessionState, error)
 }
 
 // SessionTicketKeySize is the length in octets of Config.SessionTicketKey, which
@@ -170,6 +183,8 @@ func New(cfg *Config) (*Engine, error) {
 		// resume to issue the ticket during the initial authentication, so the
 		// TEAP tunnel asks.
 		SessionTicketsDisabled: !cfg.EnableSessionTickets,
+		WrapSession:            cfg.WrapSession,
+		UnwrapSession:          cfg.UnwrapSession,
 	}
 	if cfg.EnableSessionTickets {
 		// crypto/tls randomizes this key when it is left zero. Because the engine

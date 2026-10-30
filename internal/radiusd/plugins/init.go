@@ -119,15 +119,23 @@ func InitPlugins(appCtx app.ConfigManagerProvider, sessionRepo repository.Sessio
 	// TEAP (EAP type 55, RFC 9930) is the successor to the tunneled methods: a
 	// server-only TLS 1.3 tunnel with the Phase 2 exchange bound to it by the
 	// Crypto-Binding TLV. M11.8 registers the method and drives Phase 1 (the
-	// Start with its Authority-ID TLV, version negotiation and the handshake);
-	// Phase 2 is not implemented yet, so a peer that completes the tunnel rejects
-	// with eap.ErrTEAPPhase2NotImplemented rather than being granted access.
-	// When no config manager is available (e.g. unit tests with a nil appCtx),
-	// fall back to the unconfigured handler which rejects the handshake safely
-	// with eap.ErrTLSNotConfigured.
+	// Start with its Authority-ID TLV, version negotiation, the handshake and the
+	// ticket resumption of §3.5); M11.9 adds Phase 2: the inner EAP-TLS method
+	// and, when radius.EapTeapPasswordPrompt is set, the Basic-Password-Auth
+	// exchange, chained through Intermediate-Result and Crypto-Binding TLVs and
+	// closed by the Result TLV. When no config manager is available (e.g. unit
+	// tests with a nil appCtx), fall back to the unconfigured handler which
+	// rejects the handshake safely with eap.ErrTLSNotConfigured.
 	if appCtx != nil && appCtx.ConfigMgr() != nil {
-		provider := eaphandlers.NewSettingsTEAPConfigProvider(appCtx.ConfigMgr(), certResolver)
-		registry.RegisterEAPHandler(eaphandlers.NewTEAPHandlerWithConfig(provider))
+		cm := appCtx.ConfigMgr()
+		opts := eaphandlers.TEAPOptions{
+			InnerTLSConfigProvider: eaphandlers.NewSettingsTEAPInnerTLSProvider(cm, certResolver),
+			PasswordPrompt: func() string {
+				return cm.GetString("radius", eaphandlers.SettingEapTeapPasswordPrompt)
+			},
+		}
+		provider := eaphandlers.NewSettingsTEAPConfigProvider(cm, certResolver)
+		registry.RegisterEAPHandler(eaphandlers.NewTEAPHandlerWithOptions(provider, opts))
 	} else {
 		registry.RegisterEAPHandler(eaphandlers.NewTEAPHandler())
 	}

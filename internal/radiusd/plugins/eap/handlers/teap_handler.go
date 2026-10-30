@@ -25,12 +25,46 @@ const (
 	// stateKeyTEAPPeerOuter holds the Outer TLVs of the peer's initial message,
 	// which RFC 9930 §6.3 appends to the Crypto-Binding BUFFER.
 	stateKeyTEAPPeerOuter = "teap_peer_outer"
+	// stateKeyTEAPServerOuter holds the Outer TLVs of the server's Start, the
+	// first BUFFER input §6.3 names.
+	stateKeyTEAPServerOuter = "teap_server_outer"
 	// stateKeyTEAPOutFrags queues []*teapmsg.Packet still to be sent.
 	stateKeyTEAPOutFrags = "teap_out_frags"
 	// Inbound reassembly, persisted between rounds like the EAP-TLS tunnel does.
+	// Phase 2 reuses the same keys: its TLS application records arrive through the
+	// same envelope and are reassembled the same way.
 	stateKeyTEAPRxBuf      = "teap_rx_buf"
 	stateKeyTEAPRxDeclared = "teap_rx_declared"
 	stateKeyTEAPRxHasLen   = "teap_rx_has_len"
+	// stateKeyTEAPPending names the server step that runs after the peer
+	// acknowledges the last queued fragment. A TEAP packet carries one message per
+	// direction, so a flight the peer has not yet seen cannot also carry the next
+	// request.
+	stateKeyTEAPPending = "teap_pending"
+	// stateKeyTEAPPhase2 marks a session that has left Phase 1.
+	stateKeyTEAPPhase2 = "teap_phase2_active"
+	// stateKeyTEAPPhase is the string sub-state of Phase 2.
+	stateKeyTEAPPhase = "teap_phase2_phase"
+	// stateKeyTEAPSession is the *teapPhase2Session driving the exchange.
+	stateKeyTEAPSession = "teap_phase2_session"
+	// Inbound reassembly for the inner EAP-TLS method, which fragments with the
+	// RFC 5216 §2.1.5 framing of its own inside the tunnel.
+	stateKeyTEAPInnerRxBuf      = "teap_inner_rx_buf"
+	stateKeyTEAPInnerRxDeclared = "teap_inner_rx_declared"
+	stateKeyTEAPInnerRxHasLen   = "teap_inner_rx_has_len"
+	// stateKeyTEAPTicket is the *teapTicketHolder shared with the outer engine's
+	// WrapSession and UnwrapSession callbacks (RFC 9930 §3.11).
+	stateKeyTEAPTicket = "teap_ticket_holder"
+)
+
+// The server steps a pending acknowledgment triggers.
+const (
+	// teapPendingPhase2 opens Phase 2 once the peer has seen the tunnel's final
+	// handshake flight.
+	teapPendingPhase2 = "phase2"
+	// teapPendingGrant finishes a resumed session once the peer has seen the
+	// ticket flight (RFC 9930 §3.5 bypasses Phase 2).
+	teapPendingGrant = "grant"
 )
 
 // TEAPHandler is the EAP-TEAP (RFC 9930) authentication handler.
@@ -42,16 +76,19 @@ const (
 // by teapmsg — rather than the EAP-TLS layout PEAP and EAP-TTLS reuse.
 //
 // Milestone scope:
-//   - M11.8 (current): registered the method (EAP type 55, name "eap-teap"),
-//     answers EAP-Response/Identity with a TEAP Start carrying the Authority-ID
-//     TLV, negotiates the version (§3.1), captures the peer's Phase 1 Outer TLVs
-//     and drives the TLS 1.3 handshake over the TEAP envelope. Once the tunnel is
-//     up it rejects with eap.ErrTEAPPhase2NotImplemented, so it can never grant
-//     access without the Phase 2 Result TLV.
-//   - M11.9: the Phase 2 TLV exchange (Inner Methods, Intermediate-Result,
-//     Crypto-Binding, Result) and the MSK/EMSK derivation.
+//   - M11.8: registered the method (EAP type 55, name "eap-teap"), answers
+//     EAP-Response/Identity with a TEAP Start carrying the Authority-ID TLV,
+//     negotiates the version (§3.1), captures the Phase 1 Outer TLVs, drives the
+//     TLS 1.3 handshake over the TEAP envelope and resumes a session from the TLS
+//     1.3 ticket (§3.5).
+//   - M11.9: the Phase 2 TLV exchange — Inner Methods in EAP-Payload TLVs,
+//     Intermediate-Result, Crypto-Binding and Result (§3.6), the MSK/EMSK of §6.4
+//     and the credential association of §3.11. A handler without Phase 2 options
+//     does not open the exchange at all: it rejects with
+//     eap.ErrTEAPPhase2NotImplemented, so it can never grant access.
 type TEAPHandler struct {
 	configProvider TLSConfigProvider
+	opts           TEAPOptions
 	maxFragment    int
 }
 
@@ -63,9 +100,16 @@ func NewTEAPHandler() *TEAPHandler {
 }
 
 // NewTEAPHandlerWithConfig creates a TEAP handler that drives the outer TLS
-// tunnel using the TLS material returned by provider.
+// tunnel using the TLS material returned by provider. It runs Phase 1 only and
+// fails closed at the Phase 2 gate.
 func NewTEAPHandlerWithConfig(provider TLSConfigProvider) *TEAPHandler {
-	return &TEAPHandler{configProvider: provider, maxFragment: defaultMaxTLSFragment}
+	return NewTEAPHandlerWithOptions(provider, TEAPOptions{})
+}
+
+// NewTEAPHandlerWithOptions creates a TEAP handler that drives the outer tunnel
+// with provider and Phase 2 with opts. A zero opts keeps the Phase 1 behavior.
+func NewTEAPHandlerWithOptions(provider TLSConfigProvider, opts TEAPOptions) *TEAPHandler {
+	return &TEAPHandler{configProvider: provider, opts: opts, maxFragment: defaultMaxTLSFragment}
 }
 
 // Name returns the handler name ("eap-teap").
@@ -92,7 +136,11 @@ func (h *TEAPHandler) CanHandle(ctx *eap.EAPContext) bool {
 // §3.2, framing per §4.1).
 func (h *TEAPHandler) HandleIdentity(ctx *eap.EAPContext) (bool, error) {
 	username := rfc2865.UserName_GetString(ctx.Request.Packet)
-	eapData, err := h.buildStartRequest(ctx.EAPMessage.Identifier, teapAuthorityID(username))
+	outer, err := teaptlv.Marshal(teaptlv.NewAuthorityID([]byte(teapAuthorityID(username))))
+	if err != nil {
+		return false, err
+	}
+	eapData, err := h.buildStartRequest(ctx.EAPMessage.Identifier, outer)
 	if err != nil {
 		return false, err
 	}
@@ -104,6 +152,9 @@ func (h *TEAPHandler) HandleIdentity(ctx *eap.EAPContext) (bool, error) {
 		Method:   EAPMethodTEAP,
 		Success:  false,
 	}
+	// §6.3 step 3 appends the server's Start Outer TLVs to the Crypto-Binding
+	// BUFFER, so they are kept exactly as they were sent.
+	setBytes(state, stateKeyTEAPServerOuter, outer)
 
 	if err := ctx.StateManager.SetState(stateID, state); err != nil {
 		return false, err
@@ -112,10 +163,11 @@ func (h *TEAPHandler) HandleIdentity(ctx *eap.EAPContext) (bool, error) {
 	return true, h.writeChallenge(ctx, stateID, eapData)
 }
 
-// HandleResponse drives the TEAP Phase 1 tunnel: version negotiation (§3.1),
+// HandleResponse drives the whole TEAP conversation: version negotiation (§3.1),
 // Outer TLV capture, fragment reassembly over the TEAP envelope (§4.1) and the
-// TLS handshake. Once the tunnel is up it rejects, because Phase 2 (§3.6) is
-// not implemented yet; see eap.ErrTEAPPhase2NotImplemented.
+// TLS handshake in Phase 1, then the decrypted TLV exchange of Phase 2 (§3.6).
+// A handler built without Phase 2 options rejects once the tunnel is up with
+// eap.ErrTEAPPhase2NotImplemented; see TEAPOptions.
 func (h *TEAPHandler) HandleResponse(ctx *eap.EAPContext) (bool, error) {
 	stateID := rfc2865.State_GetString(ctx.Request.Packet)
 	if stateID == "" {
@@ -180,6 +232,19 @@ func (h *TEAPHandler) HandleResponse(ctx *eap.EAPContext) (bool, error) {
 		return h.sendNextFragment(ctx, state, pkt)
 	}
 
+	// A pending step waited for the peer to acknowledge the last server flight.
+	// It runs before anything else: the acknowledgment carries no data of its own,
+	// and a peer that sends data instead is out of step with the server.
+	if pending := getString(state, stateKeyTEAPPending); pending != "" {
+		return h.runPending(ctx, state, pending, pkt)
+	}
+
+	// Inside Phase 2 the TLS Data carries protected TLVs rather than handshake
+	// messages, so it is decrypted and dispatched instead of fed to the handshake.
+	if getBool(state, stateKeyTEAPPhase2) {
+		return h.handlePhase2Packet(ctx, state, pkt)
+	}
+
 	reassembler := loadTEAPReassembler(state)
 	complete, err := reassembler.Accept(pkt)
 	if err != nil {
@@ -207,9 +272,11 @@ func (h *TEAPHandler) HandleResponse(ctx *eap.EAPContext) (bool, error) {
 
 // advanceHandshake feeds one reassembled client flight to the TLS engine and
 // sends whatever the engine answers as TEAP fragments. A completed handshake
-// ends Phase 1; Phase 2 is not implemented yet, so it rejects.
+// ends Phase 1 and schedules the step that follows it — Phase 2, or the grant of
+// a resumed session — because the peer must first acknowledge the final
+// handshake flight (§4.1 allows one message per direction per packet).
 func (h *TEAPHandler) advanceHandshake(ctx *eap.EAPContext, state *eap.EAPState, tlsInput []byte) (bool, error) {
-	engine, err := engineForState(state, h.configProvider)
+	engine, err := h.outerEngine(state)
 	if err != nil {
 		return false, err
 	}
@@ -220,28 +287,47 @@ func (h *TEAPHandler) advanceHandshake(ctx *eap.EAPContext, state *eap.EAPState,
 		return false, fmt.Errorf("%w: %v", eap.ErrTLSHandshakeFailed, hsErr)
 	}
 
-	if done {
-		// teapkeys implements the RFC 9427 §2.2 TLS 1.3 exporter schedule only.
-		// RFC 9930 §6.2 defines a TLS 1.2 form over the RFC 5246 TLS-PRF, which
-		// would derive different keys from the same inputs, so a 1.2 tunnel must
-		// not reach Phase 2 on this server.
-		if version := engine.NegotiatedVersion(); version != tls.VersionTLS13 {
+	if !done {
+		if len(out) == 0 {
 			closeEngine(state)
-			return false, fmt.Errorf("%w: negotiated TLS version %#04x", eap.ErrTEAPRequiresTLS13, version)
+			return false, eap.ErrTEAPUnexpectedFragment
 		}
+		return false, h.sendTEAPFlight(ctx, state, out)
+	}
+
+	// teapkeys implements the RFC 9427 §2.2 TLS 1.3 exporter schedule only.
+	// RFC 9930 §6.2 defines a TLS 1.2 form over the RFC 5246 TLS-PRF, which
+	// would derive different keys from the same inputs, so a 1.2 tunnel must
+	// not reach Phase 2 on this server.
+	if version := engine.NegotiatedVersion(); version != tls.VersionTLS13 {
+		closeEngine(state)
+		return false, fmt.Errorf("%w: negotiated TLS version %#04x", eap.ErrTEAPRequiresTLS13, version)
+	}
+
+	// §3.5: a resumed session skips Phase 2 and authorizes on the cached
+	// credentials, so there is nothing to run inside the tunnel.
+	pending := teapPendingPhase2
+	if engine.DidResume() {
+		pending = teapPendingGrant
+	} else if h.opts.InnerTLSConfigProvider == nil {
 		closeEngine(state)
 		return false, eap.ErrTEAPPhase2NotImplemented
 	}
+	setString(state, stateKeyTEAPPending, pending)
 
-	if len(out) == 0 {
-		closeEngine(state)
-		return false, eap.ErrTEAPUnexpectedFragment
+	if len(out) > 0 {
+		return false, h.sendTEAPFlight(ctx, state, out)
 	}
+	return h.runPending(ctx, state, pending, nil)
+}
 
-	packets, err := teapmsg.Fragment(teapmsg.Version, out, nil, h.maxFragment)
+// sendTEAPFlight queues and sends one TLS flight as TEAP packets, carrying any
+// surplus fragments over to the acknowledgments that follow (§4.1).
+func (h *TEAPHandler) sendTEAPFlight(ctx *eap.EAPContext, state *eap.EAPState, tlsData []byte) error {
+	packets, err := teapmsg.Fragment(teapmsg.Version, tlsData, nil, h.maxFragment)
 	if err != nil {
 		closeEngine(state)
-		return false, err
+		return err
 	}
 
 	first, rest := packets[0], packets[1:]
@@ -250,14 +336,14 @@ func (h *TEAPHandler) advanceHandshake(ctx *eap.EAPContext, state *eap.EAPState,
 	}
 	if err := ctx.StateManager.SetState(state.StateID, state); err != nil {
 		closeEngine(state)
-		return false, err
+		return err
 	}
 	eapData, err := h.buildRequest(ctx.EAPMessage.Identifier+1, first)
 	if err != nil {
 		closeEngine(state)
-		return false, err
+		return err
 	}
-	return false, h.writeChallenge(ctx, state.StateID, eapData)
+	return h.writeChallenge(ctx, state.StateID, eapData)
 }
 
 // sendNextFragment answers a peer fragment acknowledgement with the next queued
@@ -290,13 +376,8 @@ func (h *TEAPHandler) sendNextFragment(ctx *eap.EAPContext, state *eap.EAPState,
 }
 
 // buildStartRequest constructs the TEAP Start: a Start bit, version 1, no TLS
-// data and one Authority-ID TLV (§4.2.2) in the Outer TLV field.
-func (h *TEAPHandler) buildStartRequest(identifier uint8, authorityID string) ([]byte, error) {
-	outer, err := teaptlv.Marshal(teaptlv.NewAuthorityID([]byte(authorityID)))
-	if err != nil {
-		return nil, err
-	}
-
+// data and the Authority-ID TLV (§4.2.2) in the Outer TLV field.
+func (h *TEAPHandler) buildStartRequest(identifier uint8, outer []byte) ([]byte, error) {
 	pkt := &teapmsg.Packet{
 		Flags:        teapmsg.FlagStart,
 		Version:      teapmsg.Version,

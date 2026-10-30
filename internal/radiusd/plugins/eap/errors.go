@@ -75,7 +75,29 @@ var (
 	// TLS 1.3 form, so a 1.2 tunnel cannot be keyed by this server.
 	ErrTEAPRequiresTLS13 = errors.New("EAP-TEAP requires a TLS 1.3 tunnel")
 	// ErrTEAPPhase2NotImplemented is returned once the Phase 1 tunnel is up but
-	// the Phase 2 TLV exchange (RFC 9930 §3.6) is not implemented yet. It
-	// guarantees the handler never grants access without the Phase 2 Result TLV.
-	ErrTEAPPhase2NotImplemented = errors.New("EAP-TEAP Phase 2 is not implemented yet")
+	// the handler was built without the Phase 2 options, so no inner exchange can
+	// run. RFC 9930 §3.6 makes the Result TLV the only way to finish a
+	// conversation, so such a handler rejects rather than granting access on the
+	// tunnel alone.
+	ErrTEAPPhase2NotImplemented = errors.New("EAP-TEAP Phase 2 is not enabled on this handler")
+	// ErrTEAPPhase2NotConfigured is returned when a tunnel completes but the
+	// handler holds no Inner Method material (an inner TLS configuration and a
+	// password prompt are what Phase 2 needs). It fails closed like
+	// ErrTEAPPhase2NotImplemented.
+	ErrTEAPPhase2NotConfigured = errors.New("EAP-TEAP Phase 2 is not configured (missing inner TLS material)")
+	// ErrTEAPInnerProtocol is returned when the TLVs or the inner EAP exchange
+	// carried inside the tunnel violate RFC 9930 §3.6 or §4.2.
+	ErrTEAPInnerProtocol = errors.New("EAP-TEAP inner Phase 2 protocol violation")
+	// ErrTEAPCryptoBinding is returned when the peer's Crypto-Binding TLV does
+	// not verify, names the wrong Sub-Type, or omits a Compound MAC the session
+	// requires (RFC 9930 §4.2.13, §6.2.4, §6.3).
+	ErrTEAPCryptoBinding = errors.New("EAP-TEAP Crypto-Binding verification failed")
+	// ErrTEAPPeerFailure is returned when the peer's Result or Intermediate-Result
+	// TLV reports failure. RFC 9930 §3.6.2: "If either indicates failure, then the
+	// authentication is considered failed."
+	ErrTEAPPeerFailure = errors.New("EAP-TEAP peer reported a failed Phase 2 result")
+	// ErrTEAPPassword is returned when the Basic-Password-Auth exchange of §3.6.3
+	// cannot be completed: the policy, the round trip or the credential check
+	// rejected it.
+	ErrTEAPPassword = errors.New("EAP-TEAP Basic-Password-Auth failed")
 )

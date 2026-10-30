@@ -916,7 +916,7 @@ export const indonesianOverrides: Record<string, unknown> = {
       eap_method: {
         title: 'Metode EAP',
         description:
-          'Pilih algoritma autentikasi EAP yang disediakan untuk klien NAS (mis. eap-md5, eap-mschapv2). eap-peap memakai ulang sertifikat/kunci server EAP-TLS untuk membangun terowongan TLS luar dan menjalankan EAP-MSCHAPv2 di dalamnya untuk kompatibilitas Windows/AD; MS-CHAPv2 internal memiliki permukaan serangan mirip NTLMv1, jadi jaga kekuatan TLS luar dan utamakan eap-tls bila klien mendukung sertifikat. eap-ttls (RFC 5281) juga membangun terowongan TLS khusus server dan mengautentikasi kredensial internal lama untuk backend LDAP / legacy / campuran: PAP internal (kata sandi teks jelas hanya dilindungi terowongan TLS) dan MS-CHAP-V2 internal (permukaan serangan serupa NTLMv1). eap-peap dan eap-ttls memerlukan sertifikat server (EapTlsServerCert) dan mengunci terowongan ke TLS 1.2; pilih eap-tls bila setiap klien dapat menyajikan sertifikat. eap-teap (RFC 9930) membuka terowongan TLS 1.3 khusus server dan masih dalam pembangunan: Phase 1 berjalan, tetapi pertukaran TLV Phase 2 belum diimplementasikan, sehingga peer yang memilihnya terautentikasi lalu gagal dengan bersih.',
+          'Pilih algoritma autentikasi EAP yang disediakan untuk klien NAS (mis. eap-md5, eap-mschapv2). eap-peap memakai ulang sertifikat/kunci server EAP-TLS untuk membangun terowongan TLS luar dan menjalankan EAP-MSCHAPv2 di dalamnya untuk kompatibilitas Windows/AD; MS-CHAPv2 internal memiliki permukaan serangan mirip NTLMv1, jadi jaga kekuatan TLS luar dan utamakan eap-tls bila klien mendukung sertifikat. eap-ttls (RFC 5281) juga membangun terowongan TLS khusus server dan mengautentikasi kredensial internal lama untuk backend LDAP / legacy / campuran: PAP internal (kata sandi teks jelas hanya dilindungi terowongan TLS) dan MS-CHAP-V2 internal (permukaan serangan serupa NTLMv1). eap-peap dan eap-ttls memerlukan sertifikat server (EapTlsServerCert) dan mengunci terowongan ke TLS 1.2; pilih eap-tls bila setiap klien dapat menyajikan sertifikat. eap-teap (RFC 9930) membuka terowongan TLS 1.3 khusus server dan menjalankan metode EAP-TLS internal di dalamnya, diikat oleh TLV Crypto-Binding; isi EapTeapPasswordPrompt untuk merangkai pertukaran Basic-Password-Auth sebagai faktor kedua.',
       },
       eap_enabled_handlers: {
         title: 'Handler EAP Aktif',
@@ -946,6 +946,11 @@ export const indonesianOverrides: Record<string, unknown> = {
         title: 'Cipher Suite EAP TLS',
         description:
           'Nama suite TLS 1.2 atau ID 0xNNNN dipisahkan koma yang hanya dipakai saat EapTlsCipherProfile=custom. RC4 dan 3DES selalu ditolak.',
+      },
+      eap_teap_password_prompt: {
+        title: 'Prompt Kata Sandi TEAP',
+        description:
+          'Teks prompt untuk pertukaran Basic-Password-Auth RFC 9930 di dalam Phase 2 TEAP. Biarkan kosong untuk hanya menjalankan metode EAP-TLS internal; nilai tidak kosong merangkai autentikasi kata sandi setelahnya, diverifikasi terhadap kredensial tersimpan atau bind LDAP.',
       },
       ignore_password: {
         title: 'Abaikan Pemeriksaan Kata Sandi',
