@@ -106,14 +106,23 @@ func TestObsoletedSpecificationIsStillArchived(t *testing.T) {
 	assert.FileExists(t, filepath.Join(repoRoot(t), "docs", "rfcs", "rfc7170-teap.txt"))
 }
 
-// TestCommentMentionsAreNotEvidence pins the rule that makes the Crypto-Binding
-// verdict true: the word appears in the tree, but only inside comments, and the
-// PEAP comment says the TLV is skipped.
+// TestCommentMentionsAreNotEvidence pins the rule that sets the Crypto-Binding
+// verdict: the word appears in peap_inner.go only inside a comment saying the TLV
+// is skipped, and that mention is not evidence. What moved the row off "missing" is
+// the teaptlv encoder, and the row stays "partial" because the Compound MAC that
+// makes the TLV mean anything is still absent.
 func TestCommentMentionsAreNotEvidence(t *testing.T) {
 	report := realReport(t)
 	finding := find(t, report, "crypto-binding-tlv")
-	assert.Equal(t, StatusMissing, finding.Status)
-	assert.Empty(t, finding.Support)
+	assert.Equal(t, StatusPartial, finding.Status)
+	require.NotEmpty(t, finding.Support, "the codec is real code and must be quoted")
+	for _, e := range finding.Support {
+		assert.Equal(t, "internal/radiusd/plugins/eap/teaptlv/teaptlv.go", e.File,
+			"only the codec may support this row, never a comment")
+	}
+	assert.Less(t, finding.MarkerHits, len(finding.Mechanic.Markers),
+		"an unimplemented Compound MAC must keep the row out of ready")
+	assert.Contains(t, finding.Note, "§6.3", "the note must name the clause that is unimplemented")
 
 	raw := readRepoFile(t, "internal/radiusd/plugins/eap/handlers/peap_inner.go")
 	assert.Contains(t, raw, "Cryptobinding", "the RFC-adjacent comment must still be in the tree for this test to mean anything")
@@ -167,17 +176,38 @@ func TestRealTreeVerdictsForReusedMechanics(t *testing.T) {
 	}
 }
 
+// TestRealTreeVerdictsForBuildMechanics keeps the rows that describe the method
+// itself at "missing": a codec sitting in the tree must not read as a TEAP method
+// the server can negotiate.
 func TestRealTreeVerdictsForBuildMechanics(t *testing.T) {
 	report := realReport(t)
 	for _, id := range []string{
 		"teap-eap-type", "teap-method-name", "teap-handler-wiring", "teap-config-choice",
-		"teap-version-negotiation", "eap-payload-tlv", "intermediate-result-tlv",
-		"inner-method-chaining", "identity-type-tlv", "authority-id-tlv", "basic-password-auth-tlv",
-		"vendor-specific-tlv",
+		"teap-version-negotiation", "inner-method-chaining", "rfc9427-key-derivation",
 	} {
 		finding := find(t, report, id)
 		assert.Equal(t, StatusMissing, finding.Status, "%s must not be claimed as built", id)
 		assert.Zero(t, finding.MarkerHits, id)
+	}
+}
+
+// TestTLVFormatRowsStayPartial records what the teaptlv codec did and did not
+// change: every §4.2 TLV row gained its encoder, so none is "missing" any more,
+// but each still lacks the second marker — the handler or the MAC that would make
+// the format serve a handshake — so none reaches "ready" either.
+func TestTLVFormatRowsStayPartial(t *testing.T) {
+	report := realReport(t)
+	for _, id := range []string{
+		"crypto-binding-tlv", "eap-payload-tlv", "intermediate-result-tlv",
+		"identity-type-tlv", "authority-id-tlv", "basic-password-auth-tlv",
+		"vendor-specific-tlv",
+	} {
+		finding := find(t, report, id)
+		assert.Equal(t, StatusPartial, finding.Status, "%s should be a codec with no caller", id)
+		assert.Positive(t, finding.MarkerHits, id)
+		assert.Less(t, finding.MarkerHits, len(finding.Mechanic.Markers),
+			"%s must stay partial: the format is not the handshake", id)
+		assert.Contains(t, finding.Note, "teaptlv", "%s must say what the codec does", id)
 	}
 }
 
@@ -217,6 +247,13 @@ func TestTotalsAccountForEveryMechanism(t *testing.T) {
 	// M11 plan starts by revisiting two existing decisions rather than by adding
 	// a handler.
 	assert.Equal(t, 2, report.Totals.Blocked)
+	// Measured against this repository as it stands: six serving-path mechanisms
+	// are reusable, the seven §4.2 TLV formats have a codec but no caller, and the
+	// remaining seven - the method itself, its wiring, its version negotiation, its
+	// chaining and the RFC 9427 derivation - are absent.
+	assert.Equal(t, 6, report.Totals.Ready)
+	assert.Equal(t, 7, report.Totals.Partial)
+	assert.Equal(t, 7, report.Totals.Missing)
 }
 
 func TestStatusRulesFromASyntheticTree(t *testing.T) {
@@ -311,19 +348,53 @@ func TestFindingStringNamesVerdictClauseAndEvidence(t *testing.T) {
 	blocked := find(t, report, "tls13-outer-tunnel").String()
 	assert.Contains(t, blocked, "contradicted-by=")
 
-	missing := find(t, report, "crypto-binding-tlv").String()
+	missing := find(t, report, "teap-handler-wiring").String()
 	assert.Contains(t, missing, "evidence=none")
+
+	partial := find(t, report, "crypto-binding-tlv").String()
+	assert.Contains(t, partial, "partial")
+	assert.Contains(t, partial, "teaptlv/teaptlv.go")
 }
 
 func TestRenderMarkdownSeparatesReuseBuildAndUnknown(t *testing.T) {
 	report := realReport(t)
 	rendered := RenderMarkdown(report)
 	assert.Contains(t, rendered, "## Reusable now")
+	assert.Contains(t, rendered, "## Partly present, not yet wired")
 	assert.Contains(t, rendered, "## To build")
 	assert.Contains(t, rendered, "## What this scan cannot answer")
-	assert.Contains(t, rendered, "| result-tlv | RFC 9930 §4.2.4 | internal/radiusd/plugins/eap")
-	assert.Contains(t, rendered, "`vendor-specific-tlv` — ")
+	assert.Contains(t, rendered, "`teap-handler-wiring` — ")
 	assert.Contains(t, rendered, "Which supplicants offer TEAP")
+
+	// A codec nothing calls is evidence, not machinery an implementer can reuse, so
+	// it must not sit in the "Reusable now" table.
+	reusable := section(t, rendered, "## Reusable now", "## Partly present")
+	assert.Contains(t, reusable, "| result-tlv | RFC 9930 §4.2.4 | internal/radiusd/plugins/eap")
+	assert.NotContains(t, reusable, "teaptlv", "the TLV codec belongs to the partial table")
+	assert.Equal(t, 6, dataRows(reusable), "only ready rows may be claimed as reusable now")
+
+	partial := section(t, rendered, "## Partly present", "## Blocked by existing choices")
+	assert.Contains(t, partial, "| crypto-binding-tlv | RFC 9930 §3.6 |")
+	assert.Contains(t, partial, "internal/radiusd/plugins/eap/teaptlv/teaptlv.go")
+	assert.Contains(t, partial, "1 of 2 markers")
+	assert.Equal(t, 7, dataRows(partial), "every TLV-format row belongs in the partial table")
+}
+
+// section returns the rendered document between two headings.
+func section(t *testing.T, rendered, from, until string) string {
+	t.Helper()
+	start := strings.Index(rendered, from)
+	end := strings.Index(rendered, until)
+	require.Positive(t, start, "missing heading %q", from)
+	require.Positive(t, end, "missing heading %q", until)
+	require.Less(t, start, end, "%q must come before %q", from, until)
+	return rendered[start:end]
+}
+
+// dataRows counts the table body rows in a rendered section, leaving out its
+// column header.
+func dataRows(section string) int {
+	return strings.Count(section, "\n| ") - 1
 }
 
 func TestRenderMarkdownEscapesPipesInCodeEvidence(t *testing.T) {

@@ -8,6 +8,10 @@ import (
 // RenderMarkdown turns a report into the document a reviewer reads: the verdict
 // per mechanism with the clause behind it, the reuse list, the build list, and
 // the questions the scan cannot answer.
+//
+// Ready and partial mechanisms get separate tables. A partial row has evidence but
+// not all of it — a wire-format codec nothing calls yet, say — and listing it under
+// "Reusable now" would read as a claim that the handshake around it works.
 func RenderMarkdown(report Report) string {
 	var out strings.Builder
 	fmt.Fprintf(&out, "Mechanics: %d · ready %d · partial %d · blocked %d · missing %d\n\n",
@@ -18,7 +22,7 @@ func RenderMarkdown(report Report) string {
 	out.WriteString("| mechanism | clause | evidence |\n | --- | --- | --- |\n")
 	written := 0
 	for _, f := range report.Findings {
-		if f.Status != StatusReady && f.Status != StatusPartial {
+		if f.Status != StatusReady {
 			continue
 		}
 		fmt.Fprintf(&out, "| %s | %s | %s |\n", cell(f.Mechanic.ID), cell(f.Mechanic.Source.String()), cell(evidenceText(f.Support)))
@@ -26,6 +30,21 @@ func RenderMarkdown(report Report) string {
 	}
 	if written == 0 {
 		out.WriteString("| (none) |  |  |\n")
+	}
+
+	out.WriteString("\n## Partly present, not yet wired\n\n")
+	out.WriteString("| mechanism | clause | evidence | markers matched |\n | --- | --- | --- | --- |\n")
+	written = 0
+	for _, f := range report.Findings {
+		if f.Status != StatusPartial {
+			continue
+		}
+		fmt.Fprintf(&out, "| %s | %s | %s | %d of %d markers |\n", cell(f.Mechanic.ID), cell(f.Mechanic.Source.String()),
+			cell(evidenceText(f.Support)), f.MarkerHits, len(f.Mechanic.Markers))
+		written++
+	}
+	if written == 0 {
+		out.WriteString("| (none) |  |  |  |\n")
 	}
 
 	out.WriteString("\n## Blocked by existing choices\n\n")
