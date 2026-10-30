@@ -42,6 +42,7 @@ const menuItems = [
   { to: '/network/odp', labelKey: 'menu.odp_management', icon: <HubOutlinedIcon />, permissions: ['super', 'admin'] },
   { to: '/operations', labelKey: 'menu.operations', sectionKey: 'menu.network', icon: <SensorsOutlinedIcon />, permissions: ['super', 'admin'] },
   { to: '/tenant/branding', labelKey: 'menu.tenant_branding', sectionKey: 'menu.system', icon: <BrushOutlinedIcon />, permissions: ['super', 'admin'] },
+  { to: '/tenant/website', labelKey: 'menu.tenant_website', icon: <LanguageOutlinedIcon />, permissions: ['super', 'admin'] },
   { to: '/system/website', labelKey: 'menu.website_editor', sectionKey: 'menu.system', icon: <LanguageOutlinedIcon />, permissions: ['platform_admin'] },
   { to: '/system/branding', labelKey: 'menu.branding', icon: <BrushOutlinedIcon />, permissions: ['platform_admin'] },
   { to: '/system/config', labelKey: 'menu.system_config', icon: <SettingsOutlinedIcon />, permissions: ['platform_admin'] },

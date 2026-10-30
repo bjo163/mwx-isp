@@ -13,6 +13,8 @@ import UserGuidePage from './pages/UserGuidePage';
 import BrandingPage from './pages/BrandingPage';
 import TenantBrandingPage from './pages/TenantBrandingPage';
 import PackageStudioPage from './pages/PackageStudioPage';
+import TenantWebsitePage from './pages/TenantWebsitePage';
+import TenantPublicWebsitePage from './pages/TenantPublicWebsitePage';
 import { PlatformTenantsPage } from './pages/PlatformTenantsPage';
 import { LoginPage } from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
@@ -250,6 +252,7 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
     <CustomRoutes noLayout>
       <Route path="/home" element={<LandingPage />} />
       <Route path="/portal" element={<CustomerPortalPage />} />
+      <Route path="/site/:identifier" element={<TenantPublicWebsitePage />} />
     </CustomRoutes>
     <CustomRoutes>
       <Route path="/account/settings" element={<AccountSettings />} />
@@ -257,6 +260,7 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
       <Route path="/system/website" element={<WebsiteEditorPage />} />
       <Route path="/system/branding" element={<BrandingPage />} />
       <Route path="/tenant/branding" element={<TenantBrandingPage />} />
+      <Route path="/tenant/website" element={<TenantWebsitePage />} />
       <Route path="/isp/package-studio" element={<PackageStudioPage />} />
       <Route path="/operations" element={<OperationsPage />} />
       <Route path="/isp/vouchers" element={<HotspotVouchersPage />} />
