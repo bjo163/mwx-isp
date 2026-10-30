@@ -47,6 +47,9 @@ var (
 	// ErrNoPeerCertificate is returned when a completed handshake carries no
 	// peer certificate (should not happen with RequireAndVerifyClientCert).
 	ErrNoPeerCertificate = errors.New("tlsengine: no peer certificate presented")
+	// ErrNoSessionTicketKey is returned when EnableSessionTickets is set without
+	// a SessionTicketKeySize-octet SessionTicketKey to seal the tickets with.
+	ErrNoSessionTicketKey = errors.New("tlsengine: session tickets need a 32-octet key")
 )
 
 // Config holds the materials needed to run the server side of an EAP-TLS
@@ -81,10 +84,35 @@ type Config struct {
 	// not implement itself, such as revocation. A non-nil error aborts the
 	// handshake. Nil leaves chain verification as the only check.
 	VerifyConnection func(tls.ConnectionState) error
+	// EnableSessionTickets lets the server issue TLS 1.3 NewSessionTicket
+	// records after the handshake, which is how a resumed session is possible at
+	// all. It is off by default: a method that never resumes would only spend an
+	// EAP round on a ticket the peer cannot use. RFC 9930 §2 makes the TLS 1.3
+	// ticket the resumption mechanism for TEAP - it deprecates the RFC 7170 PAC in
+	// favor of it - so a TEAP tunnel sets this field, and RFC 9190 §2.1.2 then
+	// requires the ticket to be issued in the initial authentication.
+	//
+	// A method that sets it must also supply SessionTicketKey; an engine with no
+	// key cannot encrypt a ticket any later engine can decrypt.
+	EnableSessionTickets bool
+	// SessionTicketKey is the SessionTicketKeySize-octet key that seals the
+	// tickets issued when EnableSessionTickets is set. It must outlive the
+	// handshake: the engine builds a fresh crypto/tls configuration per EAP
+	// exchange, so a key generated here would leave every ticket decryptable only
+	// by the engine that sent it, and the peer could never resume. Callers keep
+	// one key for the lifetime of the configuration provider and pass it on every
+	// handshake; a deployment with several servers terminating the same peers
+	// shares one key across them, the same way crypto/tls documents
+	// tls.Config.SessionTicketKey.
+	SessionTicketKey []byte
 	// HandshakeTimeout bounds the total handshake duration. Zero selects
 	// DefaultHandshakeTimeout.
 	HandshakeTimeout time.Duration
 }
+
+// SessionTicketKeySize is the length in octets of Config.SessionTicketKey, which
+// crypto/tls takes as a [32]byte.
+const SessionTicketKeySize = 32
 
 // Engine runs one server-side TLS handshake, suspended between EAP rounds.
 //
@@ -122,6 +150,9 @@ func New(cfg *Config) (*Engine, error) {
 	if len(cfg.ServerCertificate.Certificate) == 0 || cfg.ServerCertificate.PrivateKey == nil {
 		return nil, ErrNoServerCertificate
 	}
+	if cfg.EnableSessionTickets && len(cfg.SessionTicketKey) != SessionTicketKeySize {
+		return nil, fmt.Errorf("%w: got %d octets", ErrNoSessionTicketKey, len(cfg.SessionTicketKey))
+	}
 
 	tlsCfg := &tls.Config{
 		Certificates: []tls.Certificate{cfg.ServerCertificate},
@@ -131,13 +162,23 @@ func New(cfg *Config) (*Engine, error) {
 		// Runs after the built-in chain verification, which crypto/tls performs
 		// against ClientCAs; it cannot weaken that check.
 		VerifyConnection: cfg.VerifyConnection,
-		// EAP-TLS does not implement TLS session resumption, which RFC 9190
-		// §2.1.3 makes optional. Disabling tickets keeps the server's final
-		// TLS 1.3 flight free of NewSessionTicket messages, so the protected
-		// success indication (RFC 9190 §2.1.1) is the only post-handshake
-		// record the tunnel sends and no EAP round is wasted on tickets the
-		// peer can never use.
-		SessionTicketsDisabled: true,
+		// A TLS 1.3 session can only be resumed with a ticket, and a method that
+		// never resumes would spend an EAP round on a record the peer cannot use,
+		// so tickets stay off unless the caller asks. RFC 9930 §2 makes the
+		// NewSessionTicket message the resumption mechanism for TEAP, replacing
+		// the deprecated PAC, and RFC 9190 §2.1.2 requires a server that means to
+		// resume to issue the ticket during the initial authentication, so the
+		// TEAP tunnel asks.
+		SessionTicketsDisabled: !cfg.EnableSessionTickets,
+	}
+	if cfg.EnableSessionTickets {
+		// crypto/tls randomizes this key when it is left zero. Because the engine
+		// builds a new tls.Config for every EAP exchange, that per-handshake key
+		// would seal each ticket with a secret no later engine holds, so the key
+		// always comes from the caller.
+		var key [SessionTicketKeySize]byte
+		copy(key[:], cfg.SessionTicketKey)
+		tlsCfg.SetSessionTicketKeys([][32]byte{key})
 	}
 	if cfg.ServerOnly {
 		tlsCfg.ClientAuth = tls.NoClientCert

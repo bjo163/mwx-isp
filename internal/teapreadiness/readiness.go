@@ -92,6 +92,14 @@ type Mechanic struct {
 	// Against is code text that contradicts the mechanism. Any match blocks the
 	// mechanism even when its markers are present.
 	Against []string
+	// AgainstIn narrows where Against counts: each entry is a repository path
+	// prefix, and a match in a file outside every prefix is not this mechanism's
+	// contradiction. It exists because the same literal can be right for one method
+	// and wrong for another - EAP-TTLS pins its tunnel to TLS 1.2 because its
+	// phase-2 framing needs that handshake, which says nothing about whether TEAP
+	// may. Empty means the whole scanned tree, the rule for a literal that is wrong
+	// wherever it appears.
+	AgainstIn []string
 	// Note tells an implementer what the verdict means for the work.
 	Note string
 }
@@ -251,9 +259,15 @@ func Mechanics() []Mechanic {
 			ID:      "session-resumption",
 			Title:   "Phase 1 resumption runs on TLS 1.3 session tickets, not on the deprecated PAC",
 			Source:  Source{RFC: rfcTEAP, Section: "2", Document: "rfc9930-teap-version-1.txt", Quote: "the PAC has been deprecated"},
-			Markers: []string{"SessionTicketsDisabled"},
+			Markers: []string{"EnableSessionTickets", "SessionTicketsDisabled", "NewTEAPHandler"},
 			Against: []string{"SessionTicketsDisabled: true"},
-			Note:    "RFC 9930 deprecated the PAC that RFC 7170 borrowed from EAP-FAST and resumes a TEAP session with the TLS 1.3 NewSessionTicket message instead, so this row is not a build item; the shared tunnel engine deliberately disables tickets, which is what has to change.",
+			// PEAP and EAP-TTLS may keep tickets off; only a method that means to
+			// resume may not pin them off, and only these two files decide that.
+			AgainstIn: []string{
+				"internal/radiusd/plugins/eap/handlers/teap_config.go",
+				"internal/radiusd/plugins/eap/tlsengine/engine.go",
+			},
+			Note: "RFC 9930 deprecated the PAC that RFC 7170 borrowed from EAP-FAST and resumes a TEAP session with the TLS 1.3 NewSessionTicket message instead. The engine now keeps tickets behind an opt-in that carries a caller-supplied key, so a ticket survives the handshake that issued it, and NewSettingsTEAPConfigProvider is the method that opts in; the contradiction is scoped to those two files because PEAP and EAP-TTLS are entitled to issue none. What is still absent is the serving path: no NewTEAPHandler opens a tunnel, and RFC 9930 §3.11 still requires the credentials authenticated in Phase 2 to be associated with the ticket, or the ticket invalidated when that cannot be done.",
 		},
 		{
 			ID:      "inner-method-chaining",
@@ -287,9 +301,12 @@ func Mechanics() []Mechanic {
 			ID:      "tls13-outer-tunnel",
 			Title:   "The outer tunnel can negotiate TLS 1.3",
 			Source:  Source{RFC: rfcTLSTunnel, Document: "rfc9190-eap-tls13.txt", Quote: "use of EAP-TLS with TLS 1.3"},
-			Markers: []string{"VersionTLS13"},
+			Markers: []string{"VersionTLS13", "NewSettingsTEAPConfigProvider", "NewTEAPHandler"},
 			Against: []string{"MaxVersion: tls.VersionTLS12"},
-			Note:    "EAP-TLS can reach TLS 1.3 through the configured minimum, but the tunneled providers cap the session at TLS 1.2, so the TEAP tunnel needs a new provider rather than the TTLS one.",
+			// EAP-TTLS caps its own tunnel by design; that decision is not a
+			// contradiction of what TEAP must do, so only the TEAP provider counts.
+			AgainstIn: []string{"internal/radiusd/plugins/eap/handlers/teap_config.go"},
+			Note:      "NewSettingsTEAPConfigProvider builds the TEAP tunnel with no version cap, so TEAP negotiates TLS 1.3 whenever the configured floor allows it, which is the transport RFC 9930's definitions are written for. The TLS 1.2 pin EAP-TTLS keeps in tls_config.go stays correct for that method's phase-2 framing and is therefore outside this row's scope. What is still absent is the serving path: no NewTEAPHandler opens the tunnel this provider configures.",
 		},
 		{
 			ID:      "rfc9427-key-derivation",
@@ -430,6 +447,20 @@ func collapseSpace(line string) string {
 	return strings.Join(strings.Fields(line), " ")
 }
 
+// inScope reports whether path falls under one of the prefixes. No prefixes means
+// every path in the tree is in scope.
+func inScope(path string, prefixes []string) bool {
+	if len(prefixes) == 0 {
+		return true
+	}
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 // Analyze judges every cataloged mechanism against tree. Absence is only ever
 // claimed against a tree that was actually read: an empty tree makes everything
 // missing, so callers use Scan, which fails when a product directory is absent.
@@ -453,6 +484,9 @@ func Analyze(tree Tree) Report {
 				support = append(support, found...)
 			}
 			for _, blocker := range m.Against {
+				if !inScope(path, m.AgainstIn) {
+					continue
+				}
 				against = append(against, match(path, lines, blocker, true)...)
 			}
 		}

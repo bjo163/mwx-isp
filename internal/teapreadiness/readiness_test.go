@@ -249,29 +249,38 @@ func TestKeyDerivationRowStaysPartial(t *testing.T) {
 	assert.Contains(t, finding.Note, "teapChain", "the note must name the caller that is missing")
 }
 
-func TestTLSTunnelVerdictReportsBothSides(t *testing.T) {
+// TestTLSTunnelVerdictKeepsMethodsApart is the finding M11.2 closes: the TEAP
+// provider negotiates TLS 1.3 for its own tunnel, and the TLS 1.2 cap EAP-TTLS
+// keeps is recorded as that method's own decision rather than as a contradiction.
+func TestTLSTunnelVerdictKeepsMethodsApart(t *testing.T) {
 	report := realReport(t)
 	finding := find(t, report, "tls13-outer-tunnel")
-	assert.Equal(t, StatusBlocked, finding.Status)
-	assert.NotEmpty(t, finding.Against, "the TLS 1.2 pin must be quoted")
-	assert.NotEmpty(t, finding.Support, "the TLS 1.3 support that does exist must be quoted too")
-	assert.Contains(t, finding.Against[0].Text, "MaxVersion")
+	assert.Equal(t, StatusPartial, finding.Status, "the tunnel exists; the handler that serves it does not")
+	assert.Empty(t, finding.Against, "the TTLS cap must not be attributed to TEAP")
+	require.NotEmpty(t, finding.Support, "the TEAP provider that negotiates TLS 1.3 must be quoted")
+	var files []string
+	for _, e := range finding.Support {
+		files = append(files, e.File)
+	}
+	assert.Contains(t, files, "internal/radiusd/plugins/eap/handlers/teap_config.go")
+	assert.Contains(t, finding.Note, "NewTEAPHandler", "the note must name the caller that is missing")
 }
 
-// TestResumptionVerdictReportsTheTicketPin is the finding that made M11.1 worth
-// running: RFC 9930 replaces the deprecated PAC with TLS 1.3 session tickets, and
-// the shared tunnel engine deliberately turns tickets off.
-func TestResumptionVerdictReportsTheTicketPin(t *testing.T) {
+// TestResumptionVerdictReportsTheTicketOptIn records the M11.2 reversal of the
+// finding that made M11.1 worth running: RFC 9930 replaces the deprecated PAC with
+// TLS 1.3 session tickets, and the engine no longer pins them off.
+func TestResumptionVerdictReportsTheTicketOptIn(t *testing.T) {
 	report := realReport(t)
 	finding := find(t, report, "session-resumption")
-	assert.Equal(t, StatusBlocked, finding.Status)
-	require.NotEmpty(t, finding.Against, "the ticket pin must be quoted as the contradiction")
-	assert.Contains(t, finding.Against[0].Text, "SessionTicketsDisabled: true")
+	assert.Equal(t, StatusPartial, finding.Status, "the ticket path exists; the TEAP handshake that owns it does not")
+	assert.Empty(t, finding.Against, "nothing pins tickets off in the TEAP tunnel")
+	require.NotEmpty(t, finding.Support)
 
 	// The deprecation itself is quotable from the current specification, so the
 	// row cannot quietly turn back into "build the PAC".
 	assert.Contains(t, collapseSpace(finding.Mechanic.Source.Quote), "the PAC has been deprecated")
 	assert.Contains(t, finding.Note, "deprecated", "the note must say the PAC is not the mechanism to build")
+	assert.Contains(t, finding.Note, "NewTEAPHandler", "the note must name the caller that is missing")
 }
 
 func TestTotalsAccountForEveryMechanism(t *testing.T) {
@@ -285,17 +294,16 @@ func TestTotalsAccountForEveryMechanism(t *testing.T) {
 	// needs switching on.
 	assert.Greater(t, report.Totals.Missing+report.Totals.Partial, report.Totals.Ready,
 		"TEAP is a build project, not a configuration toggle")
-	// Both blockers are TLS 1.3 tunnel settings the tree pins on purpose, so an
-	// M11 plan starts by revisiting two existing decisions rather than by adding
-	// a handler.
-	assert.Equal(t, 2, report.Totals.Blocked)
+	// No mechanism contradicts the tree any more: M11.2 removed both TLS 1.3 tunnel
+	// pins, so the remaining work is writing code, not revisiting decisions.
+	assert.Equal(t, 0, report.Totals.Blocked)
 	// Measured against this repository as it stands: six serving-path mechanisms
-	// are reusable, nine have a piece in the tree and no caller (the seven §4.2 TLV
-	// formats, the RFC 9427 key schedule and the §3.6 chaining rules), and the
-	// remaining five - the method itself, its wiring, its name and its version
-	// negotiation - are absent.
+	// are reusable, eleven have a piece in the tree and no caller (the seven §4.2 TLV
+	// formats, the RFC 9427 key schedule, the §3.6 chaining rules, the TLS 1.3 tunnel
+	// and its ticket path), and the remaining five - the method itself, its wiring,
+	// its name and its version negotiation - are absent.
 	assert.Equal(t, 6, report.Totals.Ready)
-	assert.Equal(t, 9, report.Totals.Partial)
+	assert.Equal(t, 11, report.Totals.Partial)
 	assert.Equal(t, 5, report.Totals.Missing)
 }
 
@@ -317,18 +325,36 @@ func TestStatusRulesFromASyntheticTree(t *testing.T) {
 	// Nothing is named and nothing contradicts it, so it stays missing rather
 	// than borrowing evidence from the mechanism next to it.
 	assert.Equal(t, StatusMissing, find(t, report, "teap-method-name").Status)
-	assert.Equal(t, StatusMissing, find(t, report, "tls13-outer-tunnel").Status)
+	// This tree has the handler the tunnel row names but no provider and no TLS 1.3
+	// constant, so it must read as one third of a tunnel, not as a verdict borrowed
+	// from the wiring row above it.
+	assert.Equal(t, StatusPartial, find(t, report, "tls13-outer-tunnel").Status)
 }
 
 func TestBlockedBeatsReadyMarkers(t *testing.T) {
 	tree := Tree{Files: map[string][]string{
-		"internal/radiusd/plugins/eap/handlers/tunnel.go": {
+		"internal/radiusd/plugins/eap/handlers/teap_config.go": {
 			"import \"crypto/tls\"",
 			"cfg := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS12}",
 		},
 	}}
 	finding := find(t, Analyze(tree), "tls13-outer-tunnel")
 	assert.Equal(t, StatusBlocked, finding.Status)
+}
+
+// TestContradictionOutsideItsScopeDoesNotBlock pins AgainstIn: the TLS 1.2 cap
+// EAP-TTLS sets is that method's own decision, so it must not travel to a row that
+// asks what TEAP does - while the same literal inside the TEAP provider still
+// blocks, as the test above proves.
+func TestContradictionOutsideItsScopeDoesNotBlock(t *testing.T) {
+	tree := Tree{Files: map[string][]string{
+		"internal/radiusd/plugins/eap/handlers/tls_config.go": {
+			"cfg := &tls.Config{MaxVersion: tls.VersionTLS12}",
+		},
+	}}
+	finding := find(t, Analyze(tree), "tls13-outer-tunnel")
+	assert.Equal(t, StatusMissing, finding.Status)
+	assert.Empty(t, finding.Against)
 }
 
 func TestLookalikeNamesDoNotProveMarkers(t *testing.T) {
@@ -388,8 +414,11 @@ func TestFindingStringNamesVerdictClauseAndEvidence(t *testing.T) {
 	assert.Contains(t, line, "RFC 9930 §4.2.4")
 	assert.Contains(t, line, "evidence=internal/radiusd/plugins/eap")
 
-	blocked := find(t, report, "tls13-outer-tunnel").String()
+	blocked := find(t, Analyze(Tree{Files: map[string][]string{
+		"internal/radiusd/plugins/eap/handlers/teap_config.go": {"cfg := &tls.Config{MaxVersion: tls.VersionTLS12}"},
+	}}), "tls13-outer-tunnel").String()
 	assert.Contains(t, blocked, "contradicted-by=")
+	assert.Contains(t, blocked, "teap_config.go")
 
 	missing := find(t, report, "teap-handler-wiring").String()
 	assert.Contains(t, missing, "evidence=none")
@@ -423,7 +452,7 @@ func TestRenderMarkdownSeparatesReuseBuildAndUnknown(t *testing.T) {
 	assert.Contains(t, partial, "internal/radiusd/plugins/eap/teapkeys/teapkeys.go")
 	assert.Contains(t, partial, "internal/radiusd/plugins/eap/teapinner/teapinner.go")
 	assert.Contains(t, partial, "1 of 2 markers")
-	assert.Equal(t, 9, dataRows(partial), "every piece with no caller belongs in the partial table")
+	assert.Equal(t, 11, dataRows(partial), "every piece with no caller belongs in the partial table")
 }
 
 // section returns the rendered document between two headings.
@@ -445,7 +474,7 @@ func dataRows(section string) int {
 
 func TestRenderMarkdownEscapesPipesInCodeEvidence(t *testing.T) {
 	tree := Tree{Files: map[string][]string{
-		"internal/radiusd/plugins/eap/handlers/x.go": {"cfg := &tls.Config{MaxVersion: tls.VersionTLS12 | mask}"},
+		"internal/radiusd/plugins/eap/handlers/teap_config.go": {"cfg := &tls.Config{MaxVersion: tls.VersionTLS12 | mask}"},
 	}}
 	rendered := RenderMarkdown(Analyze(tree))
 	assert.Contains(t, rendered, "## Blocked by existing choices")
