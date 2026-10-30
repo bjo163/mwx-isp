@@ -10,8 +10,13 @@ Prototype: `internal/teapreadiness` · Tests: `go test ./internal/teapreadiness/
 > (missing) and `pac-tlv` (missing) became `session-resumption` (blocked, pinned
 > by `tlsengine/engine.go:140`). The report below is kept as the record of what
 > was measured against RFC 7170; the current numbers are `Mechanics: 22 · ready 6
-> · partial 0 · blocked 2 · missing 14`, and the reasons are in
-> [teap-citation-anchoring-2026-10-29.md](teap-citation-anchoring-2026-10-29.md).
+> · partial 7 · blocked 2 · missing 7`, and the reasons are in
+> [teap-citation-anchoring-2026-10-29.md](teap-citation-anchoring-2026-10-29.md)
+> and, for the seven partial rows, in M11.3's codec
+> [`internal/radiusd/plugins/eap/teaptlv`](../internal/radiusd/plugins/eap/teaptlv/teaptlv.go).
+> Partial means the §4.2 wire format can be encoded and decoded but nothing on the
+> serving path calls it — no Compound MAC, no handler — so it is not a claim that
+> TEAP works.
 
 ## Question
 
@@ -34,7 +39,8 @@ proves it. Three rules make that meaningful:
    "Cryptobinding", and the sentence around it says unknown TLVs *including*
    Cryptobinding "are skipped". Reading the RFC and writing about it is not the
    same as doing it, so `TestCommentMentionsAreNotEvidence` asserts the word is
-   gone from the scanned tree and that Crypto-Binding stays `missing`.
+   gone from the scanned tree, and that the only code supporting the Crypto-Binding
+   row is the `teaptlv` codec — never that comment.
 2. **Test files and `testdata` are excluded.** A test can define exactly the
    identifier a verdict looks for, in a file the server never imports.
    `TestScanReadsOnlyProductCode` proves a `_test.go` and a `testdata` fixture
@@ -56,7 +62,7 @@ locally, and `TestEveryCitationIsQuotableHere` enforces exactly that split.
 | --- | --- |
 | `internal/teapreadiness/readiness.go` | The 22-mechanism catalog with its citations, the status rules, and the report types. |
 | `internal/teapreadiness/scan.go` | Reads the three product directories, strips comments, drops tests, and fails if a directory is missing. |
-| `internal/teapreadiness/render.go` | Renders the report as reusable / blocked / to-build tables with file:line evidence. |
+| `internal/teapreadiness/render.go` | Renders the report as reusable / partly present / blocked / to-build tables with file:line evidence. |
 
 `Scan` refuses to run against a root where `internal/radiusd/plugins/eap`,
 `internal/radiusd` or `internal/app` is absent. An empty tree would make all 22

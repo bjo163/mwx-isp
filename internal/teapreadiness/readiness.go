@@ -43,7 +43,9 @@ type Status string
 // Statuses a mechanism can reach. They are reported verbatim, so the names read
 // as the claim they back: ready means an implementer can reuse what is there,
 // missing means nothing does it, blocked means the code actively pins the
-// opposite, and partial means only some of the markers were found.
+// opposite, and partial means only some of the markers were found. Partial is
+// also what a wire-format codec with no serving-path caller produces, so its
+// note must say which half is absent.
 const (
 	StatusReady   Status = "ready"
 	StatusPartial Status = "partial"
@@ -228,22 +230,22 @@ func Mechanics() []Mechanic {
 			ID:      "crypto-binding-tlv",
 			Title:   "Crypto-Binding TLV is constructed and verified",
 			Source:  Source{RFC: rfcTEAP, Section: "3.6", Document: "rfc9930-teap-version-1.txt", Quote: "Phase 2 MUST always end with a Crypto-Binding TLV"},
-			Markers: []string{"CryptoBinding", "cryptobinding"},
-			Note:    "The only mentions in the tree are comments: peap_inner.go says unknown TLVs including Cryptobinding are skipped, so the tunneled methods today cannot close a TEAP exchange. The computation itself is specified in RFC 9930 §6.2.4 and, for TLS 1.3, by RFC 9427 §2.2.",
+			Markers: []string{"CryptoBinding", "compoundMAC"},
+			Note:    "The wire format exists and validates itself: teaptlv encodes and decodes the 76-octet Value of §4.2.13, checks the Reserved octet, the version pair, the Flags and Sub-Type enumerations and the nonce least-significant-bit rule, and derives the Binding Response nonce from the request. What does not exist is the MAC: RFC 9930 §6.3 computes each Compound MAC over the TLV with both MAC slots zeroed plus the Outer TLVs from both directions, and nothing in the tree does that. The peap_inner.go comment that names Cryptobinding as a TLV it skips stays the only mention on the serving path.",
 		},
 		{
 			ID:      "eap-payload-tlv",
 			Title:   "Inner EAP runs are carried in EAP-Payload TLVs",
 			Source:  Source{RFC: rfcTEAP, Section: "4.2.10", Document: "rfc9930-teap-version-1.txt", Quote: "EAP-Payload TLV"},
 			Markers: []string{"eapPayloadTLV", "EAPPayload"},
-			Note:    "PEAP and TTLS put a bare inner EAP packet in the tunnel; TEAP wraps it in a TLV, which is a new encoder rather than a reuse.",
+			Note:    "teaptlv encodes the TLV and bounds the inner packet by its own Length field, so the encoder is no longer the missing piece; PEAP and TTLS still put a bare inner EAP packet in the tunnel, and wrapping it is the handler work of M11.7.",
 		},
 		{
 			ID:      "intermediate-result-tlv",
 			Title:   "Intermediate-Result TLV reports progress before the final result",
 			Source:  Source{RFC: rfcTEAP, Section: "4.2.11", Document: "rfc9930-teap-version-1.txt", Quote: "Intermediate-Result TLV"},
 			Markers: []string{"IntermediateResult", "CodeIntermediate"},
-			Note:    "The code knows EAP Request, Response, Success and Failure only; the chaining design needs the intermediate form to continue after the first inner method.",
+			Note:    "teaptlv encodes the TLV, and §4.2.11's rule that its embedded TLVs stay optional is enforced by the codec. The handshake state machine still knows only EAP Request, Response, Success and Failure, and the chaining design needs the intermediate form to continue after the first inner method.",
 		},
 		{
 			ID:      "session-resumption",
@@ -265,21 +267,21 @@ func Mechanics() []Mechanic {
 			Title:   "Identity-Type TLV distinguishes machine from user identity",
 			Source:  Source{RFC: rfcTEAP, Section: "4.2.3", Document: "rfc9930-teap-version-1.txt", Quote: "Identity-Type TLV"},
 			Markers: []string{"identityType", "IdentityType"},
-			Note:    "Chaining is meaningless without the TLV that says whose credentials are being proved.",
+			Note:    "Chaining is meaningless without the TLV that says whose credentials are being proved. teaptlv encodes §4.2.3's two values and refuses any others; the tunnel still never asks, and a server that receives an Identity-Type it did not request has to apply §4.2.3's two conditions, which is handler work.",
 		},
 		{
 			ID:      "authority-id-tlv",
 			Title:   "Authority-ID TLV identifies the provisioning authority",
 			Source:  Source{RFC: rfcTEAP, Section: "4.2.2", Document: "rfc9930-teap-version-1.txt", Quote: "Authority-ID TLV"},
-			Markers: []string{"authorityID", "AuthorityID"},
-			Note:    "RFC 9930 keeps this TLV for certificate provisioning inside the tunnel (§3.11), not for the deprecated PAC, so it stays a build item only if provisioning is scheduled; it is listed so the build set is complete rather than implied.",
+			Markers: []string{"authorityID", "AuthorityID", "NewAuthorityID"},
+			Note:    "teaptlv encodes the opaque Authority-ID value of §4.2.2, so the format is not the missing piece. RFC 9930 keeps this TLV for certificate provisioning inside the tunnel (§3.11), not for the deprecated PAC, so it stays a build item only if provisioning is scheduled; it is listed so the build set is complete rather than implied.",
 		},
 		{
 			ID:      "basic-password-auth-tlv",
 			Title:   "Basic-Password-Auth TLVs carry a password without an inner EAP method",
 			Source:  Source{RFC: rfcTEAP, Section: "4.2.14", Document: "rfc9930-teap-version-1.txt", Quote: "Basic-Password-Auth-Req TLV"},
-			Markers: []string{"basicPasswordAuth", "PasswordAuthTLV"},
-			Note:    "This is the certificate-plus-password path the roadmap wants, and it is a TLV exchange, not an inner method. RFC 9930 §4.2.8 names Basic-Password-Auth-Req as the case whose MSK and EMSK cannot come from cryptographic primitives and MUST be set to zero, and RFC 9427 §2.2 turns that into 32 zero octets for the inner session key - so a password carried this way contributes no link-layer key material of its own.",
+			Markers: []string{"basicPasswordAuth", "PasswordAuthTLV", "NewBasicPasswordAuthReq"},
+			Note:    "This is the certificate-plus-password path the roadmap wants, and it is a TLV exchange, not an inner method. The §4.2.14 prompt and the §4.2.15 Userlen/Username/Passlen/Password layout are encodable now - teaptlv refuses a zero length on either field - but no tunnel request or response carries them. RFC 9930 §4.2.8 names Basic-Password-Auth-Req as the case whose MSK and EMSK cannot come from cryptographic primitives and MUST be set to zero, and RFC 9427 §2.2 turns that into 32 zero octets for the inner session key - so a password carried this way contributes no link-layer key material of its own.",
 		},
 		{
 			ID:      "tls13-outer-tunnel",
@@ -314,8 +316,8 @@ func Mechanics() []Mechanic {
 			ID:      "vendor-specific-tlv",
 			Title:   "Vendor attributes reach the peer inside a Vendor-Specific TLV",
 			Source:  Source{RFC: rfcTEAP, Section: "4.2.8", Document: "rfc9930-teap-version-1.txt", Quote: "The Vendor-Specific TLV is available to allow vendors to support"},
-			Markers: []string{"vendorSpecificTLV", "encodeVendorTLV", "parseVendorTLVs"},
-			Note:    "RFC 9930 nests vendor-defined TLVs in a Vendor-Specific TLV of its own; the ttls_avp.go reader in the tree parses EAP-TTLS AVPs, which is the closest precedent but not the encoding TEAP requires, and §4.2.8 adds the rule that a vendor TLV carrying an authentication protocol MUST define MSK and EMSK values.",
+			Markers: []string{"vendorSpecificTLV", "encodeVendorTLV", "parseVendorTLVs", "NewVendorSpecific"},
+			Note:    "RFC 9930 nests vendor-defined TLVs in a Vendor-Specific TLV of its own. teaptlv now supplies that envelope - Vendor-Id plus the vendor's octets, which it passes through untouched because their format belongs to the vendor - while the ttls_avp.go reader remains EAP-TTLS AVPs, the closest precedent but not the encoding TEAP requires. §4.2.8 still adds the rule that a vendor TLV carrying an authentication protocol MUST define MSK and EMSK values, and that is the vendor's own contract, not something this codec can check.",
 		},
 		{
 			ID:      "tls-fragmentation",
