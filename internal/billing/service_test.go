@@ -316,11 +316,12 @@ func TestSuspendOverdueSkipsManualSuspension(t *testing.T) {
 }
 
 // TestSuspendOverdueContinuesPastADanglingInvoice proves an overdue invoice with
-// no subscription row behind it does not stop the sweep. A demo reseed deletes
-// subscriptions and leaves their unpaid invoices, so failing on the dangling row
-// would block every later suspension for that tenant indefinitely.
+// no subscription row behind it does not stop the sweep. A restore of a backup
+// that carries invoices without their subscription produces exactly that row, and
+// failing on it would block every later suspension in the sweep indefinitely.
 func TestSuspendOverdueContinuesPastADanglingInvoice(t *testing.T) {
 	db := billingTestDB(t)
+	orphansBefore := OrphanInvoices()
 	now := time.Date(2026, time.November, 4, 10, 0, 0, 0, time.UTC)
 	customer := domain.Customer{Name: "Dangling And Due", Status: domain.CustomerActive}
 	require.NoError(t, db.Create(&customer).Error)
@@ -355,6 +356,35 @@ func TestSuspendOverdueContinuesPastADanglingInvoice(t *testing.T) {
 	require.Equal(t, domain.SuspensionBillingOverdue, sub.SuspensionReason)
 	require.NoError(t, db.First(&user, user.ID).Error)
 	require.Equal(t, "disabled", user.Status)
+
+	// Both dangling invoices are counted: a skipped enforcement decision has to
+	// leave a signal behind, not just an untouched overdue row.
+	require.EqualValues(t, 2, OrphanInvoices()-orphansBefore)
+}
+
+func TestRecordPaymentBooksAnInvoiceWithoutSubscription(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.November, 4, 10, 0, 0, 0, time.UTC)
+	customer := domain.Customer{Name: "Orphan Invoice Payer", Status: domain.CustomerActive}
+	require.NoError(t, db.Create(&customer).Error)
+	sub := domain.Subscription{SubscriptionNo: "SUB-TO-DELETE", CustomerID: customer.ID,
+		Status: domain.SubscriptionSuspended, SuspensionReason: domain.SuspensionBillingOverdue,
+		StartDate: now.AddDate(0, -1, 0), BillingDay: 1, GraceDays: 3}
+	require.NoError(t, db.Create(&sub).Error)
+	invoice := domain.Invoice{InvoiceNo: "INV-ORPHAN-PAID", CustomerID: customer.ID, SubscriptionID: sub.ID,
+		InvoiceDate: now.AddDate(0, 0, -14), DueDate: now.AddDate(0, 0, -10),
+		PeriodStart: now.AddDate(0, 0, -14), PeriodEnd: now.AddDate(0, 0, 16),
+		Total: 5000, Balance: 5000, Status: domain.InvoiceOverdue}
+	require.NoError(t, db.Create(&invoice).Error)
+	require.NoError(t, db.Delete(&domain.Subscription{}, sub.ID).Error)
+
+	payment := domain.Payment{InvoiceID: invoice.ID, CustomerID: customer.ID, Amount: 5000, Method: "cash"}
+	orphanBefore := OrphanInvoices()
+	require.NoError(t, RecordPayment(db, &payment, now, true))
+	require.NoError(t, db.First(&invoice, invoice.ID).Error)
+	require.Equal(t, domain.InvoicePaid, invoice.Status)
+	require.Zero(t, invoice.Balance)
+	require.EqualValues(t, 1, OrphanInvoices()-orphanBefore)
 }
 
 func TestProcessOverdueAndSuspendAfterGrace(t *testing.T) {

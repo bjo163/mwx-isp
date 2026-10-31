@@ -230,6 +230,18 @@ are also exported: `system_cpuuse` / `system_memuse` (host CPU percentage ×100
 and memory in MB) and `mwx_isp_cpuuse` / `mwx_isp_memuse` (this process),
 sampled every 30 s.
 
+The background jobs publish three more series with a fixed label set — no tenant
+or subscriber dimension, so their cardinality does not grow with the tenant
+count: `fup_scheduler_tenant_attempts_total` and
+`fup_scheduler_tenant_failures_total` count the per-tenant FUP passes and the
+ones that errored (a failing tenant is isolated; the tenants queued after it are
+still throttled in the same run), and `billing_invoice_without_subscription_total`
+counts overdue invoices the billing enforcement skipped because no subscription
+row sits behind them. A non-zero last series is worth investigating: the invoice
+debt is real but nothing can be suspended for it, which usually means a backup
+restore brought in invoices whose subscription was not restored. Each event is
+also logged at warn level with the invoice number.
+
 These counters are process-local: they reset on restart and are per instance, so
 they are not the audit history. The admin dashboard reads the persisted
 accounting and session tables instead, which is why a restart does not move the

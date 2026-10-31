@@ -344,10 +344,22 @@ func seedFUPOnline(t *testing.T, db *gorm.DB, tenantID int64, sessionID string, 
 
 func seedFUPAccounting(t *testing.T, db *gorm.DB, tenantID int64, sessionID string, bytes int64, stopTime time.Time) {
 	t.Helper()
+	// The scheduler only counts a closed session whose AcctStartTime falls inside
+	// the calendar month being measured, so a fixed "two hours ago" leaves the
+	// period during the first two hours of a month. Clamp the fixture into it.
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	startTime := now.Add(-2 * time.Hour)
+	if startTime.Before(monthStart) {
+		startTime = monthStart
+	}
+	if !stopTime.IsZero() && stopTime.Before(startTime) {
+		stopTime = now
+	}
 	tdb := db.WithContext(tenancy.WithTenantID(context.Background(), tenantID))
 	require.NoError(t, tdb.Create(&domain.RadiusAccounting{
 		Username: "shared-user", AcctSessionId: sessionID, AcctInputTotal: bytes / 2, AcctOutputTotal: bytes / 2,
-		AcctStartTime: time.Now().Add(-2 * time.Hour), AcctStopTime: stopTime,
+		AcctStartTime: startTime, AcctStopTime: stopTime,
 	}).Error)
 }
 
@@ -464,7 +476,7 @@ func TestSchedFUPCheckIsolatesTenantFailuresWithBoundedTelemetry(t *testing.T) {
 	}
 
 	after := GetSystemMetrics()
-	require.Len(t, after, 2, "the metric label set is fixed and must not grow with tenants")
+	require.Len(t, after, 3, "the metric label set is fixed and must not grow with tenants")
 	require.EqualValues(t, int64(4), after["fup_scheduler_tenant_attempts_total"]-before["fup_scheduler_tenant_attempts_total"],
 		"every active tenant is attempted even when earlier ones fail")
 	require.EqualValues(t, int64(2), after["fup_scheduler_tenant_failures_total"]-before["fup_scheduler_tenant_failures_total"])

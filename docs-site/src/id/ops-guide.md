@@ -71,6 +71,17 @@ penolakan per penyebab seperti `radus_reject_passwd_error` dan
 `system_memuse`, `mwx_isp_cpuuse`, dan `mwx_isp_memuse` dengan sampling tiap
 30 detik.
 
+Tiga series lain berasal dari job latar dan berlabel tetap — tanpa dimensi
+tenant maupun pelanggan, jadi jumlahnya tidak bertambah mengikuti banyak tenant:
+`fup_scheduler_tenant_attempts_total` dan `fup_scheduler_tenant_failures_total`
+menghitung percobaan FUP per tenant dan yang gagal (tenant yang error diisolasi;
+tenant setelahnya tetap di-throttle pada run yang sama), sedangkan
+`billing_invoice_without_subscription_total` menghitung invoice jatuh tempo yang
+dilewati penagihan karena baris subscription-nya tidak ada. Angka terakhir yang
+bukan nol perlu diperiksa: utangnya nyata tapi tidak ada yang bisa disuspend,
+biasanya karena restore backup membawa invoice tanpa subscription-nya. Tiap
+kejadian juga dicatat di log level warn beserta nomor invoice.
+
 Counter ini bersifat per proses dan kembali nol setelah restart; dashboard admin
 membaca tabel accounting dan sesi yang tersimpan di database, sehingga tren
 7 hari tidak berubah ketika layanan dimulai ulang.
