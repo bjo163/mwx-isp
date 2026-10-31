@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"github.com/glebarez/sqlite"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
