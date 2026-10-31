@@ -536,3 +536,55 @@ func TestSchedFUPCheckResetIsPeriodAwareAndIdempotent(t *testing.T) {
 	require.Len(t, events, 3)
 	require.Equal(t, 1, disconnectCount)
 }
+
+// TestSessionActionSchedulerAlertsDeadLetter covers ENG-064: when a retry pass
+// exhausts an action's attempt budget, the scheduler must leave the action in
+// the failed (dead-letter) state and queue one operator notification so the
+// outage is not only visible in logs.
+func TestSessionActionSchedulerAlertsDeadLetter(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, tenancy.RegisterCallbacks(db))
+	require.NoError(t, db.AutoMigrate(
+		&domain.Tenant{}, &domain.RadiusUser{}, &domain.RadiusOnline{}, &domain.RadiusSessionAction{}, &domain.RadiusSessionActionAudit{},
+		&domain.NotificationSettings{}, &domain.NotificationOutbox{},
+	))
+	tenant := domain.Tenant{ID: 1, Name: "Dead letter", Slug: "dead-letter", Subdomain: "dead-letter", Kind: "isp", Status: "active"}
+	require.NoError(t, db.Create(&tenant).Error)
+
+	acknowledged := time.Now()
+	require.NoError(t, db.Create(&domain.NotificationSettings{
+		WhatsAppEnabled: true, RiskAcknowledgedAt: &acknowledged,
+		EventsJSON: `["scheduler.failure"]`, RecipientsJSON: `["+628111111111"]`,
+	}).Error)
+
+	now := time.Now().UTC()
+	tenantDB := db.WithContext(tenancy.WithTenantID(context.Background(), 1))
+	session := domain.RadiusOnline{ID: 1, Username: "subscriber-1", AcctSessionId: "sess-1"}
+	require.NoError(t, tenantDB.Create(&session).Error)
+	// A disabled subscriber keeps the desired state; otherwise the action is
+	// canceled as already restored instead of reaching the NAS.
+	require.NoError(t, tenantDB.Create(&domain.RadiusUser{Username: "subscriber-1", Password: "secret", Status: "disabled"}).Error)
+	action := domain.RadiusSessionAction{
+		TenantID: 1, IdempotencyKey: "dead-letter-1", SessionID: 1, AcctSessionID: "sess-1",
+		Username: "subscriber-1", NasAddr: "192.0.2.9", Action: sessionqueue.ActionDisconnect,
+		Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusPending,
+		MaxAttempts: 1, NextRetryAt: now.Add(-time.Minute), CreatedAt: now.Add(-time.Hour),
+	}
+	require.NoError(t, db.WithContext(tenancy.WithTenantID(context.Background(), 1)).Create(&action).Error)
+
+	a := &Application{gormDB: db, notificationOutbox: notify.NewDispatcher(db, nil)}
+	a.SetSessionActionSender(func(context.Context, domain.RadiusOnline) sessionqueue.Outcome {
+		return sessionqueue.Outcome{Success: false, TimedOut: true, Error: "NAS unreachable"}
+	})
+	a.SchedSessionActionRetryTask()
+
+	var stored domain.RadiusSessionAction
+	require.NoError(t, db.First(&stored, action.ID).Error)
+	assert.Equal(t, sessionqueue.StatusFailed, stored.Status, "an exhausted action must be dead-lettered")
+
+	var outbox []domain.NotificationOutbox
+	require.NoError(t, db.Where("event_type = ?", "scheduler.failure").Find(&outbox).Error)
+	require.Len(t, outbox, 1, "dead-lettering must raise one operator notification")
+	assert.Contains(t, outbox[0].Body, "exhausted the retry budget")
+}

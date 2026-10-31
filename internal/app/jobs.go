@@ -200,6 +200,10 @@ func (a *Application) SchedSessionActionRetryTask() {
 				zap.Int("retried", summary.Retried), zap.Int("failed", summary.Failed),
 				zap.Int("canceled", summary.Canceled), zap.Int("audit_errors", summary.AuditErrors))
 		}
+		if summary.Failed > 0 {
+			a.enqueueSchedulerFailure("session-actions-dead-letter",
+				fmt.Sprintf("%d session action(s) for tenant %d exhausted the retry budget", summary.Failed, tenant.ID))
+		}
 	}
 }
 
