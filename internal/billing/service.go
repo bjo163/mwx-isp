@@ -122,6 +122,9 @@ func generateMonthlyInvoices(db *gorm.DB, now time.Time, dueDays int, subscripti
 			if err := tx.Create(&item).Error; err != nil {
 				return err
 			}
+			if err := CaptureInvoiceDocument(tx, &invoice, now); err != nil {
+				return err
+			}
 			return tx.Create(&domain.BillingEvent{CustomerID: customer.ID, SubscriptionID: sub.ID, InvoiceID: invoice.ID, Type: "invoice_generated", Description: invoice.InvoiceNo, CreatedAt: now}).Error
 		})
 		if err != nil {

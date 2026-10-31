@@ -38,6 +38,8 @@ var Tables = []interface{}{
 	&Subscription{},
 	&Invoice{},
 	&InvoiceItem{},
+	&TenantDocumentTemplate{},
+	&InvoiceDocumentSnapshot{},
 	&Payment{},
 	&BillingEvent{},
 	&DocumentSequence{},

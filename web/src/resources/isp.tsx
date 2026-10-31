@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   ArrayField, Create, Datagrid, DateField, Edit, Empty, FunctionField, List, NumberField,
@@ -7,7 +7,7 @@ import {
   useRefresh, useRecordContext, useListContext, ShowButton,
 } from 'react-admin';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider,
+  Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider,
   MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, TextField as MuiTextField, Typography,
 } from '@mui/material';
@@ -15,11 +15,12 @@ import Grid from '@mui/material/GridLegacy';
 import {
   AddOutlined as AddIcon,
   CreditCardOutlined as PaymentIcon,
+  DownloadOutlined as DownloadIcon,
   PrintOutlined as PrintIcon,
   ReceiptLongOutlined as ReceiptIcon,
   WhatsApp as WhatsAppIcon,
 } from '@mui/icons-material';
-import { apiRequest } from '../utils/apiClient';
+import { apiRequest, downloadDocument } from '../utils/apiClient';
 import { useIsAdmin } from '../hooks/useIsAdmin';
 import { CustomerTimeline } from '../components/CustomerTimeline';
 import { MrtgTrafficGraph } from '../components/MrtgTrafficGraph';
@@ -871,17 +872,50 @@ const InvoicePaymentDialog = ({
   );
 };
 
+type IssuedInvoiceDocument = {
+  kind: string;
+  number: string;
+  snapshot: boolean;
+  template_version: number;
+  captured_at?: string;
+  issuer: { name: string; tax_id: string };
+  payment_instructions: { bank_name: string; bank_account_name: string; bank_account_number: string; note: string };
+};
+
 const InvoiceDetailView = () => {
   const record = useRecordContext();
   const notify = useNotify();
   const refresh = useRefresh();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [sendingWa, setSendingWa] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [documentInfo, setDocumentInfo] = useState<IssuedInvoiceDocument | null>(null);
   const isAdmin = useIsAdmin();
+  const invoiceId = record?.id;
+
+  useEffect(() => {
+    if (!invoiceId) return undefined;
+    let active = true;
+    apiRequest<IssuedInvoiceDocument>(`/isp/invoices/${invoiceId}/document`)
+      .then(document => { if (active) setDocumentInfo(document); })
+      .catch(() => { if (active) setDocumentInfo(null); });
+    return () => { active = false; };
+  }, [invoiceId]);
 
   if (!record) return null;
 
   const canPay = (record.balance ?? 0) > 0 && record.status !== 'void';
+
+  const handleDownloadPdf = async () => {
+    setDownloading(true);
+    try {
+      await downloadDocument(`/isp/invoices/${record.id}/document.pdf`, `invoice-${record.invoice_no || record.id}.pdf`);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to download the invoice PDF', { type: 'error' });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleServerSendWhatsApp = async () => {
     setSendingWa(true);
@@ -943,6 +977,15 @@ const InvoiceDetailView = () => {
           <Button
             variant="outlined"
             size="small"
+            startIcon={<DownloadIcon />}
+            disabled={downloading}
+            onClick={handleDownloadPdf}
+          >
+            {downloading ? 'Preparing PDF...' : 'Branded PDF'}
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
             startIcon={<PrintIcon />}
             onClick={() => window.print()}
           >
@@ -961,6 +1004,15 @@ const InvoiceDetailView = () => {
           )}
         </Stack>
       </Stack>
+
+      {documentInfo && (
+        <Alert severity="info" className="no-print" sx={{ mb: 2 }} data-testid="issued-document">
+          <strong>Issued document:</strong> {documentInfo.number}
+          {' · '}issuer {documentInfo.issuer.name || 'tenant brand'}
+          {' · '}template v{documentInfo.template_version}
+          {' · '}{documentInfo.snapshot ? 'frozen at issue' : 'live preview, invoice not issued yet'}
+        </Alert>
+      )}
 
       {/* Styled Printable Invoice Document */}
       <Paper
@@ -1312,8 +1364,20 @@ const PaymentShowActions = () => {
   const [reverseOpen, setReverseOpen] = useState(false);
   const [reverseReason, setReverseReason] = useState('');
   const [reversing, setReversing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const isAdmin = useIsAdmin();
   if (!record) return null;
+
+  const handleDownloadReceipt = async () => {
+    setDownloading(true);
+    try {
+      await downloadDocument(`/isp/payments/${record.id}/receipt.pdf`, `receipt-${record.payment_no || record.id}.pdf`);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to download the receipt PDF', { type: 'error' });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handleServerSendWhatsApp = async () => {
     setSendingWa(true);
@@ -1384,6 +1448,16 @@ const PaymentShowActions = () => {
             {sendingWa ? 'Sending...' : 'Direct Send WA'}
           </Button>
         )}
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<DownloadIcon />}
+          disabled={downloading}
+          onClick={handleDownloadReceipt}
+          sx={{ mr: 1 }}
+        >
+          {downloading ? 'Preparing PDF...' : 'Receipt PDF'}
+        </Button>
         <Button
           variant="outlined"
           size="small"

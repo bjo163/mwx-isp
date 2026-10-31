@@ -501,7 +501,8 @@ var tenantOwnedModels = []interface{}{
 	&domain.NotificationSettings{}, &domain.NotificationOutbox{}, &domain.RadiusAccounting{},
 	&domain.RadiusOnline{}, &domain.RadiusSessionAction{}, &domain.RadiusSessionActionAudit{}, &domain.RadiusProfile{}, &domain.RadiusUser{},
 	&domain.Customer{}, &domain.InternetPackage{}, &domain.Subscription{}, &domain.Invoice{},
-	&domain.InvoiceItem{}, &domain.Payment{}, &domain.BillingEvent{}, &domain.DocumentSequence{},
+	&domain.InvoiceItem{}, &domain.TenantDocumentTemplate{},
+	&domain.Payment{}, &domain.BillingEvent{}, &domain.DocumentSequence{},
 	&domain.RadiusTrafficSample{}, &domain.SyslogEvent{}, &domain.HotspotBatch{},
 	&domain.HotspotVoucher{}, &domain.IPAMPool{}, &domain.TroubleTicket{}, &domain.ODP{},
 }

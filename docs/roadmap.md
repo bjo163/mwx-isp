@@ -47,7 +47,7 @@ This is the canonical milestone definition: milestone status, guardrails, and wh
 | M17 | Safe VPS installation and first-run onboarding | TR-F020 / TR-F016 | P1 | Delivered |
 | M18 | Existing-feature containment, integrity and operational verification | TR-F012 / TR-F013 / TR-F017 / TR-F018 / TR-F020 / TR-F027 / TR-F028 / TR-F030 / TR-F031 / TR-F033 | P0 first | Delivered |
 | M19 | Tenant brand, website and package catalog experience | TR-F034 / TR-F033 | P1 | Done (M19.0–M19.4 shipped in v0.20.0; M19.5.1 #107 two-tenant acceptance and M19.5.2 #108 documentation delivered after v0.20.0 as tests and docs only) |
-| M20 | Tenant invoice and receipt branding | TR-F035 / TR-F034 / TR-F033 | P2 | Planned (#63) |
+| M20 | Tenant invoice and receipt branding | TR-F035 / TR-F034 / TR-F033 | P2 | In progress — issuer snapshots, tenant templates, PDF documents and payment instructions implemented; PostgreSQL acceptance and browser tests staged in PR #116 (#109–#113) |
 
 ## Cross-Cutting Baseline
 

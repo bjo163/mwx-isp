@@ -42,6 +42,11 @@ dapat membaca atau menulis data tenant lain.
 - **Website Studio tenant** (`#/tenant/website`) — situs publik berbasis
   section: draf, publikasi, riwayat versi, dan restore. Draf tetap privat
   sampai dipublikasikan.
+- **Invoice Studio** (`#/tenant/invoice`) — nama issuer, logo, header/footer,
+  warna aksen, ukuran kertas, tampilan NPWP, dan instruksi bank terverifikasi
+  untuk invoice dan kuitansi. Menyimpan membuat versi baru untuk dokumen
+  berikutnya; invoice yang sudah terbit mempertahankan identitas issuer dan
+  instruksi pembayaran saat terbit.
 - **Package Studio** (`#/isp/package-studio`) — nama, deskripsi, kategori,
   badge, highlight, dan urutan tampil paket yang sudah dimiliki tenant; harga
   dan kecepatan tetap berada pada paket dan RADIUS Profile.

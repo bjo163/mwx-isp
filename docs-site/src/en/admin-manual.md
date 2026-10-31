@@ -157,6 +157,10 @@ read or write another tenant's data.
 - **Tenant Website Studio** (`#/tenant/website`) — section-based public site
   drafts, publish, version history and restore. Drafts stay private until
   published.
+- **Invoice Studio** (`#/tenant/invoice`) — issuer name, logo, header/footer,
+  accent color, paper size, tax-ID visibility and verified bank instructions for
+  invoices and receipts. Saving versions the template for future documents;
+  invoices already issued keep the issuer and payment details frozen at issue.
 - **Package Studio** (`#/isp/package-studio`) — customer-facing name,
   description, category, badge, highlights and display order for packages the
   tenant already owns; price and speed stay on the package and RADIUS profile.
