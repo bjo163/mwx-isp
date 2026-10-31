@@ -201,8 +201,8 @@ func (a *Application) SchedSessionActionRetryTask() {
 				zap.Int("canceled", summary.Canceled), zap.Int("audit_errors", summary.AuditErrors))
 		}
 		if summary.Failed > 0 {
-			a.enqueueSchedulerFailure("session-actions-dead-letter",
-				fmt.Sprintf("%d session action(s) for tenant %d exhausted the retry budget", summary.Failed, tenant.ID))
+			a.enqueueTenantSchedulerFailure(tenant.ID, "session-actions-dead-letter",
+				fmt.Sprintf("%d session action(s) exhausted the retry budget", summary.Failed))
 		}
 	}
 }
@@ -214,6 +214,22 @@ func (a *Application) enqueueSchedulerFailure(job, summary string) {
 	now := time.Now()
 	key := fmt.Sprintf("scheduler:%s:%s", job, now.Format("200601021504"))
 	if err := a.notificationOutbox.Enqueue("scheduler.failure", key, "MWX-ISP: "+summary+". Review the scheduler and application logs."); err != nil {
+		zap.L().Warn("enqueue scheduler failure notification failed", zap.Error(err))
+	}
+}
+
+// enqueueTenantSchedulerFailure keeps a per-tenant failure inside that tenant's
+// scope: the dedupe key carries the tenant so two tenants failing in the same
+// minute both alert, and the envelope is enqueued under the tenant so the
+// dispatcher uses that tenant's notification settings.
+func (a *Application) enqueueTenantSchedulerFailure(tenantID int64, job, summary string) {
+	if a.notificationOutbox == nil {
+		return
+	}
+	now := time.Now()
+	key := fmt.Sprintf("scheduler:%s:tenant:%d:%s", job, tenantID, now.Format("200601021504"))
+	ctx := tenancy.WithTenantID(context.Background(), tenantID)
+	if err := a.notificationOutbox.EnqueueContext(ctx, "scheduler.failure", key, "MWX-ISP: "+summary+". Review the scheduler and application logs."); err != nil {
 		zap.L().Warn("enqueue scheduler failure notification failed", zap.Error(err))
 	}
 }

@@ -141,8 +141,9 @@ profile or template edits never rewrite it, while a not-yet-issued invoice is
 rendered from live data with `snapshot: false`. Document output is
 presentational: totals, numbering, payment status, reversal rules and the ledger
 stay on their operational records. `logo_url` and `qr_image_url` accept only an
-asset uploaded for the requesting tenant (or an `https` image URL for the logo);
-payment instructions accept all three bank fields together.
+asset uploaded for the requesting tenant, because the PDF embeds the stored
+bytes instead of fetching a remote URL; payment instructions accept all three
+bank fields together.
 
 ## Contract tests
 

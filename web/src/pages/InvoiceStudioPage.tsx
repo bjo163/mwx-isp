@@ -126,7 +126,7 @@ const InvoiceStudioPage = () => {
               <Typography variant="h6" fontWeight={800} sx={{ mb: 2 }}>Issuer and layout</Typography>
               <Stack spacing={2}>
                 <TextField label="Issuer name" value={template.issuer_name} onChange={event => update({ issuer_name: event.target.value })} inputProps={{ maxLength: 150 }} helperText="Printed as the legal issuer. Leave empty to use the tenant brand." />
-                <TextField label="Logo asset URL" value={template.logo_url} onChange={event => update({ logo_url: event.target.value })} inputProps={{ maxLength: 500 }} helperText="Only assets uploaded for this tenant, or an https image URL." />
+                <TextField label="Logo asset URL" value={template.logo_url} onChange={event => update({ logo_url: event.target.value })} inputProps={{ maxLength: 500 }} helperText="Only an image uploaded for this tenant." />
                 <TextField label="Header text" value={template.header_text} onChange={event => update({ header_text: event.target.value })} inputProps={{ maxLength: 300 }} />
                 <TextField label="Footer text" value={template.footer_text} onChange={event => update({ footer_text: event.target.value })} inputProps={{ maxLength: 300 }} />
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

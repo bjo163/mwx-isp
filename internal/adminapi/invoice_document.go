@@ -82,7 +82,10 @@ func getTenantDocumentTemplateHandler(c echo.Context) error {
 	return ok(c, template)
 }
 
-func validateTenantDocumentAsset(c echo.Context, tenantID int64, raw string, allowExternal bool) (string, error) {
+// validateTenantDocumentAsset accepts only an image uploaded for the requesting
+// tenant, because the PDF embeds the bytes from the tenant's branding directory
+// and never fetches a remote URL.
+func validateTenantDocumentAsset(c echo.Context, tenantID int64, raw string) (string, error) {
 	value := strings.TrimSpace(raw)
 	if value == "" {
 		return "", nil
@@ -124,9 +127,6 @@ func validateTenantDocumentAsset(c echo.Context, tenantID int64, raw string, all
 		}
 		return value, nil
 	}
-	if allowExternal && validTenantBrandingAssetURL(value) {
-		return value, nil
-	}
 	return "", errors.New("asset must be an uploaded tenant branding asset")
 }
 
@@ -158,12 +158,12 @@ func validateTenantDocumentTemplate(c echo.Context, tenantID int64, input tenant
 		}
 	}
 	if input.LogoURL != nil {
-		if _, err := validateTenantDocumentAsset(c, tenantID, *input.LogoURL, true); err != nil {
+		if _, err := validateTenantDocumentAsset(c, tenantID, *input.LogoURL); err != nil {
 			return fmt.Errorf("logo_url: %w", err)
 		}
 	}
 	if input.QRImageURL != nil {
-		if _, err := validateTenantDocumentAsset(c, tenantID, *input.QRImageURL, false); err != nil {
+		if _, err := validateTenantDocumentAsset(c, tenantID, *input.QRImageURL); err != nil {
 			return fmt.Errorf("qr_image_url: %w", err)
 		}
 	}
@@ -552,6 +552,8 @@ func getPaymentReceiptHandler(c echo.Context) error {
 	response.Status = payment.Status
 	response.IssuedAt = payment.PaidAt
 	response.DueAt = time.Time{}
+	response.PaidAmount = payment.Amount
+	response.Balance = receiptBalance(db, invoice, payment)
 	return ok(c, response)
 }
 
