@@ -8,7 +8,6 @@ Antrean kerja tunggal untuk proyek ini. Semua pekerjaan dibaca, diurutkan, dan d
 | [`docs/roadmap.md`](docs/roadmap.md) | Definisi milestone `M1`–`M20`, peta `TR-F`, guardrail |
 | [`docs/feature-checklist.md`](docs/feature-checklist.md) | Batas scope fitur dan non-goal `TR-N001`–`TR-N006` |
 | [`docs/MWX-ISP-audit-backlog-2026-10-27.md`](docs/MWX-ISP-audit-backlog-2026-10-27.md) | Bukti dan detail 100 item `ENG`/`ECO`/`FUT` |
-| [`MWX-ISP_100_ISSUES_MASTER_2026-10-27.md`](MWX-ISP_100_ISSUES_MASTER_2026-10-27.md) | Narasi audit lengkap (referensi saja) |
 | GitHub Issues | Cermin per item; **bukan** sumber status lagi |
 
 **Aturan kerja**
