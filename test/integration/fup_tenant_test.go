@@ -72,10 +72,24 @@ func TestPostgresFUPIsolatesTenantsWithDuplicateUsernames(t *testing.T) {
 		require.NoError(t, tenantDB.Create(&sub).Error)
 
 		now := time.Now()
+		// The FUP job sums traffic whose session started inside the current
+		// calendar month, so a "two hours ago" fixture falls outside the
+		// measured period during the first hours of a month and the over-limit
+		// tenant would legitimately stay unthrottled. Clamp the window to the
+		// period start so the fixture counts whenever CI runs it.
+		monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		closedStart := now.Add(-2 * time.Hour)
+		if closedStart.Before(monthStart) {
+			closedStart = monthStart
+		}
+		closedStop := now.Add(-time.Hour)
+		if closedStop.Before(closedStart) {
+			closedStop = now
+		}
 		require.NoError(t, tenantDB.Create(&domain.RadiusAccounting{
 			ID: common.UUIDint64(), Username: username, AcctSessionId: "closed-" + scenario.key + "-" + suffix,
 			AcctInputTotal: scenario.traffic / 2, AcctOutputTotal: scenario.traffic / 2,
-			AcctStartTime: now.Add(-2 * time.Hour), AcctStopTime: now.Add(-time.Hour),
+			AcctStartTime: closedStart, AcctStopTime: closedStop,
 		}).Error)
 		if scenario.key == "under" {
 			// Open accounting mirrors a live session and must not be double counted.
