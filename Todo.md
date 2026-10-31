@@ -24,7 +24,7 @@ Penanda tipe: `LOKAL` = bisa dikerjakan di repo · `ASET` = butuh perangkat/host
 
 ## Status baseline
 
-- `main` = `dev` = `f9102e2` — rilis **v0.21.0**, CI hijau (PR #116).
+- Rilis terakhir **v0.21.0** (PR #116, tag `v0.21.0`); `main` memuat seluruh `dev`. Perubahan docs-only setelahnya (PR #117) tidak memicu rilis baru, sesuai kebijakan rilis.
 - M19 (brand tenant, website, katalog paket) dan M20 (invoice & receipt branding) **sudah di `main`** beserta acceptance PostgreSQL/browser.
 - M11 TEAP `M11.1`–`M11.10` **sudah di `main`** bersama `test/integration/teap_acceptance_test.go`; yang tersisa hanya interoperabilitas peer nyata (`ENG-002`).
 - Tidak ada PR terbuka.
