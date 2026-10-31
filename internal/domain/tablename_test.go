@@ -120,6 +120,8 @@ func TestTableNameUniqueness(t *testing.T) {
 		"isp_payment":                 true,
 		"isp_billing_event":           true,
 		"isp_document_sequence":       true,
+		"isp_document_template":       true,
+		"isp_invoice_document":        true,
 		"net_monitor_target":          true,
 		"net_monitor_sample":          true,
 		"net_monitor_incident":        true,

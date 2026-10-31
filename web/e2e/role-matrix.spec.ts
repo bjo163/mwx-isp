@@ -36,6 +36,7 @@ const menuMatrix: Array<{ href: string; visibleFor: Role[]; serverRule: string }
   { href: '#/isp/package-studio', visibleFor: adminRoles, serverRule: 'Package presentation writes require tenant admin' },
   { href: '#/tenant/branding', visibleFor: adminRoles, serverRule: 'Tenant branding writes require tenant admin' },
   { href: '#/tenant/website', visibleFor: adminRoles, serverRule: 'Tenant website writes require tenant admin' },
+  { href: '#/tenant/invoice', visibleFor: adminRoles, serverRule: 'Tenant document templates require tenant admin' },
   { href: '#/system/operators', visibleFor: adminRoles, serverRule: 'Operator management requires admin or super' },
   { href: '#/system/website', visibleFor: platformRoles, serverRule: 'Branding writes require platform_admin' },
   { href: '#/system/branding', visibleFor: platformRoles, serverRule: 'Branding writes require platform_admin' },
