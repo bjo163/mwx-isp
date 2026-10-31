@@ -72,7 +72,7 @@ Batas keras M20 terpenuhi: total invoice, penomoran dokumen, status pembayaran, 
 
 Implementasi dan tes lokalnya selesai; klaim interoperabilitas/perangkat nyata tetap tidak dibuat dan tetap berada di daftar `ASET`.
 
-### 4.2 Butuh aset nyata (15 · `ASET`)
+### 4.2 Butuh aset nyata (15 · `ASET`, termasuk `ENG-015` yang ditautkan di §3)
 
 `ENG-002` supplicant EAP-TLS 1.2/1.3 · `ENG-013` pilot CoA/Disconnect NAS nyata · `ENG-041` instalasi fresh VPS bersih · `ENG-042` simulasi kegagalan registry saat upgrade · `ENG-043` drill restore seluruh volume VPS · `ENG-045` RTO/RPO operator · `ENG-046` akses localhost/SSH tunnel tanpa DNS · `ENG-047` audit health & expiry sertifikat deployment · `ENG-048` UAT WhatsApp pairing ke nomor uji · `ENG-049` UAT SNMPv3 authPriv perangkat nyata · `ENG-050` matriks NAS/firmware RADIUS+CoA · `ENG-014` prioritas vendor VSA dari NAS riil · `ENG-020` restore lintas tenant setelah perubahan skema · `ENG-044` studi WAL PITR PostgreSQL
 
