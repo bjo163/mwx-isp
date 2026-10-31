@@ -17,6 +17,7 @@ the repository, so readers can reach both from one place.
 | [Portal / Hotspot Integration Boundary](./portal-hotspot-boundary.md) | Hard boundary: MWX-ISP is the RADIUS AAA backend, not a hosted captive portal product |
 | [Scenario Cookbook](./cookbook.md) | End-to-end ops scenarios (five-part): MikroTik PPPoE / Hotspot / CoA; Huawei BRAS speed tiers / line binding / CoA; H3C / ZTE / iKuai / Cisco per-vendor diffs |
 | [Admin UI Manual](./admin-manual.md) | The management console, page by page |
+| [Tenant Brand Experience](./tenant-brand-experience.md) | Tenant brand, website and package studios, verified hostnames, public catalog |
 | [Operations Guide](./ops-guide.md) | Configuration reference, certificates, monitoring, backup, CLI tools |
 | [LDAP / AD Authentication](./auth-ldap.md) | Verify passwords against an LDAP/AD directory (PAP-family only): bind modes, TLS, security, metrics |
 | [FAQ](./faq.md) | Frequently asked questions by theme |

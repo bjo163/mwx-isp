@@ -7,6 +7,7 @@
 - [Gambaran umum](./overview.md)
 - [Mulai cepat](./quickstart.md)
 - [Panduan admin](./admin-manual.md)
+- [Pengalaman brand tenant](./tenant-brand-experience.md)
 - [Panduan operasional](./ops-guide.md)
 - [FAQ](./faq.md)
 - Panduan protokol, integrasi vendor, keamanan, dan engineering tersedia pada

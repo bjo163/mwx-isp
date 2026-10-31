@@ -32,5 +32,24 @@ Nomor customer, subscription, invoice, dan payment dihasilkan oleh sistem.
 Jangan membuat nomor secara manual atau memakai ulang sample user pada jaringan
 produksi. Data contoh hanya dibuat saat database benar-benar kosong.
 
+## Studio Brand, Website, dan Paket Tenant
+
+Administrator tenant bekerja di ruang kerjanya sendiri; halaman berikut tidak
+dapat membaca atau menulis data tenant lain.
+
+- **Brand Studio tenant** (`#/tenant/branding`) — nama brand, nama pendek,
+  varian logo, favicon, social image, token warna, tema, dan tipografi.
+- **Website Studio tenant** (`#/tenant/website`) — situs publik berbasis
+  section: draf, publikasi, riwayat versi, dan restore. Draf tetap privat
+  sampai dipublikasikan.
+- **Package Studio** (`#/isp/package-studio`) — nama, deskripsi, kategori,
+  badge, highlight, dan urutan tampil paket yang sudah dimiliki tenant; harga
+  dan kecepatan tetap berada pada paket dan RADIUS Profile.
+
+Lihat [Pengalaman Brand Tenant](./tenant-brand-experience.md) untuk aturan
+peran, hostname terverifikasi, semantik publikasi, dan daftar API. Operator
+platform mengelola branding seluruh instalasi di halaman **Product Branding**;
+branding tenant adalah state terpisah yang dibatasi per tenant.
+
 Untuk detail field, hak akses, dan tampilan setiap halaman, lihat
 [manual lengkap berbahasa English](../en/admin-manual.md).

@@ -49,16 +49,61 @@ Allow every ISP or RT/RW Net tenant in one MWX-ISP installation to present its o
 - Delete/replacement must not remove assets still referenced by published website versions, package presentations or invoice snapshots.
 - Public image responses set explicit content type, `nosniff` and suitable cache policy.
 
-## API surface (target)
+## API surface
 
-- `GET/PUT /api/v1/branding`: authenticated tenant admin brand settings.
-- `GET /api/v1/tenant-branding/:identifier`: public allowlisted brand projection for an active tenant identifier.
-- `GET/PUT /api/v1/tenant-website/draft`: tenant admin draft content.
-- `POST /api/v1/tenant-website/publish`: tenant admin publish.
-- `GET /api/v1/tenant-website/public`: published public projection.
-- `GET/PUT /api/v1/isp/package-presentations`: tenant admin package presentation metadata.
-- `GET /api/v1/public/packages`: anonymous read-only active/public catalog, only after allowlist/rate-limit/host tests pass.
-- Do not make existing customer lookup, voucher, registration or payment APIs anonymous.
+All routes live under `/api/v1`. Admin routes require a tenant JWT; public routes
+resolve the tenant from a verified hostname or the identifier in the path.
+
+| Route | Access | Purpose |
+| --- | --- | --- |
+| `GET/PUT /branding` | tenant admin (operators read-only) | Tenant brand settings |
+| `POST /branding/assets`, `DELETE /branding/assets/:filename` | tenant admin | Tenant-scoped logo/social assets |
+| `GET /tenant-branding/:identifier` | public | Allowlisted brand projection for an active tenant |
+| `GET /tenant-branding/assets/:tenant/:filename` | public | Tenant brand asset bytes |
+| `GET/PUT /tenant-website/draft` | tenant admin | Draft website content |
+| `POST /tenant-website/publish` | tenant admin | Publish a new immutable version |
+| `GET /tenant-website/versions` | tenant admin | Version history |
+| `POST /tenant-website/versions/:version/rollback` | tenant admin | Restage and republish a prior version |
+| `GET /tenant-website/public/:identifier` | public | Published projection only |
+| `GET /tenant-domains`, `POST /tenant-domains`, `POST /tenant-domains/:id/verify`, `DELETE /tenant-domains/:id` | tenant admin | Verified custom hostnames |
+| `GET /isp/package-presentations`, `GET/PUT /isp/packages/:id/presentation` | tenant admin | Package presentation metadata |
+| `GET /public/packages` | public, rate-limited | Read-only public-visible catalog |
+
+Do not make existing customer lookup, voucher, registration or payment APIs
+anonymous.
+
+## Operator workflow
+
+1. Platform operator creates the tenant with a subdomain; the tenant admin is
+   provisioned against that tenant.
+2. Tenant admin sets brand tokens, uploads PNG assets and saves the website
+   draft in **Brand Studio** and **Website Studio**.
+3. Tenant admin publishes the website; only then does the public site and its
+   cached projection change.
+4. Tenant admin curates packages in **Package Studio**: display name, category,
+   badge, image, highlights and order. Price, billing cycle, speed and FUP stay
+   on the package and RADIUS profile.
+5. Customers reach `https://<subdomain>.e-isp.id` (or a verified custom host)
+   and see the published brand, website and public-visible catalog.
+6. To change a live site, edit the draft and publish again; use rollback to
+   restore a prior version without deleting history.
+7. To change the public hostname, add the domain, publish the DNS TXT challenge
+   and verify it; unverified hosts never resolve to the tenant.
+
+## Verification evidence
+
+- Unit: `internal/adminapi/branding_test.go`, `branding_editor_test.go`,
+  `branding_upload_test.go`, `tenant_branding_assets_test.go`,
+  `tenant_website_test.go`, `tenant_domains_test.go`,
+  `package_presentation_test.go`, `public_surface_test.go`.
+- PostgreSQL, two tenants: `test/integration/tenant_brand_experience_test.go`
+  (`TestPostgresTenantBrandingAndWebsiteStayIsolated`,
+  `TestPostgresTenantPackageCatalogIsolatesPresentation`) covers branding,
+  website draft/publish/rollback history, cross-tenant writes, host-resolved
+  public catalog, hidden packages and price integrity.
+- Browser: `web/e2e/tenant-brand-experience.spec.ts` drives Brand Studio,
+  Website Studio, Package Studio and both public sites with mocked APIs and
+  asserts tenant isolation and that no `price` field is sent.
 
 ## TR-F035 document invariants
 

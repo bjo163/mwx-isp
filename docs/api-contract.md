@@ -108,6 +108,19 @@ route), `INVALID_ID` (400, non-numeric path id), `NOT_FOUND` / `USER_NOT_FOUND`
 / `SETTING_NOT_FOUND` (404), `VALIDATION_ERROR` (400/422, with `details`),
 `DATABASE_ERROR` (500, details stripped).
 
+## Tenant brand surfaces
+
+Tenant branding, website and package presentation endpoints follow the same
+envelopes and error codes. They are tenant-scoped from the authenticated JWT
+(`/branding`, `/tenant-website/*`, `/tenant-domains`, `/isp/*presentation*`) or
+resolved from a verified hostname/identifier on the public routes
+(`/tenant-branding/:identifier`, `/tenant-website/public/:identifier`,
+`/public/packages`). Public responses expose only publishable fields and
+public-visible packages; a package owned by another tenant returns 404, never
+403 or a cross-tenant record. The full route table, isolation rules and
+acceptance evidence live in
+[tenant-brand-experience.md](tenant-brand-experience.md).
+
 ## Contract tests
 
 `api_contract_test.go` pins the above per endpoint:
