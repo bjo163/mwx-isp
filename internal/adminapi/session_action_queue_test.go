@@ -248,7 +248,7 @@ func TestSessionActionSummaryCountsDeadLetterAndOldestPending(t *testing.T) {
 		{TenantID: 1, IdempotencyKey: "sum-failed-2", SessionID: 3, Username: "carol", NasAddr: "192.0.2.1", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusFailed, MaxAttempts: 8},
 		{TenantID: 1, IdempotencyKey: "sum-succeeded", SessionID: 4, Username: "dave", NasAddr: "192.0.2.1", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusSucceeded, MaxAttempts: 8},
 		{TenantID: 1, IdempotencyKey: "sum-canceled", SessionID: 5, Username: "erin", NasAddr: "192.0.2.1", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusCanceled, MaxAttempts: 8},
-		{TenantID: 2, IdempotencyKey: "sum-neighbour", SessionID: 6, Username: "frank", NasAddr: "192.0.2.2", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusFailed, MaxAttempts: 8},
+		{TenantID: 2, IdempotencyKey: "sum-neighbor", SessionID: 6, Username: "frank", NasAddr: "192.0.2.2", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusFailed, MaxAttempts: 8},
 	}
 	for i := range rows {
 		require.NoError(t, db.Create(&rows[i]).Error)

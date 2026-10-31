@@ -105,11 +105,12 @@ func validateTenantDocumentAsset(c echo.Context, tenantID int64, raw string, all
 			return "", errors.New("asset name is invalid")
 		}
 		path := filepath.Join(GetAppContext(c).Config().GetDataDir(), "tenant-branding", strconv.FormatInt(tenantID, 10), name)
+		// #nosec G304 -- tenantID is the authenticated numeric tenant and name matched the asset pattern plus filepath.Base, so the join cannot leave the tenant's branding directory.
 		file, err := os.Open(path)
 		if err != nil {
 			return "", errors.New("asset file does not exist")
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		info, err := file.Stat()
 		if err != nil || info.Size() > 5<<20 {
 			return "", errors.New("asset file is too large")
@@ -441,6 +442,7 @@ func loadDocumentImage(c echo.Context, tenantID int64, raw string) *invoicedoc.I
 		return nil
 	}
 	path := filepath.Join(GetAppContext(c).Config().GetDataDir(), "tenant-branding", strconv.FormatInt(tenantID, 10), parts[1])
+	// #nosec G304 -- tenant matches the authenticated tenant and parts[1] matched the asset pattern plus filepath.Base, so the join cannot leave the tenant's branding directory.
 	data, err := os.ReadFile(path)
 	if err != nil || len(data) == 0 || len(data) > 5<<20 {
 		return nil
