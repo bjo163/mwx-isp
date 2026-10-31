@@ -344,7 +344,7 @@ Then open **System config → RADIUS** and select those names on the EAP setting
 | --- | --- | --- | --- |
 | **EAP-TLS** | the cert **Peer-Id**, e.g. `alice@example.com` | **unused** (any placeholder) | cert identity matched in `tlsengine/identity.go` |
 | **PEAP-MSCHAPv2** | the login name, e.g. `bob` | the user's real password | inner MSCHAPv2 vs `GetPassword` in `peap_inner.go` |
-| **EAP-TTLS** (PAP or MS-CHAP-V2) | the login name, e.g. `carol` | the user's real password | inner PAP/MSCHAPv2 vs `GetPassword` in `ttls_inner.go` |
+| **EAP-TTLS** (PAP, CHAP, MS-CHAP or MS-CHAP-V2) | the login name, e.g. `carol` | the user's real password | inner PAP/CHAP/MS-CHAP/MSCHAPv2 vs `GetPassword` in `ttls_inner.go`; CHAP and MS-CHAP need a local password and refuse directory-backed users |
 
 Each user still needs **status = enabled**, a **future expiry**, and a **rate
 profile** (rate / pool / concurrency apply exactly as in Scenario A).
@@ -448,7 +448,7 @@ network={
 - **Router side**: `/log print where topics~"radius,wireless"`; for an associated
   client `/interface wireless registration-table print` (classic) or
   `/interface wifi registration-table print` (wifi).
-- **EAP-TLS and EAP-TTLS (PAP & MS-CHAP-V2)** verify cleanly end-to-end with
+- **EAP-TLS and EAP-TTLS (PAP, CHAP, MS-CHAP & MS-CHAP-V2)** verify cleanly end-to-end with
   `eapol_test`. For **PEAP-MSCHAPv2**, `eapol_test` currently hits a documented
   inner-framing interop gap, so the acceptance harness validates PEAP with the
   in-process integration test instead (see
@@ -480,8 +480,10 @@ network={
 - **The method you want is never offered** → the default `EapMethod` is `eap-md5`,
   which is invalid for WPA-Enterprise. Set `EapMethod` to your tunnelled method and
   include it (and any you accept via client NAK) in **Enabled EAP Handlers**.
-- **EAP-TTLS inner auth rejected** → only **inner PAP and MS-CHAP-V2** are
-  implemented; inner CHAP / MS-CHAP / tunnelled-EAP are not. Also the TTLS tunnel is
+- **EAP-TTLS inner auth rejected** → inner **PAP, CHAP, MS-CHAP and MS-CHAP-V2**
+  are implemented; tunnelled EAP is not. Inner CHAP and MS-CHAP need the cleartext
+  password, so they are refused for LDAP-backed users, and MS-CHAP accepts only the
+  NT-Response (LM-only clients are refused). Also the TTLS tunnel is
   pinned to **TLS 1.2** — a TLS-1.3-only supplicant won't complete phase 2.
 - **Auth works but no accounting / no online session** → enable
   `radius-eap-accounting=yes` (classic) / `eap-radius-accounting=yes` (CAPsMAN) and

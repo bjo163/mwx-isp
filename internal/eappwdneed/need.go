@@ -131,8 +131,8 @@ func Claims() []Claim {
 			Gap:       "A password method that is not MS-CHAPv2 has no place inside the tunnel that exists today.",
 		},
 		{
-			ID:        "ttls-inner-stops-at-pap-and-mschapv2",
-			Statement: "EAP-TTLS answers inner PAP and MS-CHAP-V2, and returns a not-implemented error for anything else, so tunneled CHAP and MS-CHAP are declared but absent.",
+			ID:        "ttls-inner-stops-at-password-methods",
+			Statement: "EAP-TTLS answers inner PAP, CHAP, MS-CHAP and MS-CHAP-V2, and returns a not-implemented error for tunneled EAP, so an inner EAP method such as EAP-PWD is declared but absent.",
 			File:      "internal/radiusd/plugins/eap/handlers/ttls_inner.go",
 			Symbol:    "ErrTTLSInnerNotImplemented",
 			Gap:       "The tunnel that would carry an EAP-PWD exchange for a certificate-less client is only half built.",

@@ -34,6 +34,10 @@ const ttlsMSKLength = 64
 //   - PAP (RFC 5281 §11.2.5), a single round: the peer sends a User-Name and a
 //     User-Password AVP; on a constant-time password match the MS-MPPE keys are
 //     derived and the handler grants.
+//   - CHAP (RFC 5281 §11.2.2, algorithm RFC 1994) and MS-CHAP (RFC 5281
+//     §11.2.3, algorithm RFC 2433), single rounds validated against the
+//     challenge material derived from the TLS session (ttls_legacy.go). Only
+//     the MS-CHAP NT-Response is accepted; LM-only clients are refused.
 //   - MS-CHAP-V2 (RFC 5281 §11.2.4), two rounds: the peer sends User-Name,
 //     MS-CHAP-Challenge and MS-CHAP2-Response AVPs validated against an
 //     implicitly-derived challenge (see ttls_mschapv2.go); the handler tunnels
@@ -43,11 +47,11 @@ const ttlsMSKLength = 64
 // On success the MS-MPPE-Send/Recv keys are always derived from the TLS session
 // (RFC 5281 §8 / RFC 5705 / RFC 2548) — not from any inner secret — and added to
 // the outer Access-Accept (ctx.Response). A malformed AVP flight rejects with
-// eap.ErrTTLSInnerProtocol; a well-formed flight carrying neither a User-Password
-// nor an MS-CHAP2-Response AVP (an inner CHAP / MS-CHAP / tunneled-EAP method,
-// not yet supported) rejects with eap.ErrTTLSInnerNotImplemented; a password or
-// response mismatch rejects with eap.ErrPasswordMismatch. The handler never
-// reports success without a verified inner credential.
+// eap.ErrTTLSInnerProtocol; a well-formed flight carrying no supported method
+// (for example tunneled EAP, RFC 5281 §11.3) rejects with
+// eap.ErrTTLSInnerNotImplemented; a password or response mismatch rejects with
+// eap.ErrPasswordMismatch. The handler never reports success without a verified
+// inner credential.
 func (h *TTLSHandler) handleInnerAVP(ctx *eap.EAPContext, state *eap.EAPState, engine *tlsengine.Engine, inner []byte) ([]byte, bool, error) {
 	if getString(state, stateKeyInnerPhase) == ttlsInnerPhaseMSCHAPv2Ack {
 		return h.handleMSCHAPv2Ack(ctx, state, engine, inner)
@@ -79,14 +83,19 @@ func (h *TTLSHandler) handleInnerStart(ctx *eap.EAPContext, state *eap.EAPState,
 	if rawPwd, ok := findTTLSAVP(avps, ttlsAVPCodeUserPassword); ok {
 		return h.handleInnerPAP(ctx, engine, rawPwd)
 	}
+	if _, ok := findTTLSAVP(avps, ttlsAVPCodeCHAPPassword); ok {
+		return h.handleInnerCHAP(ctx, engine, avps)
+	}
 	if _, ok := findTTLSVendorAVP(avps, ttlsVendorMicrosoft, ttlsMSCHAP2ResponseCode); ok {
 		return h.handleInnerMSCHAPv2(ctx, state, engine, avps)
 	}
+	if _, ok := findTTLSVendorAVP(avps, ttlsVendorMicrosoft, ttlsMSCHAPResponseCode); ok {
+		return h.handleInnerMSCHAP(ctx, engine, avps)
+	}
 
-	// Neither PAP nor MS-CHAP-V2: an inner CHAP / MS-CHAP / tunneled-EAP method
-	// (RFC 5281 §11.2.2-§11.2.3 / §11.3), not yet supported. Reject explicitly
-	// rather than granting.
-	return nil, false, fmt.Errorf("%w: no User-Password or MS-CHAP2-Response AVP (only inner PAP and MS-CHAP-V2 are supported)", eap.ErrTTLSInnerNotImplemented)
+	// No supported inner method: tunneled EAP (RFC 5281 §11.3) is not
+	// implemented. Reject explicitly rather than granting.
+	return nil, false, fmt.Errorf("%w: no User-Password, CHAP-Password, MS-CHAP-Response or MS-CHAP2-Response AVP (tunneled EAP is not supported)", eap.ErrTTLSInnerNotImplemented)
 }
 
 // handleInnerPAP validates an inner PAP exchange (RFC 5281 §11.2.5). The

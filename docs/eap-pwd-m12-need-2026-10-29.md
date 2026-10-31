@@ -61,7 +61,7 @@ specification is not carried.
 | EAP-MD5 reads the stored password | `internal/radiusd/plugins/eap/handlers/md5_handler.go:97` | every non-tunneled password method inherits this exposure |
 | EAP-MSCHAPv2 rebuilds the NT response | `internal/radiusd/plugins/eap/handlers/mschapv2_handler.go:264` | the same exposure is the weak half of PEAP |
 | PEAP's inner exchange rejects any inner type but MSCHAPv2 | `internal/radiusd/plugins/eap/handlers/peap_inner.go:148` | a password method that is not MS-CHAPv2 has no place in the tunnel that exists today |
-| TTLS inner stops at PAP and MS-CHAP-V2 | `internal/radiusd/plugins/eap/handlers/ttls_inner.go:89` | the tunnel that would carry an EAP-PWD exchange for a certificate-less client is half built |
+| TTLS inner stops at password methods | `internal/radiusd/plugins/eap/handlers/ttls_inner.go:89` | inner PAP/CHAP/MS-CHAP/MS-CHAP-V2 exist, but the tunnel that would carry a tunneled EAP exchange is still half built |
 | EAP-TLS grants only on a verified certificate identity | `internal/radiusd/plugins/eap/handlers/tls_handler.go:191` | this is exactly the requirement EAP-PWD is proposed against |
 | The LDAP backend only serves cleartext methods | `internal/radiusd/ldap_backend.go:120` | a directory account cannot be proved by a hash-based method |
 | The method enum has no certificate-free, hash-free option | `internal/app/config_manager.go:157` | the gap is a configuration-surface fact, not an opinion |
