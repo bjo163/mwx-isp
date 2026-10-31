@@ -70,6 +70,11 @@ func TestTenantDomainDNSChallengeLifecycle(t *testing.T) {
 	require.True(t, strings.HasPrefix(created.Data.VerificationValue, tenantDomainTXTPrefix))
 	require.Nil(t, created.Data.VerifiedAt)
 
+	secondCtx, secondRec := tenantDomainContext(t, db, e, appCtx, http.MethodPost,
+		"/api/v1/tenant-domains", `{"hostname":"portal.example.com"}`, nil)
+	require.NoError(t, createTenantDomain(secondCtx))
+	require.Equal(t, http.StatusCreated, secondRec.Code, secondRec.Body.String())
+
 	oldLookup := lookupTenantDomainTXT
 	lookupTenantDomainTXT = func(name string) ([]string, error) {
 		require.Equal(t, created.Data.VerificationTXT, name)

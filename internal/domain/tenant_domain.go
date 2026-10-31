@@ -7,7 +7,7 @@ import "time"
 type TenantDomain struct {
 	ID               int64      `json:"id,string" gorm:"primaryKey"`
 	TenantID         int64      `json:"tenant_id,string" gorm:"not null;index;uniqueIndex:udx_tenant_domain_tenant_host,priority:1"`
-	Hostname         string     `json:"hostname" gorm:"size:253;not null;uniqueIndex"`
+	Hostname         string     `json:"hostname" gorm:"size:253;not null;uniqueIndex;uniqueIndex:udx_tenant_domain_tenant_host,priority:2"`
 	VerificationToken string    `json:"verification_token" gorm:"size:64;not null"`
 	VerifiedAt       *time.Time `json:"verified_at,omitempty"`
 	CreatedAt        time.Time  `json:"created_at"`
