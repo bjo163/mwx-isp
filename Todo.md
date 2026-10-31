@@ -29,6 +29,7 @@ Penanda tipe: `LOKAL` = bisa dikerjakan di repo · `ASET` = butuh perangkat/host
 - M11 TEAP `M11.1`–`M11.10` **sudah di `main`** bersama `test/integration/teap_acceptance_test.go`; yang tersisa hanya interoperabilitas peer nyata (`ENG-002`).
 - M5 vendor VSA expansion (`M5.1`–`M5.5`) **selesai di `dev`**: seluruh 14 paket dictionary vendor punya consumer, dan tidak ada enhancer vendor yang tersisa.
 - M6 observability **selesai di `dev`**: counter dan gauge yang sudah dikumpulkan kini terbaca lewat `GET /metrics` (format teks Prometheus, bertoken, default nonaktif).
+- M14 LDAP **selesai di `dev`** dengan tertutupnya M14.5: tenggat permintaan kini membatasi setiap round trip ke directory; connection pooling dievaluasi terhadap angka nyata dan sengaja tidak diambil.
 - Tidak ada PR terbuka.
 
 ---
@@ -68,16 +69,23 @@ Mapping yang dipakai: `IpAddr` → AAT-PPP-Address, `GetAddrPool` → AAT-IP-Poo
 
 Sisanya sudah ada dari M3/M18 (agregasi dashboard, bucketing timezone, ringkasan IPv6), jadi M6 tidak menambah metrik baru — hanya jalur baca yang sebelumnya tidak ada.
 
-## 5. Menunggu keputusan atau permintaan
+## 5. Selesai — M14.5 LDAP connection robustness (TR-F025)
+
+| # | Item | Kode | Tipe | Bukti |
+| --- | --- | --- | --- | --- |
+| 10 | Bukti beban koneksi LDAP lalu keputusan desain: propagasi request context, pooling ditolak dengan pemicu buka-kembali tercatat | M14.5 / ENG-015 | `LOKAL` | `tools/ldapload` (`main.go` + `main_test.go`); `docs/ldap-connection-load-evidence-2026-10-31.md`; `internal/ldapauth/ldapauth.go` (`dialFunc` menerima ctx, `armTimeout`, cek ctx sebelum tiap round trip) + `TestVerify_ContextHonoredAfterDial`; `VerifyCleartext` di `internal/radiusd/ldap_backend.go` memasang tenggat `ldap.Timeout` saat pemanggil tidak bawa deadline + `TestLDAPBackend_VerifyCleartextBoundsSilentDirectory`; semantik `ldap.Timeout` di `internal/app/config_schemas.json` + `web/src/i18n/en-US.ts`; handbook EN/ID `auth-ldap` |
+
+Angka yang jadi dasar keputusan (OpenLDAP container di `docker-compose.test.yml`, loopback, go1.27.0): biaya koneksi = 77 % (template) / 84 % (search) dari latency satu verifikasi, dan tenggat pemanggil 200 ms dulu diabaikan — `Verify` baru kembali setelah `ldap.Timeout` 3 s penuh. Setelah propagasi context: 200,5 ms / 200,1 ms. Pooling ditolak karena Bind membuat koneksi melekat pada identitas subscriber; tabungan yang dibayar (~0,5 ms dial loopback) tidak sebanding dengan risiko bocor identitas. Profil pada directory produksi sungguhan (`ldaps://` lintas jaringan) tetap belum dikerjakan dan tidak diklaim.
+
+## 6. Menunggu keputusan atau permintaan
 
 | # | Item | Kode | Tipe | Kondisi |
 | --- | --- | --- | --- | --- |
-| 10 | EAP-PWD (RFC 5931) | M12.2–M12.5 | `LOKAL` | demand-gated; spesifikasi sudah tersedia (`docs/rfcs/rfc5931-eap-pwd.txt`), kode belum ada |
-| 11 | LDAP pooling/reconnect | M14.5 / ENG-015 | `BLOCKED` | menunggu bukti beban koneksi |
+| 11 | EAP-PWD (RFC 5931) | M12.2–M12.5 | `LOKAL` | demand-gated; spesifikasi sudah tersedia (`docs/rfcs/rfc5931-eap-pwd.txt`), kode belum ada |
 
-## 6. Backlog audit — 35 item sisa
+## 7. Backlog audit — 34 item sisa
 
-### 6.1 Bisa dieksekusi lokal — selesai semua
+### 7.1 Bisa dieksekusi lokal — selesai semua
 
 | ID | Item | TR-F | Bukti | Sisa |
 | --- | --- | --- | --- | --- |
@@ -88,21 +96,21 @@ Sisanya sudah ada dari M3/M18 (agregasi dashboard, bucketing timezone, ringkasan
 
 Implementasi dan tes lokalnya selesai; klaim interoperabilitas/perangkat nyata tetap tidak dibuat dan tetap berada di daftar `ASET`.
 
-### 6.2 Butuh aset nyata (15 · `ASET`, termasuk `ENG-015` yang ditautkan di §5)
+### 7.2 Butuh aset nyata (14 · `ASET`; `ENG-015` keluar dari daftar ini setelah profil beban dieksekusi terhadap kontainer OpenLDAP CI di §5)
 
 `ENG-002` supplicant EAP-TLS 1.2/1.3 · `ENG-013` pilot CoA/Disconnect NAS nyata · `ENG-041` instalasi fresh VPS bersih · `ENG-042` simulasi kegagalan registry saat upgrade · `ENG-043` drill restore seluruh volume VPS · `ENG-045` RTO/RPO operator · `ENG-046` akses localhost/SSH tunnel tanpa DNS · `ENG-047` audit health & expiry sertifikat deployment · `ENG-048` UAT WhatsApp pairing ke nomor uji · `ENG-049` UAT SNMPv3 authPriv perangkat nyata · `ENG-050` matriks NAS/firmware RADIUS+CoA · `ENG-014` prioritas vendor VSA dari NAS riil · `ENG-020` restore lintas tenant setelah perubahan skema · `ENG-044` studi WAL PITR PostgreSQL
 
-### 6.3 Riset ekonomi (10 · `RISET`)
+### 7.3 Riset ekonomi (10 · `RISET`)
 
 `ECO-001` willingness-to-pay · `ECO-002` waktu tugas operator sebelum/sesudah · `ECO-003` model TCO deployment · `ECO-004` lisensi managed support vs self-hosted · `ECO-005` desain paket dukungan & SLA · `ECO-007` kendali biaya telemetri WhatsApp · `ECO-008` alokasi biaya per NAS/subscriber · `ECO-010` risiko churn dari sinyal operasional · `ECO-011` strategi distribusi community/open-source · `ECO-012` partner interoperability kit
 
-### 6.4 Riset lanjutan (10 · `RISET`, research-only)
+### 7.4 Riset lanjutan (10 · `RISET`, research-only)
 
 `FUT-003` ringkasan insiden berbukti · `FUT-004` deteksi anomali latency · `FUT-005` graph hipotesis penyebab · `FUT-008` preview dampak CoA · `FUT-012` eksperimen adversarial EAP fragment scheduler · `FUT-013` snapshot NOC offline read-only · `FUT-014` field diagnostics mini-mode · `FUT-019` edge collector polling read-only · `FUT-021` knowledge base kompatibilitas firmware · `FUT-024` prediksi kapasitas dari SNMP nyata
 
 Semua `FUT` dan `ECO` berstatus research-only: tidak boleh naik ke kode produksi tanpa pembaruan `docs/feature-checklist.md` dan persetujuan scope.
 
-## 7. Residual rilis
+## 8. Residual rilis
 
 - Tag `v0.18.0`–`v0.19.8` ada tanpa GitHub Release (sudah tersaingi `v0.20.0`). Backfill hanya lewat `workflow_dispatch` dengan `release_tag`, dan **butuh persetujuan eksplisit**.
 - Pemeriksaan operasional eksternal yang belum pernah dieksekusi dan tidak boleh diklaim: instalasi/upgrade VPS bersih, kegagalan registry/port nyata, timer, dan RTO produksi.

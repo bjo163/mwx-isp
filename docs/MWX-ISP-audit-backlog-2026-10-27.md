@@ -1294,7 +1294,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [ ] `ENG-043` TR-F020 P1 — Drill pemulihan seluruh volume VPS dari backup · ASET · dep ENG-041 · VERIFIED_GAP
 - [ ] `ENG-020` TR-F033 P1 — Latihan restore lintas tenant setelah perubahan skema · ASET · PROPOSED_VERIFICATION
 - [ ] `ENG-042` TR-F020 P1 — Simulasi kegagalan registry ketika upgrade aplikasi · ASET · dep ENG-041 · PROPOSED_VERIFICATION
-- [ ] `ENG-015` TR-F025 P2 — Profil biaya LDAP bind di bawah concurrent load · ASET · PROPOSED_VERIFICATION
+- [x] `ENG-015` TR-F025 P2 — Profil biaya LDAP bind di bawah concurrent load · ASET · PROPOSED_VERIFICATION · delivered 2026-10-31 against the CI OpenLDAP container: `tools/ldapload` profiled both bind modes (`docs/ldap-connection-load-evidence-2026-10-31.md`) — setup is 77 %/84 % of verify latency, throughput plateaus at the directory's own concurrency, and a 200 ms caller deadline was ignored for the full 3 s operation timeout (fixed by M14.5). The remaining ASET part — the same profile against a production directory over a real link, which is what decides whether pooling is worth revisiting — is not claimed here.
 - [ ] `ENG-046` TR-F020 P2 — Uji akses localhost SSH tunnel pada instalasi tanpa DNS · ASET · dep ENG-041 · PROPOSED_VERIFICATION
 
 ## Wave 2 — 25 item (LOKAL 13 · RISET 2 · ASET 7 · RISET+ASET 3)
@@ -1461,8 +1461,11 @@ opt-in test number), `ECO-007` (telemetry and whatsmeow cost control, depends on
 **No-go — needs a second tenant database and a restore target.** `ENG-020`
 (cross-tenant restore after a schema change).
 
-**No-go — needs concurrent LDAP load against a real directory.** `ENG-015`
-(LDAP bind cost profile).
+**No-go — needs concurrent LDAP load against a production directory.** The
+measurable part of `ENG-015` was delivered on the CI OpenLDAP container
+(2026-10-31, `docs/ldap-connection-load-evidence-2026-10-31.md`); what remains
+here is the same profile over a real link to a real directory, which is the only
+evidence that could reopen the connection-pooling decision M14.5 declined.
 
 **No-go — needs human respondents.** `ECO-001` (willingness-to-pay interviews),
 `ECO-002` (operator task timing before/after, depends on `ECO-001`).
