@@ -38,7 +38,9 @@ func provisionTenantActor(t *testing.T, platform *apiClient, label string) tenan
 	}
 	require.NoError(t, db.Create(&tenant).Error)
 
-	username := "brand-admin-" + suffix + "-" + label
+	// Platform usernames are capped at 30 chars, so keep only the tail of the
+	// nanosecond suffix; it still distinguishes tenants within one run.
+	username := "adm-" + suffix[len(suffix)-10:] + "-" + label
 	password := "Strong-brand-2026"
 	payload, err := json.Marshal(map[string]string{"username": username, "password": password, "level": "admin"})
 	require.NoError(t, err)
