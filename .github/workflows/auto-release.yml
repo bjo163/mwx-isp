@@ -83,6 +83,7 @@ jobs:
             if ! gh release view "$latest_tag" >/dev/null 2>&1; then
               echo "release=true" >> "$GITHUB_OUTPUT"
               echo "release_tag=$latest_tag" >> "$GITHUB_OUTPUT"
+              echo "release_sha=$(git rev-parse "${latest_tag}^{commit}")" >> "$GITHUB_OUTPUT"
               echo "previous_tag=$(git describe --tags --match 'v*' --abbrev=0 "${latest_tag}^")" >> "$GITHUB_OUTPUT"
               echo "republish=true" >> "$GITHUB_OUTPUT"
             fi
