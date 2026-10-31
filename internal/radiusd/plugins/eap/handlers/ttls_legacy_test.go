@@ -144,7 +144,11 @@ func encodeTTLSMSCHAP(conn *tls.Conn, username, password string, lmOnly, tamperI
 		value[1] = 0
 	} else {
 		value[1] = ttlsMSCHAPFlagUseNTResponse
-		copy(value[26:50], rfc2759.ChallengeResponse(challenge, rfc2759.NTPasswordHash([]byte(password))))
+		ucs2Password, err := rfc2759.ToUTF16([]byte(password))
+		if err != nil {
+			panic(err)
+		}
+		copy(value[26:50], rfc2759.ChallengeResponse(challenge, rfc2759.NTPasswordHash(ucs2Password)))
 	}
 
 	var flight []byte

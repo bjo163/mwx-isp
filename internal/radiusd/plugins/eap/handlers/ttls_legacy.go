@@ -162,7 +162,11 @@ func (h *TTLSHandler) handleInnerMSCHAP(ctx *eap.EAPContext, engine *tlsengine.E
 		return nil, false, err
 	}
 
-	expected := rfc2759.ChallengeResponse(challenge, rfc2759.NTPasswordHash([]byte(password)))
+	ucs2Password, err := rfc2759.ToUTF16([]byte(password))
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to encode the password for MS-CHAP: %w", err)
+	}
+	expected := rfc2759.ChallengeResponse(challenge, rfc2759.NTPasswordHash(ucs2Password))
 	if subtle.ConstantTimeCompare(expected, ntResponse) != 1 {
 		return nil, false, eap.ErrPasswordMismatch
 	}

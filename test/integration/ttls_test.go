@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"crypto/md5"
 	"crypto/tls"
 	"encoding/binary"
 	"net"
@@ -28,15 +29,21 @@ import (
 // handler keeps these as unexported package constants; the integration package
 // mirrors them here so the over-the-wire supplicant stays self-contained.
 const (
-	ttlsAVPUserName         = 1   // RADIUS attribute 1, non-vendor (RFC 5281 §11.2.1)
-	ttlsAVPUserPassword     = 2   // RADIUS attribute 2, non-vendor (RFC 5281 §11.2.5)
-	ttlsVendorMicrosoft     = 311 // Microsoft SMI Private Enterprise Code (RFC 2548 §1)
-	ttlsAVPMSCHAPChallenge  = 11  // MS-CHAP-Challenge AVP (RFC 2548 §2.1)
-	ttlsAVPMSCHAP2Response  = 25  // MS-CHAP2-Response AVP (RFC 2548 §2.3.2)
-	ttlsAVPMSCHAP2Success   = 26  // MS-CHAP2-Success AVP (RFC 2548 §2.3.3)
-	ttlsMSCHAPChallengeLen  = 16
-	ttlsMSCHAP2ResponseLen  = 50 // Ident(1)+Flags(1)+PeerChallenge(16)+Reserved(8)+NTResponse(24)
-	ttlsImplicitChallengeSz = 17 // 16-octet MS-CHAP-Challenge + 1-octet Ident (RFC 5281 §11.2.4)
+	ttlsAVPUserName          = 1   // RADIUS attribute 1, non-vendor (RFC 5281 §11.2.1)
+	ttlsAVPUserPassword      = 2   // RADIUS attribute 2, non-vendor (RFC 5281 §11.2.5)
+	ttlsAVPCHAPPassword      = 3   // CHAP-Password (RFC 2865 §5.3, RFC 5281 §11.2.2)
+	ttlsAVPCHAPChallenge     = 60  // CHAP-Challenge (RFC 2865 §5.40, RFC 5281 §11.2.2)
+	ttlsVendorMicrosoft      = 311 // Microsoft SMI Private Enterprise Code (RFC 2548 §1)
+	ttlsAVPMSCHAPResponse    = 1   // MS-CHAP-Response AVP (RFC 2548 §2.1, RFC 5281 §11.2.3)
+	ttlsAVPMSCHAPChallenge   = 11  // MS-CHAP-Challenge AVP (RFC 2548 §2.1)
+	ttlsAVPMSCHAP2Response   = 25  // MS-CHAP2-Response AVP (RFC 2548 §2.3.2)
+	ttlsAVPMSCHAP2Success    = 26  // MS-CHAP2-Success AVP (RFC 2548 §2.3.3)
+	ttlsMSCHAPChallengeLen   = 16
+	ttlsMSCHAP2ResponseLen   = 50 // Ident(1)+Flags(1)+PeerChallenge(16)+Reserved(8)+NTResponse(24)
+	ttlsMSCHAPLegacyRespLen  = 50 // Ident(1)+Flags(1)+LM-Response(24)+NT-Response(24)
+	ttlsImplicitChallengeSz  = 17 // 16-octet MS-CHAP-Challenge + 1-octet Ident (RFC 5281 §11.2.4)
+	ttlsCHAPChallengeSz      = 17 // 16-octet CHAP-Challenge + 1-octet Identifier (RFC 1994)
+	ttlsMSCHAPLegacyChalSz   = 9  // 8-octet MS-CHAP-Challenge + 1-octet Ident (RFC 2433)
 )
 
 // ttlsChallengeLabel is the RFC 5705 exporter label EAP-TTLS uses to derive the
@@ -54,7 +61,10 @@ const ttlsChallengeLabel = "ttls challenge"
 //   - inner MS-CHAP-V2 with valid credentials -> Access-Accept + MPPE keys,
 //     after the supplicant validates the tunneled MS-CHAP2-Success AVP and
 //     acknowledges with an empty EAP-TTLS frame (RFC 5281 §11.2.4);
-//   - inner MS-CHAP-V2 with a wrong password -> Access-Reject + EAP-Failure.
+//   - inner MS-CHAP-V2 with a wrong password -> Access-Reject + EAP-Failure;
+//   - inner CHAP (RFC 1994) and MS-CHAP (RFC 2433) with valid credentials ->
+//     Access-Accept + MPPE keys via the single-round challenge exchange;
+//   - the same methods with a wrong password -> Access-Reject + EAP-Failure.
 //
 // It is intentionally serial (no t.Parallel) because the RADIUS plugin registry,
 // dynamic settings, and rate limiter are process-global shared state. TLS 1.2 is
@@ -166,6 +176,94 @@ func TestTTLSEndToEnd(t *testing.T) {
 		assertMPPEKeys(t, resp, secret, sup.lastReqAuth)
 	})
 
+	t.Run("inner CHAP valid credentials authenticate and receive MPPE keys", func(t *testing.T) {
+		username := "it-ttls-chap-alice-" + suffix
+		password := "it-ttls-chap-pass-" + suffix
+		seedTTLSUser(t, profileID, username, password)
+
+		sup := &ttlsSupplicant{
+			serverAddr:  serverAddr,
+			secret:      secret,
+			username:    username,
+			password:    password,
+			nasID:       nasID,
+			nasIP:       nasIP,
+			clientCfg:   clientCfg(),
+			innerMethod: ttlsInnerCHAP,
+		}
+		resp := sup.authenticate(t)
+		require.Equalf(t, radius.CodeAccessAccept, resp.Code,
+			"valid TTLS-CHAP supplicant must authenticate, got %v (%q)", resp.Code, rfc2865.ReplyMessage_GetString(resp))
+		assertEAPCode(t, resp, eap.CodeSuccess)
+		assertMPPEKeys(t, resp, secret, sup.lastReqAuth)
+	})
+
+	t.Run("inner CHAP wrong password is rejected", func(t *testing.T) {
+		username := "it-ttls-chap-mallory-" + suffix
+		password := "it-ttls-chap-correct-" + suffix
+		seedTTLSUser(t, profileID, username, password)
+
+		sup := &ttlsSupplicant{
+			serverAddr:  serverAddr,
+			secret:      secret,
+			username:    username,
+			password:    password + "-wrong",
+			nasID:       nasID,
+			nasIP:       nasIP,
+			clientCfg:   clientCfg(),
+			innerMethod: ttlsInnerCHAP,
+		}
+		resp := sup.authenticate(t)
+		require.Equalf(t, radius.CodeAccessReject, resp.Code,
+			"wrong inner CHAP password must be rejected, got %v", resp.Code)
+		assertEAPCode(t, resp, eap.CodeFailure)
+		assertNoMPPEKeys(t, resp, secret, sup.lastReqAuth)
+	})
+
+	t.Run("inner MS-CHAP valid credentials authenticate and receive MPPE keys", func(t *testing.T) {
+		username := "it-ttls-mschap-legacy-alice-" + suffix
+		password := "it-ttls-mschap-legacy-pass-" + suffix
+		seedTTLSUser(t, profileID, username, password)
+
+		sup := &ttlsSupplicant{
+			serverAddr:  serverAddr,
+			secret:      secret,
+			username:    username,
+			password:    password,
+			nasID:       nasID,
+			nasIP:       nasIP,
+			clientCfg:   clientCfg(),
+			innerMethod: ttlsInnerMSCHAP,
+		}
+		resp := sup.authenticate(t)
+		require.Equalf(t, radius.CodeAccessAccept, resp.Code,
+			"valid TTLS-MSCHAP supplicant must authenticate, got %v (%q)", resp.Code, rfc2865.ReplyMessage_GetString(resp))
+		assertEAPCode(t, resp, eap.CodeSuccess)
+		assertMPPEKeys(t, resp, secret, sup.lastReqAuth)
+	})
+
+	t.Run("inner MS-CHAP wrong password is rejected", func(t *testing.T) {
+		username := "it-ttls-mschap-legacy-mallory-" + suffix
+		password := "it-ttls-mschap-legacy-correct-" + suffix
+		seedTTLSUser(t, profileID, username, password)
+
+		sup := &ttlsSupplicant{
+			serverAddr:  serverAddr,
+			secret:      secret,
+			username:    username,
+			password:    password + "-wrong",
+			nasID:       nasID,
+			nasIP:       nasIP,
+			clientCfg:   clientCfg(),
+			innerMethod: ttlsInnerMSCHAP,
+		}
+		resp := sup.authenticate(t)
+		require.Equalf(t, radius.CodeAccessReject, resp.Code,
+			"wrong inner MS-CHAP password must be rejected, got %v", resp.Code)
+		assertEAPCode(t, resp, eap.CodeFailure)
+		assertNoMPPEKeys(t, resp, secret, sup.lastReqAuth)
+	})
+
 	t.Run("inner MS-CHAP-V2 wrong password is rejected", func(t *testing.T) {
 		username := "it-ttls-mschap-mallory-" + suffix
 		password := "it-ttls-mschap-correct-" + suffix
@@ -261,6 +359,8 @@ type ttlsInnerMethod int
 const (
 	ttlsInnerPAP ttlsInnerMethod = iota
 	ttlsInnerMSCHAPv2
+	ttlsInnerCHAP
+	ttlsInnerMSCHAP
 )
 
 // ttlsSupplicant drives a real crypto/tls client through the EAP-TTLSv0 framing
@@ -342,6 +442,10 @@ func (s *ttlsSupplicant) runInner(t *testing.T) *radius.Packet {
 		return s.runInnerPAP(t)
 	case ttlsInnerMSCHAPv2:
 		return s.runInnerMSCHAPv2(t)
+	case ttlsInnerCHAP:
+		return s.runInnerCHAP(t)
+	case ttlsInnerMSCHAP:
+		return s.runInnerMSCHAP(t)
 	default:
 		t.Fatalf("unknown inner method %d", s.innerMethod)
 		return nil
@@ -393,6 +497,59 @@ func (s *ttlsSupplicant) runInnerMSCHAPv2(t *testing.T) *radius.Packet {
 	// Acknowledge with a zero-length EAP-TTLS frame (RFC 5281 §11.2.4).
 	resp2, _ := s.exchange(t, nil)
 	return resp2
+}
+
+// runInnerCHAP tunnels User-Name + CHAP-Challenge + CHAP-Password AVPs
+// (RFC 5281 §11.2.2). CHAP is single-round: the server either grants with MPPE
+// keys or rejects, so no follow-up frame is needed.
+func (s *ttlsSupplicant) runInnerCHAP(t *testing.T) *radius.Packet {
+	t.Helper()
+	cs := s.client.ConnectionState()
+	chal, err := cs.ExportKeyingMaterial(ttlsChallengeLabel, nil, ttlsCHAPChallengeSz)
+	require.NoError(t, err)
+	challenge, ident := chal[:16], chal[16]
+
+	sum := md5.New() //nolint:gosec // G401: CHAP is defined over MD5 (RFC 1994); the method is legacy and opt-in.
+	sum.Write([]byte{ident})
+	sum.Write([]byte(s.password))
+	sum.Write(challenge)
+	value := append([]byte{ident}, sum.Sum(nil)...)
+
+	var flight []byte
+	flight = append(flight, ttlsEncodeAVP(ttlsAVPUserName, 0, true, []byte(s.username))...)
+	flight = append(flight, ttlsEncodeAVP(ttlsAVPCHAPChallenge, 0, true, challenge)...)
+	flight = append(flight, ttlsEncodeAVP(ttlsAVPCHAPPassword, 0, true, value)...)
+
+	resp, _ := s.exchange(t, s.encrypt(t, flight))
+	return resp
+}
+
+// runInnerMSCHAP tunnels User-Name + MS-CHAP-Challenge + MS-CHAP-Response AVPs
+// (RFC 5281 §11.2.3, RFC 2433). The NT-Response is computed over the NT hash of
+// the UTF-16LE password, as every MS-CHAP client derives it.
+func (s *ttlsSupplicant) runInnerMSCHAP(t *testing.T) *radius.Packet {
+	t.Helper()
+	cs := s.client.ConnectionState()
+	chal, err := cs.ExportKeyingMaterial(ttlsChallengeLabel, nil, ttlsMSCHAPLegacyChalSz)
+	require.NoError(t, err)
+	challenge, ident := chal[:8], chal[8]
+
+	ucs2, err := rfc2759.ToUTF16([]byte(s.password))
+	require.NoError(t, err)
+	ntResponse := rfc2759.ChallengeResponse(challenge, rfc2759.NTPasswordHash(ucs2))
+
+	value := make([]byte, ttlsMSCHAPLegacyRespLen)
+	value[0] = ident
+	value[1] = 0x01 // Flags: NT-Response present (RFC 2433 §2.2)
+	copy(value[26:50], ntResponse)
+
+	var flight []byte
+	flight = append(flight, ttlsEncodeAVP(ttlsAVPUserName, 0, true, []byte(s.username))...)
+	flight = append(flight, ttlsEncodeAVP(ttlsAVPMSCHAPChallenge, ttlsVendorMicrosoft, true, challenge)...)
+	flight = append(flight, ttlsEncodeAVP(ttlsAVPMSCHAPResponse, ttlsVendorMicrosoft, true, value)...)
+
+	resp, _ := s.exchange(t, s.encrypt(t, flight))
+	return resp
 }
 
 // exchange sends one outer EAP-Response and reassembles the server's reply,
