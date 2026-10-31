@@ -35,6 +35,16 @@ const eventOptions = [
   ['billing.suspended', 'event.billing_suspended'], ['billing.reactivated', 'event.billing_reactivated'], ['scheduler.failure', 'event.scheduler_failure'],
 ];
 
+const STALE_GRACE_MILLISECONDS = 30_000;
+
+const isStaleTarget = (target: Target, now = Date.now()) => {
+  if (!target.enabled || !target.last_checked_at) return false;
+  const checkedAt = new Date(target.last_checked_at).getTime();
+  if (!Number.isFinite(checkedAt)) return false;
+  const interval = Math.max(target.interval_seconds, 1) * 1000;
+  return now - checkedAt > interval * 2 + STALE_GRACE_MILLISECONDS;
+};
+
 const formatBytes = (raw?: string) => {
   const bytes = Number(raw ?? 0);
   if (!Number.isFinite(bytes) || bytes < 0) return '—';
@@ -224,6 +234,7 @@ const OperationsPage: React.FC = () => {
   const avgUptime = activeTargets.length > 0
     ? activeTargets.reduce((acc, t) => acc + (t.uptime_percent ?? 100), 0) / activeTargets.length
     : 100;
+  const staleTargets = targets.filter((target) => isStaleTarget(target));
 
   return (
     <Box sx={{ p: { xs: 1.5, md: 2.5 }, maxWidth: 1600, mx: 'auto' }}>
@@ -264,7 +275,34 @@ const OperationsPage: React.FC = () => {
       </Tabs>
 
     {tab === 0 && <Stack spacing={2.5}>
-      {(targetsQuery.isError || incidentsQuery.isError) && <Alert severity="error">{translate('pages.operations.load_error')}</Alert>}
+      {(targetsQuery.isError || incidentsQuery.isError) && (
+        <Alert
+          severity="error"
+          action={
+            <Button
+              size="small"
+              color="inherit"
+              onClick={() => { void targetsQuery.refetch(); void incidentsQuery.refetch(); }}
+            >
+              {translate('pages.operations.retry')}
+            </Button>
+          }
+        >
+          {translate('pages.operations.load_error')}
+        </Alert>
+      )}
+      {staleTargets.length > 0 && (
+        <Alert
+          severity="warning"
+          action={
+            <Button size="small" color="inherit" onClick={() => void refresh()}>
+              {translate('pages.operations.refresh')}
+            </Button>
+          }
+        >
+          {translate('pages.operations.stale_warning', { count: staleTargets.length })}
+        </Alert>
+      )}
 
       {/* Kuma-style System Health Status Banner */}
       {targets.length > 0 && (
@@ -402,6 +440,9 @@ const OperationsPage: React.FC = () => {
                       />
                       <Chip size="small" variant="outlined" label={`${target.last_latency_milliseconds} ms`} />
                       <Chip size="small" variant="outlined" label={translate('pages.operations.loss_chip', { value: target.last_packet_loss_percent.toFixed(0) })} />
+                      {isStaleTarget(target) && (
+                        <Chip size="small" color="warning" variant="outlined" label={translate('pages.operations.stale_chip')} />
+                      )}
                       <Typography variant="caption" color="text.secondary" sx={{ minWidth: 100 }}>
                         {target.last_checked_at ? new Date(target.last_checked_at).toLocaleTimeString() : translate('pages.operations.not_checked')}
                       </Typography>
@@ -492,7 +533,19 @@ const OperationsPage: React.FC = () => {
               <Typography variant="subtitle1" fontWeight={700}>{translate('pages.operations.history_title')}</Typography>
               <Typography variant="caption" color="text.secondary">{translate('pages.operations.history_desc')}</Typography>
               {samplesQuery.isLoading ? <LinearProgress sx={{ mt: 1 }} /> : null}
-              {samplesQuery.isError && <Alert severity="error" sx={{ mt: 1 }}>{translate('pages.operations.history_load_error')}</Alert>}
+              {samplesQuery.isError && (
+                <Alert
+                  severity="error"
+                  sx={{ mt: 1 }}
+                  action={
+                    <Button size="small" color="inherit" onClick={() => void samplesQuery.refetch()}>
+                      {translate('pages.operations.retry')}
+                    </Button>
+                  }
+                >
+                  {translate('pages.operations.history_load_error')}
+                </Alert>
+              )}
               {!samplesQuery.isLoading && samples.length === 0 && (
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{translate('pages.operations.no_checks')}</Typography>
               )}
