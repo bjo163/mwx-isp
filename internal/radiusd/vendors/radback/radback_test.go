@@ -62,6 +62,28 @@ func TestRedbackBindDot1qVlanTagIDIntegerVSARoundTrip(t *testing.T) {
 	assert.Equal(t, BindDot1qVlanTagID(100), value)
 }
 
+// TestRedbackReplyStringVSAsRoundTrip pins the wire contract for the two
+// reply-side Redback string attributes used by the radback Access-Accept
+// enhancer: IP-Address-Pool-Name (36) and Subscriber-Profile-Name (91).
+func TestRedbackReplyStringVSAsRoundTrip(t *testing.T) {
+	p := &radius.Packet{}
+
+	require.NoError(t, IPAddressPoolName_SetString(p, "pool-r"))
+	require.NoError(t, SubscriberProfileName_SetString(p, "gold"))
+
+	assert.Equal(t, 2, vsaVendorCount(t, p, _Redback_VendorID))
+	assert.Equal(t, "pool-r", IPAddressPoolName_GetString(p))
+	assert.Equal(t, "gold", SubscriberProfileName_GetString(p))
+
+	IPAddressPoolName_Del(p)
+	assert.Equal(t, "", IPAddressPoolName_GetString(p))
+	assert.Equal(t, "gold", SubscriberProfileName_GetString(p))
+	assert.Equal(t, 1, vsaVendorCount(t, p, _Redback_VendorID))
+
+	SubscriberProfileName_Del(p)
+	assert.Equal(t, 0, vsaVendorCount(t, p, _Redback_VendorID), "the Redback VSAs should be gone after delete")
+}
+
 // TestRedbackVSAVendorIsolation ensures the Redback accessors ignore a foreign
 // vendor's attribute carried in the same packet.
 func TestRedbackVSAVendorIsolation(t *testing.T) {

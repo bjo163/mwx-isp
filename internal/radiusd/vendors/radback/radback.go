@@ -5,14 +5,18 @@
 //
 // Unlike the other vendor packages, this dictionary is deliberately pruned to
 // the attributes actually consumed by the radback request parser
-// (internal/radiusd/plugins/vendorparsers/parsers/radback_parser.go):
+// (internal/radiusd/plugins/vendorparsers/parsers/radback_parser.go) and the
+// radback Access-Accept enhancer
+// (internal/radiusd/plugins/auth/enhancers/radback_enhancer.go):
 //
-//   - Mac-Addr (attribute 145, string)
-//   - Bind-Dot1q-Vlan-Tag-Id (attribute 54, integer)
+//   - Mac-Addr (attribute 145, string, request side)
+//   - Bind-Dot1q-Vlan-Tag-Id (attribute 54, integer, request side)
+//   - IP-Address-Pool-Name (attribute 36, string, reply side)
+//   - Subscriber-Profile-Name (attribute 91, string, reply side)
 //
 // The full radius-dict-gen output for this vendor was ~15k lines with only the
-// two accessors above referenced anywhere in the tree, so the generated file
-// was replaced by this minimal hand-written equivalent. The accessor names and
+// accessors above referenced anywhere in the tree, so the generated file was
+// replaced by this minimal hand-written equivalent. The accessor names and
 // wire behavior are identical to the generated code; the round-trip tests in
 // radback_test.go pin the wire contract. If a wider attribute surface is ever
 // needed, regenerate the full dictionary with radius-dict-gen instead of
@@ -32,8 +36,10 @@ const _Redback_VendorID = 2352
 
 // Attribute numbers of the VSAs kept in this pruned dictionary.
 const (
-	_Redback_MacAddr_Type            = 145
-	_Redback_BindDot1qVlanTagID_Type = 54
+	_Redback_MacAddr_Type               = 145
+	_Redback_BindDot1qVlanTagID_Type    = 54
+	_Redback_IPAddressPoolName_Type     = 36
+	_Redback_SubscriberProfileName_Type = 91
 )
 
 func _Redback_AddVendor(p *radius.Packet, typ byte, attr radius.Attribute) (err error) {
@@ -214,4 +220,84 @@ func BindDot1qVlanTagID_Get(p *radius.Packet) (value BindDot1qVlanTagID) {
 func BindDot1qVlanTagID_Set(p *radius.Packet, value BindDot1qVlanTagID) (err error) {
 	a := radius.NewInteger(uint32(value))
 	return _Redback_SetVendor(p, _Redback_BindDot1qVlanTagID_Type, a)
+}
+
+// _Redback_LookupString returns the first string VSA of the given type on p, or
+// radius.ErrNoAttribute if the packet carries none.
+func _Redback_LookupString(p *radius.Packet, typ byte) (value string, err error) {
+	a, ok := _Redback_LookupVendor(p, typ)
+	if !ok {
+		err = radius.ErrNoAttribute
+		return
+	}
+	value = radius.String(a)
+	return
+}
+
+// _Redback_GetString returns the first string VSA of the given type on p, or
+// the empty string if the packet carries none.
+func _Redback_GetString(p *radius.Packet, typ byte) (value string) {
+	value, _ = _Redback_LookupString(p, typ)
+	return
+}
+
+// _Redback_SetString replaces any string VSAs of the given type on p with the
+// given value.
+func _Redback_SetString(p *radius.Packet, typ byte, value string) (err error) {
+	var a radius.Attribute
+	a, err = radius.NewString(value)
+	if err != nil {
+		return
+	}
+	return _Redback_SetVendor(p, typ, a)
+}
+
+// IPAddressPoolName_LookupString returns the first Redback IP-Address-Pool-Name
+// (36) VSA on p, or radius.ErrNoAttribute if the packet carries none.
+func IPAddressPoolName_LookupString(p *radius.Packet) (value string, err error) {
+	return _Redback_LookupString(p, _Redback_IPAddressPoolName_Type)
+}
+
+// IPAddressPoolName_GetString returns the first Redback IP-Address-Pool-Name
+// (36) VSA on p as a string, or the empty string if the packet carries none.
+func IPAddressPoolName_GetString(p *radius.Packet) (value string) {
+	return _Redback_GetString(p, _Redback_IPAddressPoolName_Type)
+}
+
+// IPAddressPoolName_SetString replaces any Redback IP-Address-Pool-Name (36)
+// VSAs on p with the given string value.
+func IPAddressPoolName_SetString(p *radius.Packet, value string) (err error) {
+	return _Redback_SetString(p, _Redback_IPAddressPoolName_Type, value)
+}
+
+// IPAddressPoolName_Del removes all Redback IP-Address-Pool-Name (36) VSAs from
+// p.
+func IPAddressPoolName_Del(p *radius.Packet) {
+	_Redback_DelVendor(p, _Redback_IPAddressPoolName_Type)
+}
+
+// SubscriberProfileName_LookupString returns the first Redback
+// Subscriber-Profile-Name (91) VSA on p, or radius.ErrNoAttribute if the packet
+// carries none.
+func SubscriberProfileName_LookupString(p *radius.Packet) (value string, err error) {
+	return _Redback_LookupString(p, _Redback_SubscriberProfileName_Type)
+}
+
+// SubscriberProfileName_GetString returns the first Redback
+// Subscriber-Profile-Name (91) VSA on p as a string, or the empty string if the
+// packet carries none.
+func SubscriberProfileName_GetString(p *radius.Packet) (value string) {
+	return _Redback_GetString(p, _Redback_SubscriberProfileName_Type)
+}
+
+// SubscriberProfileName_SetString replaces any Redback Subscriber-Profile-Name
+// (91) VSAs on p with the given string value.
+func SubscriberProfileName_SetString(p *radius.Packet, value string) (err error) {
+	return _Redback_SetString(p, _Redback_SubscriberProfileName_Type, value)
+}
+
+// SubscriberProfileName_Del removes all Redback Subscriber-Profile-Name (91)
+// VSAs from p.
+func SubscriberProfileName_Del(p *radius.Packet) {
+	_Redback_DelVendor(p, _Redback_SubscriberProfileName_Type)
 }

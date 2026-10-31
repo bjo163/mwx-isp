@@ -4,17 +4,21 @@ This document is the M5.1 inventory for "vendor backlog and dictionary gaps"
 under TR-F005. It is intentionally snapshot-style so the next M5 batch can
 execute without re-discovering the same scope.
 
-> Refreshed after the M5.2 request-parser batch (#449–#454), the M5.3 Aruba
-> response enhancer (#456), and the M5.4 Cisco `cisco-avpair` response enhancer
-> (#543) landed. The first baseline (#433) predated that work and is superseded by
-> the matrix below; see "Delta since the first baseline".
+> Refreshed after the M5.5 batch (2026-10-31), which added the seven remaining
+> Access-Accept enhancers — `alcatel`, `juniper`, `radback`, `microsoft`, `f5`,
+> `hillstone` and `pfSense` — and restored the three dictionaries (f5,
+> hillstone, pfSense) those enhancers need. Every vendor dictionary in the tree
+> now has a parser and/or enhancer consumer, so this inventory no longer names a
+> missing enhancer.
 >
-> A dictionary-pruning pass then removed the zero-reference generated packages
+> Earlier rounds: M5.2 request parsers (#449–#454), M5.3 Aruba response
+> enhancer (#456), and M5.4 Cisco `cisco-avpair` response enhancer (#543). A
+> dictionary-pruning pass had removed the then-zero-reference generated packages
 > (`f5`, `hillstone`, `pfSense`, `unix`) and replaced the `radback` generated
-> dictionary with a hand-maintained minimal one; see "Delta: dictionary
-> pruning". CI now enforces that every package under
-> `internal/radiusd/vendors/` keeps at least one external reference
-> (`scripts/check-vendor-dict-usage.sh`).
+> dictionary with a hand-maintained minimal one; M5.5 restores f5/hillstone/
+> pfSense together with their consumers, and `unix` stays removed. CI enforces
+> that every package under `internal/radiusd/vendors/` keeps at least one
+> external reference (`scripts/check-vendor-dict-usage.sh`).
 
 ## Scope and Method
 
@@ -42,16 +46,18 @@ grep -c '^\$INCLUDE' share/dictionary                       # 213
 
 ## Coverage Snapshot (current)
 
-- Generated vendor dictionary packages: `11` (after the pruning pass removed
-  `f5`, `hillstone`, `pfSense`, `unix`)
+- Vendor dictionary packages: `14` — 13 generated with radius-dict-gen plus the
+  hand-maintained minimal `radback` package
 - Registered vendor parsers (`parsers/init.go`): `default + huawei + h3c + zte +
   radback + alcatel + aruba + juniper` (7 vendors + default)
-- Registered response enhancers (`plugins/init.go`): `default + huawei + h3c +
-  zte + mikrotik + ikuai + aruba + cisco` (7 vendors + default)
+- Registered response enhancers (`plugins/init.go`): `default` plus `huawei`,
+  `h3c`, `zte`, `mikrotik`, `ikuai`, `aruba`, `cisco`, `alcatel`, `juniper`,
+  `radback`, `microsoft`, `f5`, `hillstone` and `pfsense` (14 vendors + default)
 - `share/dictionary` includes `213` `$INCLUDE dictionary.*` entries; the repo
-  ships in-tree packages for `11` of those vendors. Removed dictionaries can be
-  regenerated from `share/dictionary.*` with radius-dict-gen when a parser or
-  enhancer actually needs them.
+  ships in-tree packages for `13` of those vendors (ikuai has no
+  `share/dictionary.ikuai`; radback has no `share/dictionary.radback`).
+  Removed dictionaries can be regenerated from `share/dictionary.*` with
+  radius-dict-gen when a parser or enhancer actually needs them.
 - CI gate: `scripts/check-vendor-dict-usage.sh` fails the Lint job if any
   vendor dictionary package has zero external references.
 
@@ -68,21 +74,24 @@ does not depend on a parser.
 
 | Vendor Package | Vendor ID | `Code*` Constant | Parser | Enhancer | Dictionary Source |
 | --- | ---: | --- | --- | --- | --- |
-| `alcatel` | 3041 | present | present | missing | `share/dictionary.alcatel` |
+| `alcatel` | 3041 | present | present | present | `share/dictionary.alcatel` |
 | `aruba` | 14823 | present | present | present | `share/dictionary.aruba` |
 | `cisco` | 9 | present | missing | present | `share/dictionary.cisco` |
+| `f5` | 3375 | present | missing | present | `share/dictionary.f5` |
 | `h3c` | 25506 | present | present | present | `share/dictionary.h3c` |
+| `hillstone` | 28557 | present | missing | present | `share/dictionary.hillstone` |
 | `huawei` | 2011 | present | present | present | `share/dictionary.huawei` |
 | `ikuai` | 10055 | present | missing | present | no `share/dictionary.ikuai` in tree |
-| `juniper` | 2636 | present | present | missing | `share/dictionary.juniper` |
-| `microsoft` | 311 | present | missing | missing | `share/dictionary.microsoft` (used by EAP MS-CHAPv2) |
+| `juniper` | 2636 | present | present | present | `share/dictionary.juniper` |
+| `microsoft` | 311 | present | missing | present | `share/dictionary.microsoft` (also used by EAP MS-CHAPv2) |
 | `mikrotik` | 14988 | present | missing | present | `share/dictionary.mikrotik` |
-| `radback` | 2352 | present | present | missing | hand-maintained minimal package (Mac-Addr 145, Bind-Dot1q-Vlan-Tag-Id 54); no `share/dictionary.radback`/`.redback` in tree |
+| `pfsense` | 13644 | present | missing | present | `share/dictionary.pfsense` |
+| `radback` | 2352 | present | present | present | hand-maintained minimal package (Mac-Addr 145, Bind-Dot1q-Vlan-Tag-Id 54, IP-Address-Pool-Name 36, Subscriber-Profile-Name 91); no `share/dictionary.radback`/`.redback` in tree |
 | `zte` | 3902 | present | present | present | `share/dictionary.zte` |
 
-Removed in the pruning pass (regenerate on demand from `share/dictionary.*`):
-`f5` (3375), `hillstone` (28557), `pfSense` (13644), `unix` (4). Their `Code*`
-constants remain in `codes.go` where they already existed.
+Still removed from the pruning pass: `unix` (4). Its `Code*` constant does not
+exist and it has no consumer; recreate constant, package and consumer together
+if one is ever actually wired.
 
 ## Delta since the first baseline (#433)
 
@@ -107,8 +116,7 @@ zero external references, and that `radback` (15k generated lines, 1,708
 accessors) was consumed through exactly two accessors. The pruning pass:
 
 - removed `internal/radiusd/vendors/{f5,hillstone,pfSense,unix}` (zero
-  references outside their own package; roadmap M5.4 lists their enhancers as
-  demand-driven with no scheduled milestone)
+  references outside their own package at that time)
 - replaced `radback/generated.go` with a hand-maintained minimal package
   keeping the exact accessor names and wire behavior used by
   `radback_parser.go` (`MacAddr_GetString`, `BindDot1qVlanTagID_Get`) and its
@@ -120,24 +128,44 @@ Regenerating a removed vendor: run radius-dict-gen against the corresponding
 `share/dictionary.*` source and add the package back together with the consumer
 that needs it.
 
+## Delta: M5.5 response-enhancer batch
+
+Seven Access-Accept enhancers close the response-side gaps the first baseline
+listed as demand-driven. Each follows the M5.3/M5.4 pattern: vendor gate via
+`matchVendor`, nil-safety, profile-inherited getters, register in
+`internal/radiusd/plugins/init.go`, and sample-based tests covering the vendor
+match, the emitted values, `N/A`/empty skipping and nil safety.
+
+| Enhancer | Emits | Source field |
+| --- | --- | --- |
+| `accept-alcatel` | `AAT-PPP-Address` (9, ipaddr), `AAT-IP-Pool-Definition` (63, string) | `IpAddr` (IPv4 only), `GetAddrPool` |
+| `accept-juniper` | `Juniper-Local-User-Name` (1), `Juniper-Ip-Pool-Name` (36), `Juniper-VoIP-Vlan` (49) | `Username`, `GetAddrPool`, `Vlanid2` (1..4094) |
+| `accept-radback` | `IP-Address-Pool-Name` (36), `Subscriber-Profile-Name` (91) | `GetAddrPool`, `GetDomain` |
+| `accept-microsoft` | `MS-Service-Class` (42) | `GetDomain` |
+| `accept-f5` | `F5-LTM-User-Partition` (3) | `GetDomain` |
+| `accept-hillstone` | `Hillstone-User-Role-Bame` (9), `Hillstone-VPN-DHCP-Pool` (102) | `GetDomain`, `GetAddrPool` |
+| `accept-pfsense` | `pfSense-Bandwidth-Max-Up` (1), `pfSense-Bandwidth-Max-Down` (2) | `GetUpRate`, `GetDownRate` (kbit/s, positive only) |
+
+`Domain` is the generic vendor-policy field already used by the Huawei and
+Aruba enhancers; it is mapped to the one primary policy selector each of these
+NAS platforms reads. Attributes a subscriber record does not model (F5 role /
+shell / console, MS-MPPE key material) are deliberately not invented.
+
+The three restored dictionaries (`f5`, `hillstone`, `pfsense`) are fresh
+radius-dict-gen output from the in-tree `share/dictionary.*` sources, and the
+`radback` minimal package gained the two reply-side string accessors it now
+serves.
+
 ## Remaining gaps / backlog for the next M5 batch
 
-The high-value request-side parsers are now delivered (see Delta above), so the
-remaining TR-F005 work is response-enhancer and hygiene work:
+The high-value request-side parsers and every response enhancer shipped in tree
+are now delivered (see Deltas above). What remains is deliberately
+demand-driven:
 
-1. **Response enhancers (demand-driven), no parser dependency.** Highest value
-   first:
-   - `cisco` `cisco-avpair` — **delivered as M5.4** (#543): the `accept-cisco`
-     enhancer emits `Cisco-AVPair="ip:addr-pool=<pool>"` from `GetAddrPool`
-     (address pool only; rate stays device-side, Cisco has no portable numeric
-     rate VSA).
-   - `alcatel`, `juniper`, `radback` — already have a request parser but no
-     response enhancer; add when a deployment needs their reply attributes.
-   - `microsoft` — no parser/enhancer, but its dictionary stays: the EAP
-     MS-CHAPv2 handlers consume it.
-   - `f5`, `hillstone`, `pfSense` — packages removed in the pruning pass;
-     regenerate the dictionary and wire the enhancer together when demand
-     surfaces.
+1. **New vendors only on demand.** Adding an enhancer (or a dictionary) for a
+   vendor outside the current matrix follows the same pattern: dictionary +
+   consumer + registration + sample-based tests. No vendor in `share/dictionary`
+   is a current target on its own.
 2. **Parsers — high-value request-side MAC/VLAN vendors are done.** Add a new
    parser only when a vendor dictionary proves a vendor-specific MAC/VLAN
    **request** encoding (otherwise it duplicates `DefaultParser`).
