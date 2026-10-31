@@ -1,5 +1,34 @@
 # MWX-ISP Changelog
 
+## v0.20.0 — 2026-10-31
+
+Changes since v0.19.8:
+
+### Features
+
+- add tenant asset storage and verified domains
+- add section editor and public published site
+- add safe draft publish version and rollback APIs
+- build tenant Package Studio and catalog presentation
+- expand Brand Studio identity and design settings
+- add tenant package presentation model and APIs
+
+### Fixes and Improvements
+
+- make sqlite and FUP period fixtures CI-safe
+- keep custom-domain uniqueness per hostname
+- populate release_sha on the republish path
+- repair branding compile, hostname validation, and package visibility
+- preserve explicit public visibility on insert
+- correct scoped query and menu test counts
+- repair contextual workspace menu count assertion
+- close M19 CI and tenant isolation gaps
+- import version parser for rollback endpoint
+- include tenant brand and package metadata in tenant backfill
+- remove unused platform context from public surface test
+- repair tenant subdomain index and update tenant menu policy tests
+- repair tenant branding route, authorization and frontend
+
 ## v0.19.8 — 2026-10-30
 
 Changes since v0.19.7:
