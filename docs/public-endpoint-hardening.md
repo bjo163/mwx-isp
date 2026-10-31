@@ -61,6 +61,13 @@ another tenant's budget.
 - `/public/vouchers/check` returns one generic failure for missing, revoked and
   expired codes.
 - 5xx responses are redacted by the shared `fail` helper.
+- `GET /metrics` sits outside the JWT group like `/ready` and `/realip`, so it
+  carries its own credential: the bearer token in `TOUGHRADIUS_METRICS_TOKEN`.
+  While that variable is empty the route answers 404 — no counter, gauge or
+  metric name is disclosed — and a wrong token answers 401 with an empty body.
+  Treat the token as an installation secret; the payload itself is counters
+  only, never subscriber or credential data.
+  Verification: `go test ./internal/webserver/ -run TestMetricsEndpoint -count=1`.
 
 ## Deployment note
 

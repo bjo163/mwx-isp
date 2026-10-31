@@ -112,6 +112,7 @@ Environment variables override the YAML file:
 | `TOUGHRADIUS_LOGGER_MODE` / `_LOGGER_FILE_ENABLE` | `logger.*` |
 | `TOUGHRADIUS_RADIUS_POOL` | RADIUS worker pool size (default 1024) |
 | `TOUGHRADIUS_ADMIN_PASSWORD` | Optional first-start / rotation password for the bootstrap `admin` account. Ignored if it matches the historical default. |
+| `TOUGHRADIUS_METRICS_TOKEN` | No YAML key — the bearer token that enables `GET /metrics` (see [Metrics](#metrics)). Empty disables the endpoint. |
 
 ### CLI flags
 
@@ -191,9 +192,27 @@ off in production).
 
 ## Metrics
 
-Counters are kept in memory and surfaced through the admin dashboard (there is
-no Prometheus `/metrics` HTTP endpoint). RADIUS counters include: `radus_accept`,
-`radus_online`/`radus_offline`, `radus_accounting`, `radus_auth_drop` /
+Counters are kept in memory and published in the Prometheus text exposition
+format by `GET /metrics`. The endpoint is **disabled by default** and answers
+404 until a scrape token is configured:
+
+```bash
+# .env (docker compose maps MWX_ISP_METRICS_TOKEN to TOUGHRADIUS_METRICS_TOKEN)
+MWX_ISP_METRICS_TOKEN=$(openssl rand -hex 24)
+```
+
+```bash
+curl -H "Authorization: Bearer ${MWX_ISP_METRICS_TOKEN}" https://isp.example.com/metrics
+```
+
+A wrong or missing bearer token gets 401, and the response is never gzipped.
+Because the token is a read credential for operational data, rotate it like any
+other installation secret.
+
+RADIUS counters include: `radus_accept`, `radus_online`/`radus_offline` (these
+count successfully processed Accounting-Start and Accounting-Stop events, not
+the number of sessions currently online — read the online-session list for
+that), `radus_accounting`, `radus_auth_drop` /
 `radus_acct_drop`, `radus_radsec_saturated`, and per-cause reject counters —
 `radus_reject_passwd_error`, `radus_reject_not_exists`, `radus_reject_expire`,
 `radus_reject_disabled`, `radus_reject_limit`, `radus_reject_bind_error`,
@@ -207,10 +226,18 @@ at ingress are classified by reason — `radus_acct_drop_nas` (unknown or
 unauthorized NAS), `radus_acct_drop_username` (missing username), and
 `radus_acct_drop_secret` (bad Request Authenticator) — while `radus_acct_drop`
 remains the catch-all for back-pressure and response-write drops. System gauges
-(CPU/memory, process CPU/memory) are sampled every 30 s.
+are also exported: `system_cpuuse` / `system_memuse` (host CPU percentage ×100
+and memory in MB) and `mwx_isp_cpuuse` / `mwx_isp_memuse` (this process),
+sampled every 30 s.
 
-For external monitoring, probe the service ports and watch the log file; treat
-process exit as the failure signal (the process model is fail-fast).
+These counters are process-local: they reset on restart and are per instance, so
+they are not the audit history. The admin dashboard reads the persisted
+accounting and session tables instead, which is why a restart does not move the
+dashboard's 7-day trend.
+
+For external monitoring, scrape `/metrics`, probe the service ports and watch
+the log file; treat process exit as the failure signal (the process model is
+fail-fast).
 
 ## Repair and uninstall a VPS deployment
 

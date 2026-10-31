@@ -45,6 +45,36 @@ kredensialnya sendiri sebelum onboarding pelanggan.
 Jangan membuka database PostgreSQL ke publik. Terapkan allowlist firewall untuk
 NAS dan port yang benar-benar digunakan.
 
+## Metrik dan pemantauan
+
+Semua counter RADIUS dan gauge sistem (CPU/memori host dan proses) disimpan di
+memori dan disajikan ulang dalam format teks Prometheus pada `GET /metrics`.
+Endpoint ini **nonaktif secara default** dan menjawab 404 sampai token scrape
+dikonfigurasi:
+
+```bash
+# .env (docker compose memetakan MWX_ISP_METRICS_TOKEN ke TOUGHRADIUS_METRICS_TOKEN)
+MWX_ISP_METRICS_TOKEN=$(openssl rand -hex 24)
+```
+
+```bash
+curl -H "Authorization: Bearer ${MWX_ISP_METRICS_TOKEN}" https://isp.example.com/metrics
+```
+
+Token salah atau kosong menghasilkan 401. Namanya tidak berubah dari yang
+sudah dikenal di log dan handbook: `radus_accept`, `radus_accounting`,
+`radus_online`/`radus_offline` (penghitung accounting Start/Stop yang sukses, bukan
+jumlah sesi yang sedang online — untuk itu lihat daftar online session),
+`radus_auth_drop`/`radus_acct_drop`, `radus_radsec_saturated`, serta counter
+penolakan per penyebab seperti `radus_reject_passwd_error` dan
+`radus_reject_ldap_error`. Gauge sistem diekspor sebagai `system_cpuuse`,
+`system_memuse`, `mwx_isp_cpuuse`, dan `mwx_isp_memuse` dengan sampling tiap
+30 detik.
+
+Counter ini bersifat per proses dan kembali nol setelah restart; dashboard admin
+membaca tabel accounting dan sesi yang tersimpan di database, sehingga tren
+7 hari tidak berubah ketika layanan dimulai ulang.
+
 ## Perbaikan dan uninstall deployment VPS
 
 Perintah repair online mengunduh installer resmi terbaru dari branch `main`

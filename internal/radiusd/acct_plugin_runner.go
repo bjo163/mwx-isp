@@ -68,11 +68,13 @@ func (s *AcctService) HandleAccountingWithPlugins(
 			// Record metrics for successful handling
 			switch statusType {
 			case rfc2866.AcctStatusType_Value_Start:
+				app.IncRadiusMetric(app.MetricsRadiusOline)
 				zap.L().Info("radius accounting start",
 					zap.String("namespace", "radius"),
 					zap.String("metrics", app.MetricsRadiusOline),
 				)
 			case rfc2866.AcctStatusType_Value_Stop:
+				app.IncRadiusMetric(app.MetricsRadiusOffline)
 				zap.L().Info("radius accounting stop",
 					zap.String("namespace", "radius"),
 					zap.String("metrics", app.MetricsRadiusOffline),
