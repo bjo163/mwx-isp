@@ -30,7 +30,7 @@ Penanda tipe: `LOKAL` = bisa dikerjakan di repo · `ASET` = butuh perangkat/host
 - M5 vendor VSA expansion (`M5.1`–`M5.5`) **selesai di `dev`**: seluruh 14 paket dictionary vendor punya consumer, dan tidak ada enhancer vendor yang tersisa.
 - M6 observability **selesai di `dev`**: counter dan gauge yang sudah dikumpulkan kini terbaca lewat `GET /metrics` (format teks Prometheus, bertoken, default nonaktif).
 - M14 LDAP **selesai di `dev`** dengan tertutupnya M14.5: tenggat permintaan kini membatasi setiap round trip ke directory; connection pooling dievaluasi terhadap angka nyata dan sengaja tidak diambil.
-- Tidak ada PR terbuka.
+- PR promosi **#120** (`dev` → `main`) masih terbuka; baris M14 di `docs/roadmap.md` baru boleh berbunyi `Delivered` setelah PR itu merge.
 
 ---
 
@@ -69,11 +69,18 @@ Mapping yang dipakai: `IpAddr` → AAT-PPP-Address, `GetAddrPool` → AAT-IP-Poo
 
 Sisanya sudah ada dari M3/M18 (agregasi dashboard, bucketing timezone, ringkasan IPv6), jadi M6 tidak menambah metrik baru — hanya jalur baca yang sebelumnya tidak ada.
 
-## 5. Selesai — M14.5 LDAP connection robustness (TR-F025)
+## 5. Selesai — M14.5 LDAP connection robustness (TR-F025) + dua temuan gerbang PR #120
 
 | # | Item | Kode | Tipe | Bukti |
 | --- | --- | --- | --- | --- |
 | 10 | Bukti beban koneksi LDAP lalu keputusan desain: propagasi request context, pooling ditolak dengan pemicu buka-kembali tercatat | M14.5 / ENG-015 | `LOKAL` | `tools/ldapload` (`main.go` + `main_test.go`); `docs/ldap-connection-load-evidence-2026-10-31.md`; `internal/ldapauth/ldapauth.go` (`dialFunc` menerima ctx, `armTimeout`, cek ctx sebelum tiap round trip) + `TestVerify_ContextHonoredAfterDial`; `VerifyCleartext` di `internal/radiusd/ldap_backend.go` memasang tenggat `ldap.Timeout` saat pemanggil tidak bawa deadline + `TestLDAPBackend_VerifyCleartextBoundsSilentDirectory`; semantik `ldap.Timeout` di `internal/app/config_schemas.json` + `web/src/i18n/en-US.ts`; handbook EN/ID `auth-ldap` |
+| 11 | Invoice yatim (tanpa baris subscription) dilewati oleh penegakan tagihan, dicatat di log + metrik, dan pembayaran tetap dibukukan | TR-F028 / ENG-065 | `LOKAL` | `internal/billing/service.go` (`SuspendOverdueSubscriptions` melewati `gorm.ErrRecordNotFound`; `RecordPayment` tetap membukukan uang dan hanya melewatkan reaktivasi; `OrphanInvoices` + warn log) + `TestSuspendOverdueContinuesPastADanglingInvoice` / `TestRecordPaymentBooksAnInvoiceWithoutSubscription`; series `billing_invoice_without_subscription_total` di `internal/app/metrics.go` + handbook EN/ID `ops-guide` |
+| 12 | Fixture FUP (integrasi dan unit) dijepit ke awal periode kalender supaya tidak lagi kalah di dua jam pertama tiap bulan | TR-F025 gerbang CI | `LOKAL` | `test/integration/fup_tenant_test.go` (`closedStart` / `closedStop` di-clamp ke `monthStart`); `internal/app/jobs_test.go` (`seedFUPAccounting` clamp `AcctStartTime`/`AcctStopTime`) — terkonfirmasi merah lokal pada 01 Nov 00:40 sebelum clamp, hijau sesudahnya |
+| 13 | Fixture nomor dokumen dibersihkan setelah tes agar invoice tanpa subscription tidak menetap di dataset bersama | gerbang CI putaran kedua | `LOKAL` | `test/integration/invoice_numbering_test.go` (`t.Cleanup` hapus invoice, customer, dan sequence) |
+
+Satu nomor baris dipakai ulang: tabel §6 sebelumnya memakai `# 11` untuk EAP-PWD; nomor itu sekarang `# 14` di bawah.
+
+Dua temuan itu muncul dari job `Integration (PostgreSQL/OpenLDAP)` yang merah tepat di jam 00:01 (+08) saat PR #120 dibuka, dan keduanya direproduksi lokal dengan `TZ=Asia/Makassar` pada suite yang sama. Yang pertama bukan urusan tanggal: sweep tagihan memakai DB tanpa scope tenant, sehingga satu invoice yang tidak punya baris subscription menghentikan seluruh suspensi sesudahnya. Invoice semacam itu bisa benar-benar ada di produksi — restore backup men-upsert invoice tanpa memvalidasi referensinya (`system_backup.go` melakukan `checkTenantReference` pada ticket, tidak pada invoice) — jadi jalurnya ditutup di produk, bukan cuma di tes: invoice yatim dilewati, diwarn, dan dihitung di satu series berlabel tetap; `RecordPayment` tetap membukukan uangnya dan hanya melewatkan reaktivasi. Yang kedua murni batas kalender: `fupMonthlyTraffic` hanya menjumlah sesi yang mulai di dalam bulan berjalan, jadi sesi "dua jam lalu" keluar dari periode pada dua jam pertama tiap bulan. Perilaku produk FUP benar — periode baru memang kuota baru — yang salah adalah fixture tesnya. Putaran review kedua menambahkan `t.Cleanup` pada fixture nomor dokumen (invoice `subscription_id = 0` hasil tes itu menetap di dataset bersama dan jadi pemicu temuan pertama di run berikutnya) dan memperbaik komentasi akar masalah yang semula salah menyebut reseed demo — reseed justru menghapus subscription hanya ketika `remainingInvoices == 0` (`internal/demoseed/seeder.go`).
 
 Angka yang jadi dasar keputusan (OpenLDAP container di `docker-compose.test.yml`, loopback, go1.27.0): biaya koneksi = 77 % (template) / 84 % (search) dari latency satu verifikasi, dan tenggat pemanggil 200 ms dulu diabaikan — `Verify` baru kembali setelah `ldap.Timeout` 3 s penuh. Setelah propagasi context: 200,5 ms / 200,1 ms. Pooling ditolak karena Bind membuat koneksi melekat pada identitas subscriber; tabungan yang dibayar (~0,5 ms dial loopback) tidak sebanding dengan risiko bocor identitas. Profil pada directory produksi sungguhan (`ldaps://` lintas jaringan) tetap belum dikerjakan dan tidak diklaim.
 
@@ -81,7 +88,7 @@ Angka yang jadi dasar keputusan (OpenLDAP container di `docker-compose.test.yml`
 
 | # | Item | Kode | Tipe | Kondisi |
 | --- | --- | --- | --- | --- |
-| 11 | EAP-PWD (RFC 5931) | M12.2–M12.5 | `LOKAL` | demand-gated; spesifikasi sudah tersedia (`docs/rfcs/rfc5931-eap-pwd.txt`), kode belum ada |
+| 14 | EAP-PWD (RFC 5931) | M12.2–M12.5 | `LOKAL` | demand-gated; spesifikasi sudah tersedia (`docs/rfcs/rfc5931-eap-pwd.txt`), kode belum ada |
 
 ## 7. Backlog audit — 34 item sisa
 
