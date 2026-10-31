@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/mail"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -86,6 +87,9 @@ func registerISPRoutes() {
 	webserver.ApiDELETE("/isp/customers/:id", deleteCustomer, admin)
 	webserver.ApiGET("/isp/packages", listPackages)
 	webserver.ApiGET("/isp/packages/:id", getPackage)
+	webserver.ApiGET("/isp/package-presentations", listPackagePresentations, admin)
+	webserver.ApiGET("/isp/packages/:id/presentation", getPackagePresentation, admin)
+	webserver.ApiPUT("/isp/packages/:id/presentation", updatePackagePresentation, admin)
 	webserver.ApiPOST("/isp/packages", createPackage, admin)
 	webserver.ApiPUT("/isp/packages/:id", updatePackage, admin)
 	webserver.ApiDELETE("/isp/packages/:id", deletePackage, admin)
@@ -107,7 +111,7 @@ func registerISPRoutes() {
 	webserver.ApiGET("/portal/invoices/:id/payment-channel", getInvoicePaymentChannel, portalPaymentChannelRateLimiter())
 	webserver.ApiPOST("/portal/invoices/:id/simulate-pay", simulateInvoicePayment)
 	webserver.ApiPOST("/portal/payments/webhook", handlePaymentWebhook)
-	webserver.ApiGET("/public/packages", listPublicPackages)
+	webserver.ApiGET("/public/packages", listPublicPackages, packageCatalogRateLimiter())
 	webserver.ApiPOST("/public/register", registerPublicCustomer,
 		publicRegistrationRateLimiter(), middleware.BodyLimit(publicRegistrationBodyLimit))
 	webserver.ApiGET("/dashboard/isp-stats", getISPDashboardStats)
@@ -517,98 +521,98 @@ func getPackage(c echo.Context) error {
 }
 
 type publicPackageDTO struct {
-	ID           int64  `json:"id,string"`
-	Code         string `json:"code"`
-	Name         string `json:"name"`
-	Price        int64  `json:"price"`
-	Description  string `json:"description"`
+	ID int64 `json:"id,string"`
+	Code string `json:"code"`
+	Name string `json:"name"`
+	Price int64 `json:"price"`
+	Description string `json:"description"`
 	BillingCycle string `json:"billing_cycle"`
-	FupLimitGB   int64  `json:"fup_limit_gb"`
-	UpRateKbps   int    `json:"up_rate_kbps"`
-	DownRateKbps int    `json:"down_rate_kbps"`
+	FupLimitGB int64 `json:"fup_limit_gb"`
+	UpRateKbps int `json:"up_rate_kbps"`
+	DownRateKbps int `json:"down_rate_kbps"`
 	SpeedDisplay string `json:"speed_display"`
-	Category     string `json:"category"`
+	Category string `json:"category"`
+	Icon string `json:"icon,omitempty"`
+	ImageURL string `json:"image_url,omitempty"`
+	Badge string `json:"badge,omitempty"`
+	Featured bool `json:"featured"`
+	HighlightColor string `json:"highlight_color,omitempty"`
+	Highlights []string `json:"highlights,omitempty"`
+	CTALabel string `json:"cta_label,omitempty"`
+	Terms string `json:"terms,omitempty"`
 }
 
 func listPublicPackages(c echo.Context) error {
+	tenantID := domain.DefaultTenantID
+	if scopedID, ok := c.Get("tenant_id").(int64); ok && scopedID > 0 {
+		tenantID = scopedID
+	}
 	db := GetDB(c)
-	var pkgs []domain.InternetPackage
-	if err := db.Where("status = ?", "active").Order("price ASC, id ASC").Find(&pkgs).Error; err != nil {
+	var packages []domain.InternetPackage
+	if err := db.Where("tenant_id = ? AND status = ?", tenantID, "active").Find(&packages).Error; err != nil {
 		return fail(c, 500, "DATABASE_ERROR", "Failed to query packages", err.Error())
 	}
+	if len(packages) == 0 { return ok(c, []publicPackageDTO{}) }
 
-	if len(pkgs) == 0 {
-		return ok(c, []publicPackageDTO{})
+	packageIDs := make([]int64, 0, len(packages))
+	profileIDs := make([]int64, 0, len(packages))
+	for _, pkg := range packages {
+		packageIDs = append(packageIDs, pkg.ID)
+		if pkg.RadiusProfileID > 0 { profileIDs = append(profileIDs, pkg.RadiusProfileID) }
 	}
-
-	profileIDs := make([]int64, 0, len(pkgs))
-	for _, p := range pkgs {
-		if p.RadiusProfileID > 0 {
-			profileIDs = append(profileIDs, p.RadiusProfileID)
-		}
+	presentationMap := make(map[int64]domain.TenantPackagePresentation)
+	var presentationRows []domain.TenantPackagePresentation
+	if err := db.Where("tenant_id = ? AND package_id IN ?", tenantID, packageIDs).Find(&presentationRows).Error; err != nil {
+		return fail(c, 500, "DATABASE_ERROR", "Failed to query package presentation", err.Error())
 	}
+	for _, row := range presentationRows { presentationMap[row.PackageID] = row }
 
 	profileMap := make(map[int64]domain.RadiusProfile)
 	if len(profileIDs) > 0 {
-		var profiles []domain.RadiusProfile
-		if err := db.Where("id IN ?", profileIDs).Find(&profiles).Error; err == nil {
-			for _, prof := range profiles {
-				profileMap[prof.ID] = prof
-			}
+		var rows []domain.RadiusProfile
+		if err := db.Where("tenant_id = ? AND id IN ?", tenantID, profileIDs).Find(&rows).Error; err != nil {
+			return fail(c, 500, "DATABASE_ERROR", "Failed to query package profiles", err.Error())
 		}
+		for _, row := range rows { profileMap[row.ID] = row }
 	}
-
-	result := make([]publicPackageDTO, 0, len(pkgs))
-	for _, p := range pkgs {
-		prof, hasProf := profileMap[p.RadiusProfileID]
-		up := 0
-		down := 0
-		if hasProf {
-			up = prof.UpRate
-			down = prof.DownRate
+	result := make([]publicPackageDTO, 0, len(packages))
+	for _, pkg := range packages {
+		presentation, hasPresentation := presentationMap[pkg.ID]
+		if hasPresentation && !presentation.PublicVisible { continue }
+		up, down := 0, 0
+		if profile, ok := profileMap[pkg.RadiusProfileID]; ok { up, down = profile.UpRate, profile.DownRate }
+		speedDisplay := "High Speed"
+		if down >= 1000000 { speedDisplay = fmt.Sprintf("%d Gbps", down/1000000)
+		} else if down >= 1000 { speedDisplay = fmt.Sprintf("%d Mbps", down/1000)
+		} else if down > 0 { speedDisplay = fmt.Sprintf("%d Kbps", down) }
+		name := strings.TrimSpace(presentation.DisplayName)
+		if name == "" { name = pkg.Name }
+		description := strings.TrimSpace(presentation.ShortDescription)
+		if description == "" { description = pkg.Description }
+		category := strings.TrimSpace(presentation.Category)
+		if category == "" { category = "Home Broadband" }
+		highlights := make([]string, 0)
+		for _, item := range strings.Split(presentation.Highlights, "\n") {
+			if item = strings.TrimSpace(item); item != "" { highlights = append(highlights, item) }
 		}
-
-		speedDisplay := ""
-		if down >= 1000000 {
-			speedDisplay = fmt.Sprintf("%d Gbps", down/1000000)
-		} else if down >= 1000 {
-			speedDisplay = fmt.Sprintf("%d Mbps", down/1000)
-		} else if down > 0 {
-			speedDisplay = fmt.Sprintf("%d Kbps", down)
-		} else {
-			lowerName := strings.ToLower(p.Name)
-			if strings.Contains(lowerName, "gbps") || strings.Contains(lowerName, "mbps") {
-				speedDisplay = p.Name
-			} else {
-				speedDisplay = "High Speed"
-			}
-		}
-
-		cat := "Home Broadband"
-		lowerName := strings.ToLower(p.Name)
-		if strings.Contains(lowerName, "business") || strings.Contains(lowerName, "biz") {
-			cat = "Corporate / Dedicated"
-		} else if strings.Contains(lowerName, "enterprise") || strings.Contains(lowerName, "leased") || strings.Contains(lowerName, "giga") {
-			cat = "Enterprise / Leased Line"
-		} else if strings.Contains(lowerName, "hotspot") || strings.Contains(lowerName, "voucher") {
-			cat = "Prepaid Hotspot"
-		}
-
 		result = append(result, publicPackageDTO{
-			ID:           p.ID,
-			Code:         p.Code,
-			Name:         p.Name,
-			Price:        p.Price,
-			Description:  p.Description,
-			BillingCycle: p.BillingCycle,
-			FupLimitGB:   p.FupLimitGB,
-			UpRateKbps:   up,
-			DownRateKbps: down,
-			SpeedDisplay: speedDisplay,
-			Category:     cat,
+			ID: pkg.ID, Code: pkg.Code, Name: name, Price: pkg.Price, Description: description,
+			BillingCycle: pkg.BillingCycle, FupLimitGB: pkg.FupLimitGB, UpRateKbps: up, DownRateKbps: down,
+			SpeedDisplay: speedDisplay, Category: category, Icon: presentation.Icon,
+			ImageURL: presentation.ImageURL, Badge: presentation.Badge, Featured: presentation.Featured,
+			HighlightColor: presentation.HighlightColor, Highlights: highlights, CTALabel: presentation.CTALabel,
+			Terms: presentation.Terms,
 		})
 	}
-
+	sort.SliceStable(result, func(i, j int) bool {
+		left, lok := presentationMap[result[i].ID]
+		right, rok := presentationMap[result[j].ID]
+		if lok && rok && left.Featured != right.Featured { return left.Featured }
+		if lok && left.Featured && left.DisplayOrder != right.DisplayOrder { return left.DisplayOrder < right.DisplayOrder }
+		if rok && right.Featured { return false }
+		if lok && rok && left.DisplayOrder != right.DisplayOrder { return left.DisplayOrder < right.DisplayOrder }
+		return result[i].Price < result[j].Price
+	})
 	return ok(c, result)
 }
 

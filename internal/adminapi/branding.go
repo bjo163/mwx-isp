@@ -10,9 +10,11 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -75,9 +77,13 @@ func registerBrandingRoutes() {
 	webserver.ApiGET("/system/branding", getPublicBranding, requirePlatformAdmin())
 	webserver.ApiPUT("/system/branding", saveBranding, requirePlatformAdmin())
 	webserver.ApiPOST("/system/branding/reset", resetBranding, requirePlatformAdmin())
-	// Authenticated tenant branding management
-	webserver.ApiGET("/branding", getTenantBrandingHandler)
-	webserver.ApiPUT("/branding", updateTenantBrandingHandler)
+	// Tenant branding: public read is an allowlisted projection; management is tenant-admin only.
+	webserver.ApiGET("/tenant-branding/:identifier", getPublicTenantBrandingHandler)
+	webserver.ApiGET("/tenant-branding/assets/:tenant/:filename", getPublicTenantBrandingAsset)
+	webserver.ApiGET("/branding", getTenantBrandingHandler, requireAdmin())
+	webserver.ApiPUT("/branding", updateTenantBrandingHandler, requireAdmin())
+	webserver.ApiPOST("/branding/assets", uploadTenantBrandingAsset, requireAdmin())
+	webserver.ApiDELETE("/branding/assets/:filename", deleteTenantBrandingAsset, requireAdmin())
 }
 
 func defaultBranding() domain.ProductBranding {
@@ -408,48 +414,70 @@ func removeBrandLogo(dataDir, filename string) {
 }
 
 type tenantBrandingResponse struct {
-	LogoURL        string `json:"logo_url"`
-	FaviconURL     string `json:"favicon_url"`
-	PrimaryColor   string `json:"primary_color"`
-	SecondaryColor string `json:"secondary_color"`
-	Theme          string `json:"theme"`
-	CompanyName    string `json:"company_name"`
-	Tagline        string `json:"tagline"`
-	WebsiteURL     string `json:"website_url"`
-	SupportEmail   string `json:"support_email"`
-	SupportPhone   string `json:"support_phone"`
+	BrandName       string `json:"brand_name"`
+	ShortName       string `json:"short_name"`
+	LogoURL         string `json:"logo_url"`
+	CompactLogoURL  string `json:"compact_logo_url"`
+	LightLogoURL    string `json:"light_logo_url"`
+	DarkLogoURL     string `json:"dark_logo_url"`
+	FaviconURL      string `json:"favicon_url"`
+	SocialImageURL  string `json:"social_image_url"`
+	PrimaryColor    string `json:"primary_color"`
+	SecondaryColor  string `json:"secondary_color"`
+	AccentColor     string `json:"accent_color"`
+	BackgroundColor string `json:"background_color"`
+	SurfaceColor    string `json:"surface_color"`
+	TextColor       string `json:"text_color"`
+	LinkColor       string `json:"link_color"`
+	Theme           string `json:"theme"`
+	Typography      string `json:"typography"`
+	CompanyName     string `json:"company_name"`
+	Tagline         string `json:"tagline"`
+	WebsiteURL      string `json:"website_url"`
+	SupportEmail    string `json:"support_email"`
+	SupportPhone    string `json:"support_phone"`
+	SupportWhatsApp string `json:"support_whatsapp"`
+	ContactAddress  string `json:"contact_address"`
 }
 
 func getPublicTenantBrandingHandler(c echo.Context) error {
-	identifier := c.Param("identifier")
+	identifier := strings.ToLower(strings.TrimSpace(c.Param("identifier")))
 	if identifier == "" {
 		return fail(c, http.StatusBadRequest, "INVALID_IDENTIFIER", "Tenant identifier is required", nil)
 	}
 
-	var branding domain.TenantBranding
-	err := GetDB(c).
-		Joins("JOIN tenant ON tenant.id = tenant_branding.tenant_id").
-		Where("(tenant.slug = ? OR tenant.subdomain = ?) AND tenant.status = ?", identifier, identifier, "active").
-		First(&branding).Error
+	var tenant domain.Tenant
+	if err := GetDB(c).Where("(slug = ? OR subdomain = ?) AND status = ?", identifier, identifier, "active").First(&tenant).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fail(c, http.StatusNotFound, "TENANT_NOT_FOUND", "Active tenant not found", nil)
+		}
+		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to resolve tenant", err.Error())
+	}
 
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+	setRequestTenant(c, tenant.ID)
+	var branding domain.TenantBranding
+	if err := GetDB(c).Where("tenant_id = ?", tenant.ID).First(&branding).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fail(c, http.StatusNotFound, "BRANDING_NOT_FOUND", "Branding not found for tenant", nil)
 		}
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to load branding", err.Error())
 	}
 
+	brandName := branding.BrandName
+	if brandName == "" {
+		brandName = branding.CompanyName
+	}
 	return ok(c, tenantBrandingResponse{
-		LogoURL:        branding.LogoURL,
-		FaviconURL:     branding.FaviconURL,
-		PrimaryColor:   branding.PrimaryColor,
-		SecondaryColor: branding.SecondaryColor,
-		Theme:          branding.Theme,
-		CompanyName:    branding.CompanyName,
-		Tagline:        branding.Tagline,
-		WebsiteURL:     branding.WebsiteURL,
-		SupportEmail:   branding.SupportEmail,
-		SupportPhone:   branding.SupportPhone,
+		BrandName: brandName, ShortName: branding.ShortName,
+		LogoURL: branding.LogoURL, CompactLogoURL: branding.CompactLogoURL,
+		LightLogoURL: branding.LightLogoURL, DarkLogoURL: branding.DarkLogoURL,
+		FaviconURL: branding.FaviconURL, SocialImageURL: branding.SocialImageURL,
+		PrimaryColor: branding.PrimaryColor, SecondaryColor: branding.SecondaryColor,
+		AccentColor: branding.AccentColor, BackgroundColor: branding.BackgroundColor,
+		SurfaceColor: branding.SurfaceColor, TextColor: branding.TextColor, LinkColor: branding.LinkColor,
+		Theme: branding.Theme, Typography: branding.Typography, CompanyName: branding.CompanyName,
+		Tagline: branding.Tagline, WebsiteURL: branding.WebsiteURL, SupportEmail: branding.SupportEmail,
+		SupportPhone: branding.SupportPhone, SupportWhatsApp: branding.SupportWhatsApp, ContactAddress: branding.ContactAddress,
 	})
 }
 
@@ -478,16 +506,93 @@ func getTenantBrandingHandler(c echo.Context) error {
 }
 
 type updateBrandingPayload struct {
-	LogoURL        *string `json:"logo_url"`
-	FaviconURL     *string `json:"favicon_url"`
-	PrimaryColor   *string `json:"primary_color"`
-	SecondaryColor *string `json:"secondary_color"`
-	Theme          *string `json:"theme"`
-	CompanyName    *string `json:"company_name"`
-	Tagline        *string `json:"tagline"`
-	WebsiteURL     *string `json:"website_url"`
-	SupportEmail   *string `json:"support_email"`
-	SupportPhone   *string `json:"support_phone"`
+	BrandName       *string `json:"brand_name"`
+	ShortName       *string `json:"short_name"`
+	LogoURL         *string `json:"logo_url"`
+	CompactLogoURL  *string `json:"compact_logo_url"`
+	LightLogoURL    *string `json:"light_logo_url"`
+	DarkLogoURL     *string `json:"dark_logo_url"`
+	FaviconURL      *string `json:"favicon_url"`
+	SocialImageURL  *string `json:"social_image_url"`
+	PrimaryColor    *string `json:"primary_color"`
+	SecondaryColor  *string `json:"secondary_color"`
+	AccentColor     *string `json:"accent_color"`
+	BackgroundColor *string `json:"background_color"`
+	SurfaceColor    *string `json:"surface_color"`
+	TextColor       *string `json:"text_color"`
+	LinkColor       *string `json:"link_color"`
+	Theme           *string `json:"theme"`
+	Typography      *string `json:"typography"`
+	CompanyName     *string `json:"company_name"`
+	Tagline         *string `json:"tagline"`
+	WebsiteURL      *string `json:"website_url"`
+	SupportEmail    *string `json:"support_email"`
+	SupportPhone    *string `json:"support_phone"`
+	SupportWhatsApp *string `json:"support_whatsapp"`
+	ContactAddress  *string `json:"contact_address"`
+}
+
+func validTenantBrandingAssetURL(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return true
+	}
+	if strings.HasPrefix(value, "/") {
+		return !strings.HasPrefix(value, "//")
+	}
+	parsed, err := url.Parse(value)
+	return err == nil && parsed.Scheme == "https" && parsed.Host != "" && parsed.User == nil
+}
+
+func validateTenantBrandingPayload(payload updateBrandingPayload) error {
+	limits := []struct {
+		name  string
+		value *string
+		max   int
+	}{
+		{"brand_name", payload.BrandName, 150}, {"short_name", payload.ShortName, 24},
+		{"logo_url", payload.LogoURL, 500}, {"compact_logo_url", payload.CompactLogoURL, 500},
+		{"light_logo_url", payload.LightLogoURL, 500}, {"dark_logo_url", payload.DarkLogoURL, 500},
+		{"favicon_url", payload.FaviconURL, 500}, {"social_image_url", payload.SocialImageURL, 500},
+		{"company_name", payload.CompanyName, 150}, {"tagline", payload.Tagline, 300},
+		{"website_url", payload.WebsiteURL, 500}, {"support_email", payload.SupportEmail, 150},
+		{"support_phone", payload.SupportPhone, 32}, {"support_whatsapp", payload.SupportWhatsApp, 32},
+		{"contact_address", payload.ContactAddress, 500},
+	}
+	for _, field := range limits {
+		if field.value != nil && len(strings.TrimSpace(*field.value)) > field.max {
+			return fmt.Errorf("%s must not exceed %d characters", field.name, field.max)
+		}
+	}
+	for _, field := range []struct {
+		name  string
+		value *string
+	}{{"logo_url", payload.LogoURL}, {"compact_logo_url", payload.CompactLogoURL},
+		{"light_logo_url", payload.LightLogoURL}, {"dark_logo_url", payload.DarkLogoURL},
+		{"favicon_url", payload.FaviconURL}, {"social_image_url", payload.SocialImageURL}, {"website_url", payload.WebsiteURL}} {
+		if field.value != nil && !validTenantBrandingAssetURL(*field.value) {
+			return fmt.Errorf("%s must be a relative path or an absolute HTTPS URL", field.name)
+		}
+	}
+	for _, field := range []*string{payload.PrimaryColor, payload.SecondaryColor, payload.AccentColor,
+		payload.BackgroundColor, payload.SurfaceColor, payload.TextColor, payload.LinkColor} {
+		if field != nil && strings.TrimSpace(*field) != "" && !brandingAccentPattern.MatchString(strings.TrimSpace(*field)) {
+			return errors.New("branding colors must be six-digit hexadecimal values such as #16A34A")
+		}
+	}
+	if payload.Theme != nil {
+		theme := strings.ToLower(strings.TrimSpace(*payload.Theme))
+		if theme != "light" && theme != "dark" && theme != "system" {
+			return errors.New("theme must be light, dark, or system")
+		}
+	}
+	if payload.Typography != nil {
+		font := strings.ToLower(strings.TrimSpace(*payload.Typography))
+		if font != "system" && font != "inter" && font != "roboto" && font != "plus-jakarta-sans" {
+			return errors.New("typography must be system, inter, roboto, or plus-jakarta-sans")
+		}
+	}
+	return nil
 }
 
 func updateTenantBrandingHandler(c echo.Context) error {
@@ -499,6 +604,9 @@ func updateTenantBrandingHandler(c echo.Context) error {
 	var payload updateBrandingPayload
 	if err := c.Bind(&payload); err != nil {
 		return fail(c, http.StatusBadRequest, "INVALID_PAYLOAD", "Invalid request body", err.Error())
+	}
+	if err := validateTenantBrandingPayload(payload); err != nil {
+		return fail(c, http.StatusBadRequest, "INVALID_BRANDING", err.Error(), nil)
 	}
 
 	var branding domain.TenantBranding
@@ -517,34 +625,76 @@ func updateTenantBrandingHandler(c echo.Context) error {
 	}
 
 	if payload.LogoURL != nil {
-		branding.LogoURL = *payload.LogoURL
+		branding.LogoURL = strings.TrimSpace(*payload.LogoURL)
 	}
 	if payload.FaviconURL != nil {
-		branding.FaviconURL = *payload.FaviconURL
+		branding.FaviconURL = strings.TrimSpace(*payload.FaviconURL)
 	}
 	if payload.PrimaryColor != nil {
-		branding.PrimaryColor = *payload.PrimaryColor
+		branding.PrimaryColor = strings.TrimSpace(*payload.PrimaryColor)
 	}
 	if payload.SecondaryColor != nil {
-		branding.SecondaryColor = *payload.SecondaryColor
+		branding.SecondaryColor = strings.TrimSpace(*payload.SecondaryColor)
 	}
 	if payload.Theme != nil {
-		branding.Theme = *payload.Theme
+		branding.Theme = strings.TrimSpace(*payload.Theme)
+	}
+	if payload.BrandName != nil {
+		branding.BrandName = strings.TrimSpace(*payload.BrandName)
+	}
+	if payload.ShortName != nil {
+		branding.ShortName = strings.TrimSpace(*payload.ShortName)
+	}
+	if payload.CompactLogoURL != nil {
+		branding.CompactLogoURL = strings.TrimSpace(*payload.CompactLogoURL)
+	}
+	if payload.LightLogoURL != nil {
+		branding.LightLogoURL = strings.TrimSpace(*payload.LightLogoURL)
+	}
+	if payload.DarkLogoURL != nil {
+		branding.DarkLogoURL = strings.TrimSpace(*payload.DarkLogoURL)
+	}
+	if payload.SocialImageURL != nil {
+		branding.SocialImageURL = strings.TrimSpace(*payload.SocialImageURL)
+	}
+	if payload.AccentColor != nil {
+		branding.AccentColor = strings.TrimSpace(*payload.AccentColor)
+	}
+	if payload.BackgroundColor != nil {
+		branding.BackgroundColor = strings.TrimSpace(*payload.BackgroundColor)
+	}
+	if payload.SurfaceColor != nil {
+		branding.SurfaceColor = strings.TrimSpace(*payload.SurfaceColor)
+	}
+	if payload.TextColor != nil {
+		branding.TextColor = strings.TrimSpace(*payload.TextColor)
+	}
+	if payload.LinkColor != nil {
+		branding.LinkColor = strings.TrimSpace(*payload.LinkColor)
+	}
+	if payload.Typography != nil {
+		branding.Typography = strings.TrimSpace(*payload.Typography)
+	}
+	if payload.SupportWhatsApp != nil {
+		branding.SupportWhatsApp = strings.TrimSpace(*payload.SupportWhatsApp)
+	}
+	if payload.ContactAddress != nil {
+		branding.ContactAddress = strings.TrimSpace(*payload.ContactAddress)
 	}
 	if payload.CompanyName != nil {
-		branding.CompanyName = *payload.CompanyName
+		branding.CompanyName = strings.TrimSpace(*payload.CompanyName)
 	}
 	if payload.Tagline != nil {
-		branding.Tagline = *payload.Tagline
+		branding.Tagline = strings.TrimSpace(*payload.Tagline)
 	}
 	if payload.WebsiteURL != nil {
-		branding.WebsiteURL = *payload.WebsiteURL
+		branding.WebsiteURL = strings.TrimSpace(*payload.WebsiteURL)
 	}
 	if payload.SupportEmail != nil {
-		branding.SupportEmail = *payload.SupportEmail
+		branding.SupportEmail = strings.TrimSpace(*payload.SupportEmail)
 	}
 	if payload.SupportPhone != nil {
-		branding.SupportPhone = *payload.SupportPhone
+		branding.SupportPhone = strings.TrimSpace(*payload.SupportPhone)
 	}
 
 	db := GetDB(c)
@@ -559,4 +709,146 @@ func updateTenantBrandingHandler(c echo.Context) error {
 	}
 
 	return ok(c, branding)
+}
+
+var tenantBrandingAssetPattern = regexp.MustCompile(`^asset-[a-f0-9]{32}\.png$`)
+
+// writeTenantBrandingAsset stores a fully decoded PNG beneath a tenant-specific
+// directory. The opaque filename prevents callers from choosing filesystem paths.
+func writeTenantBrandingAsset(dataDir string, tenantID int64, content []byte) (string, error) {
+	if tenantID <= 0 {
+		return "", fmt.Errorf("tenant ID is required")
+	}
+	var random [16]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		return "", err
+	}
+	filename := "asset-" + hex.EncodeToString(random[:]) + ".png"
+	directory := filepath.Join(dataDir, "tenant-branding", strconv.FormatInt(tenantID, 10))
+	if err := os.MkdirAll(directory, 0o750); err != nil {
+		return "", err
+	}
+	temporary := filepath.Join(directory, filename+".tmp")
+	if err := os.WriteFile(temporary, content, 0o600); err != nil {
+		return "", err
+	}
+	if err := os.Rename(temporary, filepath.Join(directory, filename)); err != nil {
+		_ = os.Remove(temporary)
+		return "", err
+	}
+	return filename, nil
+}
+
+func uploadTenantBrandingAsset(c echo.Context) error {
+	tenantID, ok := c.Get("tenant_id").(int64)
+	if !ok || tenantID <= 0 {
+		return fail(c, http.StatusBadRequest, "INVALID_TENANT", "Tenant context is required", nil)
+	}
+	c.Request().Body = http.MaxBytesReader(c.Response().Writer, c.Request().Body, maxBrandLogoSize+(64<<10))
+	file, _, err := c.Request().FormFile("asset")
+	if err != nil {
+		return fail(c, http.StatusBadRequest, "INVALID_ASSET", "A PNG asset file is required", nil)
+	}
+	defer func() { _ = file.Close() }()
+	content, err := readBrandLogo(file)
+	if err != nil {
+		return fail(c, http.StatusBadRequest, "INVALID_ASSET", err.Error(), nil)
+	}
+	filename, err := writeTenantBrandingAsset(GetAppContext(c).Config().GetDataDir(), tenantID, content)
+	if err != nil {
+		return fail(c, http.StatusInternalServerError, "ASSET_WRITE_FAILED", "Could not store tenant asset", err.Error())
+	}
+	assetURL := fmt.Sprintf("/api/v1/tenant-branding/assets/%d/%s", tenantID, filename)
+	return c.JSON(http.StatusCreated, Response{Data: map[string]string{"file_name": filename, "url": assetURL}})
+}
+
+func getPublicTenantBrandingAsset(c echo.Context) error {
+	tenantID, err := strconv.ParseInt(c.Param("tenant"), 10, 64)
+	filename := c.Param("filename")
+	if err != nil || tenantID <= 0 || !tenantBrandingAssetPattern.MatchString(filename) {
+		return fail(c, http.StatusNotFound, "ASSET_NOT_FOUND", "Tenant asset not found", nil)
+	}
+	var tenant domain.Tenant
+	if err := GetDB(c).Where("id = ? AND status = ?", tenantID, "active").First(&tenant).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fail(c, http.StatusNotFound, "ASSET_NOT_FOUND", "Tenant asset not found", nil)
+		}
+		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to resolve tenant asset", err.Error())
+	}
+	assetPath := filepath.Join(GetAppContext(c).Config().GetDataDir(), "tenant-branding", strconv.FormatInt(tenantID, 10), filename)
+	file, err := os.Open(assetPath) //nolint:gosec // G304: tenantID is numeric and filename matched tenantBrandingAssetPattern
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return fail(c, http.StatusNotFound, "ASSET_NOT_FOUND", "Tenant asset not found", nil)
+		}
+		return fail(c, http.StatusInternalServerError, "ASSET_READ_FAILED", "Unable to read tenant asset", err.Error())
+	}
+	defer func() { _ = file.Close() }()
+	c.Response().Header().Set(echo.HeaderContentType, "image/png")
+	c.Response().Header().Set(echo.HeaderXContentTypeOptions, "nosniff")
+	c.Response().Header().Set(echo.HeaderCacheControl, "public, max-age=31536000, immutable")
+	return c.Stream(http.StatusOK, "image/png", file)
+}
+
+func tenantBrandingAssetInUse(db *gorm.DB, tenantID int64, filename string) (bool, error) {
+	assetURL := fmt.Sprintf("/api/v1/tenant-branding/assets/%d/%s", tenantID, filename)
+	var count int64
+	if err := db.Model(&domain.TenantBranding{}).Where(
+		"tenant_id = ? AND (logo_url = ? OR compact_logo_url = ? OR light_logo_url = ? OR dark_logo_url = ? OR favicon_url = ? OR social_image_url = ?)",
+		tenantID, assetURL, assetURL, assetURL, assetURL, assetURL, assetURL,
+	).Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+	if err := db.Model(&domain.TenantWebsite{}).Where(
+		"tenant_id = ? AND (draft_content LIKE ? OR published_content LIKE ?)",
+		tenantID, "%"+filename+"%", "%"+filename+"%",
+	).Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+	if err := db.Model(&domain.TenantWebsiteVersion{}).Where(
+		"tenant_id = ? AND content_json LIKE ?", tenantID, "%"+filename+"%",
+	).Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+	if err := db.Model(&domain.TenantPackagePresentation{}).Where(
+		"tenant_id = ? AND image_url = ?", tenantID, assetURL,
+	).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func deleteTenantBrandingAsset(c echo.Context) error {
+	tenantID, found := c.Get("tenant_id").(int64)
+	filename := c.Param("filename")
+	if !found || tenantID <= 0 {
+		return fail(c, http.StatusBadRequest, "INVALID_TENANT", "Tenant context is required", nil)
+	}
+	if !tenantBrandingAssetPattern.MatchString(filename) {
+		return fail(c, http.StatusBadRequest, "INVALID_ASSET", "Invalid tenant asset name", nil)
+	}
+	inUse, err := tenantBrandingAssetInUse(GetDB(c), tenantID, filename)
+	if err != nil {
+		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to check tenant asset references", err.Error())
+	}
+	if inUse {
+		return fail(c, http.StatusConflict, "ASSET_IN_USE", "Remove the asset from branding, website and package content before deleting it", nil)
+	}
+	assetPath := filepath.Join(GetAppContext(c).Config().GetDataDir(), "tenant-branding", strconv.FormatInt(tenantID, 10), filename)
+	if err := os.Remove(assetPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return fail(c, http.StatusNotFound, "ASSET_NOT_FOUND", "Tenant asset not found", nil)
+		}
+		return fail(c, http.StatusInternalServerError, "ASSET_DELETE_FAILED", "Could not delete tenant asset", err.Error())
+	}
+	return ok(c, map[string]string{"file_name": filename, "deleted": "true"})
 }

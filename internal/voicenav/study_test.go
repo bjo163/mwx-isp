@@ -153,8 +153,8 @@ func TestNothingImportsTheStudy(t *testing.T) {
 // loses would silently shrink the only set of answers the resolver can give.
 func TestTheVocabularyIsTheShippedMenu(t *testing.T) {
 	res := study(t)
-	if len(res.Destinations) != 23 {
-		t.Errorf("menu parsed to %d rows, the shipped array has 23", len(res.Destinations))
+	if len(res.Destinations) != 26 {
+		t.Errorf("menu parsed to %d rows, the shipped array has 26", len(res.Destinations))
 	}
 	if res.Totals.Destinations != len(res.Destinations) {
 		t.Error("the totals and the parsed menu disagree about the row count")

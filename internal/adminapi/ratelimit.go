@@ -110,6 +110,14 @@ func publicRegistrationRateLimiter() echo.MiddlewareFunc {
 	}.middleware()
 }
 
+// packageCatalogRateLimiter keeps the anonymous catalog read-only and bounded.
+func packageCatalogRateLimiter() echo.MiddlewareFunc {
+	return publicRateLimit{
+		name: "public_package_catalog", limit: rate.Every(2 * time.Second),
+		burst: 30, expiresIn: 3 * time.Minute,
+	}.middleware()
+}
+
 // diagnosticsRateLimiter bounds the administrator reachability probe. The
 // endpoint is admin-only and its targets are already restricted, but a probe
 // interval below a couple of seconds turns it into a sweep tool.

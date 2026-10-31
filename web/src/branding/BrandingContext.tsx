@@ -20,16 +20,30 @@ export type ProductBranding = {
 };
 
 export type TenantBranding = {
+  brand_name?: string;
+  short_name?: string;
   logo_url?: string;
+  compact_logo_url?: string;
+  light_logo_url?: string;
+  dark_logo_url?: string;
   favicon_url?: string;
+  social_image_url?: string;
   primary_color?: string;
   secondary_color?: string;
-  theme?: string;
+  accent_color?: string;
+  background_color?: string;
+  surface_color?: string;
+  text_color?: string;
+  link_color?: string;
+  theme?: 'light' | 'dark' | 'system' | string;
+  typography?: 'system' | 'inter' | 'roboto' | 'plus-jakarta-sans' | string;
   company_name?: string;
   tagline?: string;
   website_url?: string;
   support_email?: string;
   support_phone?: string;
+  support_whatsapp?: string;
+  contact_address?: string;
 };
 
 export type BrandingContextValue = {

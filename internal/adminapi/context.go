@@ -46,6 +46,13 @@ func GetDB(c echo.Context) *gorm.DB {
 	return requestTenantDB(c, db)
 }
 
+// setRequestTenant switches a public slug-resolved request to the tenant that owns the requested resource.
+// It updates both Echo's lookup value and the GORM request context so model scopes agree.
+func setRequestTenant(c echo.Context, tenantID int64) {
+	c.Set("tenant_id", tenantID)
+	c.SetRequest(c.Request().WithContext(tenancy.WithTenantID(c.Request().Context(), tenantID)))
+}
+
 func requestTenantDB(c echo.Context, db *gorm.DB) *gorm.DB {
 	if db == nil {
 		return nil

@@ -305,7 +305,7 @@ func (a *Application) seedSamplesOnFreshInstall() {
 	}
 	models := []interface{}{
 		&domain.NetNas{}, &domain.RadiusProfile{}, &domain.RadiusUser{}, &domain.RadiusOnline{}, &domain.RadiusAccounting{},
-		&domain.Customer{}, &domain.InternetPackage{}, &domain.Subscription{}, &domain.Invoice{},
+		&domain.Customer{}, &domain.InternetPackage{}, &domain.TenantPackagePresentation{}, &domain.Subscription{}, &domain.Invoice{},
 		&domain.Payment{}, &domain.NetMonitorTarget{}, &domain.NetMonitorSample{}, &domain.NetMonitorIncident{}, &domain.SysCert{},
 	}
 	for _, model := range models {
@@ -495,6 +495,7 @@ func (a *Application) backfillDefaultTenantRows() error {
 }
 
 var tenantOwnedModels = []interface{}{
+	&domain.TenantBranding{}, &domain.TenantDomain{}, &domain.TenantPackagePresentation{}, &domain.TenantWebsite{}, &domain.TenantWebsiteVersion{},
 	&domain.SysOpr{}, &domain.TenantMembership{}, &domain.SysOprLog{}, &domain.NetNode{}, &domain.NetNas{},
 	&domain.NetMonitorTarget{}, &domain.NetMonitorSample{}, &domain.NetMonitorIncident{},
 	&domain.NotificationSettings{}, &domain.NotificationOutbox{}, &domain.RadiusAccounting{},
@@ -510,6 +511,7 @@ func (a *Application) dropLegacyTenantUniqueIndices() error {
 		model interface{}
 		name  string
 	}{
+		{&domain.Tenant{}, "idx_tenant_subdomain"},
 		{&domain.SysOpr{}, "idx_sys_opr_username"},
 		{&domain.SysOpr{}, "sys_opr_username_key"},
 		{&domain.RadiusUser{}, "idx_radius_user_username"},

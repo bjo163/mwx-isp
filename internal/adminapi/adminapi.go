@@ -53,6 +53,8 @@ func Init(appCtx app.AppContext) {
 	registerNetworkMonitorRoutes()
 	registerNotificationRoutes()
 	registerBrandingRoutes()
+	registerTenantDomainRoutes()
+	registerTenantWebsiteRoutes()
 	registerPlatformTenantRoutes()
 	registerISPOperationsRoutes()
 	registerTelemetryRoutes()

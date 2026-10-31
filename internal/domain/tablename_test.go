@@ -93,6 +93,10 @@ func TestTableNameUniqueness(t *testing.T) {
 	// Ensure all table names follow snake_case
 	expectedNames := map[string]bool{
 		"tenant":                      true,
+		"tenant_domain":               true,
+		"tenant_branding":             true,
+		"tenant_website":              true,
+		"tenant_website_version":      true,
 		"sys_config":                  true,
 		"sys_opr":                     true,
 		"tenant_membership":           true,
@@ -109,6 +113,7 @@ func TestTableNameUniqueness(t *testing.T) {
 		"radius_accounting":           true,
 		"isp_customer":                true,
 		"isp_package":                 true,
+		"isp_package_presentation":    true,
 		"isp_subscription":            true,
 		"isp_invoice":                 true,
 		"isp_invoice_item":            true,

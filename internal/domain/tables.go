@@ -6,6 +6,9 @@ var Tables = []interface{}{
 	// Platform tenancy
 	&Tenant{},
 	&TenantBranding{},
+	&TenantDomain{},
+	&TenantWebsite{},
+	&TenantWebsiteVersion{},
 	// System
 	&SysConfig{},
 	&SysOpr{},
@@ -31,6 +34,7 @@ var Tables = []interface{}{
 	// ISP management and billing (additive; existing RADIUS tables remain intact).
 	&Customer{},
 	&InternetPackage{},
+	&TenantPackagePresentation{},
 	&Subscription{},
 	&Invoice{},
 	&InvoiceItem{},

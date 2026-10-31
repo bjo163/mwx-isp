@@ -12,6 +12,9 @@ import OperationsPage from './pages/OperationsPage';
 import UserGuidePage from './pages/UserGuidePage';
 import BrandingPage from './pages/BrandingPage';
 import TenantBrandingPage from './pages/TenantBrandingPage';
+import PackageStudioPage from './pages/PackageStudioPage';
+import TenantWebsitePage from './pages/TenantWebsitePage';
+import TenantPublicWebsitePage from './pages/TenantPublicWebsitePage';
 import { PlatformTenantsPage } from './pages/PlatformTenantsPage';
 import { LoginPage } from './pages/LoginPage';
 import LandingPage from './pages/LandingPage';
@@ -99,8 +102,16 @@ type AppProps = { initialBranding?: ProductBranding };
 const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
   const [branding, setBranding] = useState(initialBranding);
   const [tenantBranding, setTenantBranding] = useState<TenantBranding | null>(null);
-  const darkTheme = useMemo(() => createAppTheme('dark', branding.accent_color), [branding.accent_color]);
-  const lightTheme = useMemo(() => createAppTheme('light', branding.accent_color), [branding.accent_color]);
+  const effectiveBranding = useMemo<ProductBranding>(() => ({
+    ...branding,
+    product_name: tenantBranding?.brand_name || tenantBranding?.company_name || branding.product_name,
+    short_name: tenantBranding?.short_name || branding.short_name,
+    tagline: tenantBranding?.tagline || branding.tagline,
+    accent_color: tenantBranding?.accent_color || tenantBranding?.primary_color || branding.accent_color,
+    logo_url: tenantBranding?.dark_logo_url || tenantBranding?.logo_url || branding.logo_url,
+  }), [branding, tenantBranding]);
+  const darkTheme = useMemo(() => createAppTheme('dark', effectiveBranding.accent_color), [effectiveBranding.accent_color]);
+  const lightTheme = useMemo(() => createAppTheme('light', effectiveBranding.accent_color), [effectiveBranding.accent_color]);
 
   useEffect(() => {
     const host = window.location.hostname;
@@ -117,18 +128,6 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
             const tb = result?.data;
             if (tb) {
               setTenantBranding(tb);
-              if (tb.company_name) {
-                setBranding(prev => ({ ...prev, product_name: tb.company_name! }));
-              }
-              if (tb.tagline) {
-                setBranding(prev => ({ ...prev, tagline: tb.tagline! }));
-              }
-              if (tb.primary_color) {
-                setBranding(prev => ({ ...prev, accent_color: tb.primary_color! }));
-              }
-              if (tb.logo_url) {
-                setBranding(prev => ({ ...prev, logo_url: tb.logo_url! }));
-              }
             }
           }
         })
@@ -138,15 +137,15 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
   }, []);
 
   useEffect(() => {
-    document.title = `${branding.product_name} - ISP Management`;
+    document.title = `${effectiveBranding.product_name} - ISP Management`;
     let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (!icon) {
       icon = document.createElement('link');
       icon.rel = 'icon';
       document.head.appendChild(icon);
     }
-    icon.href = branding.logo_url || '/admin/mwx-isp.svg';
-    icon.type = branding.logo_url ? 'image/png' : 'image/svg+xml';
+    icon.href = effectiveBranding.logo_url || '/admin/mwx-isp.svg';
+    icon.type = effectiveBranding.logo_url ? 'image/png' : 'image/svg+xml';
     if (tenantBranding?.favicon_url) {
       let favicon = document.querySelector<HTMLLinkElement>('link[rel="shortcut icon"]');
       if (!favicon) {
@@ -156,17 +155,17 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
       }
       favicon.href = tenantBranding.favicon_url;
     }
-  }, [branding.product_name, branding.logo_url, tenantBranding?.favicon_url]);
+  }, [effectiveBranding.product_name, effectiveBranding.logo_url, tenantBranding?.favicon_url]);
 
   return (
-  <BrandingContext.Provider value={{ branding, tenantBranding, updateBranding: setBranding, updateTenantBranding: setTenantBranding }}>
+  <BrandingContext.Provider value={{ branding: effectiveBranding, tenantBranding, updateBranding: setBranding, updateTenantBranding: setTenantBranding }}>
   <Admin
     dataProvider={dataProvider}
     authProvider={authProvider}
     i18nProvider={i18nProvider}
     dashboard={Dashboard}
     loginPage={LoginPage}
-    title={branding.product_name}
+    title={effectiveBranding.product_name}
     lightTheme={lightTheme}
     darkTheme={darkTheme}
     defaultTheme="dark"
@@ -253,6 +252,7 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
     <CustomRoutes noLayout>
       <Route path="/home" element={<LandingPage />} />
       <Route path="/portal" element={<CustomerPortalPage />} />
+      <Route path="/site/:identifier" element={<TenantPublicWebsitePage />} />
     </CustomRoutes>
     <CustomRoutes>
       <Route path="/account/settings" element={<AccountSettings />} />
@@ -260,6 +260,8 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
       <Route path="/system/website" element={<WebsiteEditorPage />} />
       <Route path="/system/branding" element={<BrandingPage />} />
       <Route path="/tenant/branding" element={<TenantBrandingPage />} />
+      <Route path="/tenant/website" element={<TenantWebsitePage />} />
+      <Route path="/isp/package-studio" element={<PackageStudioPage />} />
       <Route path="/operations" element={<OperationsPage />} />
       <Route path="/isp/vouchers" element={<HotspotVouchersPage />} />
       <Route path="/network/ipam" element={<IPAMPage />} />

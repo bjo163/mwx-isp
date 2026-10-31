@@ -484,9 +484,12 @@ func TestSchedFUPCheckResetIsPeriodAwareAndIdempotent(t *testing.T) {
 	tdb := db.WithContext(tenancy.WithTenantID(context.Background(), 10))
 	require.NoError(t, tdb.Model(&domain.Subscription{}).Where("id = ?", fixture.sub.ID).Update("fup_triggered", true).Error)
 	require.NoError(t, tdb.Model(&domain.RadiusUser{}).Where("id = ?", fixture.user.ID).Updates(map[string]interface{}{"up_rate": 256, "down_rate": 512}).Error)
+	// AddDate(0, -1, 0) normalizes month-end dates into the current month
+	// (Oct 31 -> Oct 1), so anchor the marker to the previous period explicitly.
+	currentMonth := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Now().Location())
 	require.NoError(t, tdb.Create(&domain.BillingEvent{
 		CustomerID: fixture.sub.CustomerID, SubscriptionID: fixture.sub.ID, Type: "fup_throttled",
-		CreatedAt: time.Now().AddDate(0, -1, 0),
+		CreatedAt: currentMonth.Add(-time.Hour),
 	}).Error)
 
 	a := &Application{gormDB: db}
