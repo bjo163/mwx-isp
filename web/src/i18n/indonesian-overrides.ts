@@ -54,6 +54,7 @@ export const indonesianOverrides: Record<string, unknown> = {
     tenant_branding: 'Studio Branding Tenant',
     package_studio: 'Studio Paket',
     tenant_website: 'Studio Website Tenant',
+    invoice_studio: 'Studio Invoice',
     branding: 'Branding Produk',
     account_settings: 'Pengaturan Akun',
   },

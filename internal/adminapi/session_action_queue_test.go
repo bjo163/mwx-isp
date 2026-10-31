@@ -232,3 +232,42 @@ func TestRetrySessionActionCancelsWhenSubscriberWasRestored(t *testing.T) {
 	assert.Contains(t, updated.LastError, "access was restored")
 	assert.Empty(t, nas.snapshot(), "a restored subscriber must not be disconnected")
 }
+
+// TestSessionActionSummaryCountsDeadLetterAndOldestPending covers ENG-064: the
+// operator surface must report the dead-lettered actions and the age of the
+// oldest pending one, and must never count another tenant's queue.
+func TestSessionActionSummaryCountsDeadLetterAndOldestPending(t *testing.T) {
+	db := setupTestDB(t)
+	appCtx := setupTestApp(t, db)
+
+	now := time.Now().UTC()
+	oldest := now.Add(-3 * time.Hour)
+	rows := []domain.RadiusSessionAction{
+		{TenantID: 1, IdempotencyKey: "sum-pending", SessionID: 1, Username: "alice", NasAddr: "192.0.2.1", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusPending, MaxAttempts: 8, NextRetryAt: now, CreatedAt: oldest},
+		{TenantID: 1, IdempotencyKey: "sum-failed-1", SessionID: 2, Username: "bob", NasAddr: "192.0.2.1", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusFailed, MaxAttempts: 8},
+		{TenantID: 1, IdempotencyKey: "sum-failed-2", SessionID: 3, Username: "carol", NasAddr: "192.0.2.1", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusFailed, MaxAttempts: 8},
+		{TenantID: 1, IdempotencyKey: "sum-succeeded", SessionID: 4, Username: "dave", NasAddr: "192.0.2.1", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusSucceeded, MaxAttempts: 8},
+		{TenantID: 1, IdempotencyKey: "sum-canceled", SessionID: 5, Username: "erin", NasAddr: "192.0.2.1", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusCanceled, MaxAttempts: 8},
+		{TenantID: 2, IdempotencyKey: "sum-neighbor", SessionID: 6, Username: "frank", NasAddr: "192.0.2.2", Action: sessionqueue.ActionDisconnect, Reason: sessionqueue.ReasonBillingSuspension, Status: sessionqueue.StatusFailed, MaxAttempts: 8},
+	}
+	for i := range rows {
+		require.NoError(t, db.Create(&rows[i]).Error)
+	}
+
+	c, rec := newSessionActionQueueCtx(t, db, appCtx, http.MethodGet, "/api/v1/session-actions/summary", "", 1)
+	require.NoError(t, SessionActionSummary(c))
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp struct {
+		Data sessionActionSummaryView `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.EqualValues(t, 1, resp.Data.Counts[sessionqueue.StatusPending])
+	assert.EqualValues(t, 2, resp.Data.Counts[sessionqueue.StatusFailed])
+	assert.EqualValues(t, 1, resp.Data.Counts[sessionqueue.StatusSucceeded])
+	assert.EqualValues(t, 1, resp.Data.Counts[sessionqueue.StatusCanceled])
+	assert.EqualValues(t, 0, resp.Data.Counts[sessionqueue.StatusRunning])
+	assert.EqualValues(t, 2, resp.Data.DeadLetter, "failed actions are the dead-letter set")
+	require.NotNil(t, resp.Data.OldestPendingAt)
+	assert.WithinDuration(t, oldest, *resp.Data.OldestPendingAt, time.Second)
+}

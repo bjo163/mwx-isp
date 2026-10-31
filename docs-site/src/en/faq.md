@@ -121,7 +121,7 @@ That is the reject-delay brute-force guard: after
 ### Does MWX-ISP support 802.1X / Wi-Fi Enterprise?
 
 Yes. Supported EAP methods: EAP-MD5, EAP-MSCHAPv2, EAP-TLS, PEAPv0/EAP-MSCHAPv2
-and EAP-TTLS (inner PAP / MS-CHAP-V2). Select the method in **System Config →
+and EAP-TTLS (inner PAP / CHAP / MS-CHAP / MS-CHAP-V2). Select the method in **System Config →
 EapMethod**.
 
 ### EAP-TLS / PEAP / EAP-TTLS doesn't start
@@ -156,8 +156,8 @@ sync.
 - **EAP-TLS** — strongest (mutual certificates), needs client-cert rollout.
 - **PEAPv0/EAP-MSCHAPv2** — Windows/AD compatibility; mind the MS-CHAPv2
   NTLMv1-like attack surface (see [Security Policy](./security-policy.md)).
-- **EAP-TTLS** — legacy/LDAP backends via inner PAP, keeping passwords inside
-  the TLS tunnel.
+- **EAP-TTLS** — legacy backends via inner PAP, with inner CHAP / MS-CHAP for
+  local accounts, keeping passwords inside the TLS tunnel.
 
 ## Sessions, CoA & accounting
 

@@ -121,6 +121,26 @@ export const apiRequest = async <T = unknown>(path: string, init: RequestInit = 
   return extractData<T>(payload);
 };
 
+// Browsers drop the user gesture after an await, so a generated PDF is saved
+// through a download link instead of a popup opened after the fetch resolves.
+export const downloadDocument = async (path: string, fallbackName: string) => {
+  const response = await fetch(normalizePath(path), withAuth({ headers: { Accept: 'application/pdf' } }));
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new ApiError(response.status, payload);
+  }
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const filename = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+};
+
 export const apiRequestPage = async <T = unknown>(path: string, init: RequestInit = {}) => {
   const payload = await requestPayload(path, init);
   return {

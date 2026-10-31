@@ -53,6 +53,7 @@ const customEnglishMessages: TranslationMessages = {
     tenant_branding: 'Tenant Brand Studio',
     package_studio: 'Package Studio',
     tenant_website: 'Tenant Website Studio',
+    invoice_studio: 'Invoice Studio',
     branding: 'Product Branding',
     account_settings: 'Account Settings',
   },

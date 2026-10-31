@@ -271,5 +271,6 @@ func registerSessionRoutes() {
 	// Durable billing-driven session actions: operators can inspect pending
 	// retries and force one immediately.
 	webserver.ApiGET("/session-actions", ListSessionActions)
+	webserver.ApiGET("/session-actions/summary", SessionActionSummary)
 	webserver.ApiPOST("/session-actions/:id/retry", RetrySessionAction, requireAdmin())
 }

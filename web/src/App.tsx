@@ -14,6 +14,7 @@ import BrandingPage from './pages/BrandingPage';
 import TenantBrandingPage from './pages/TenantBrandingPage';
 import PackageStudioPage from './pages/PackageStudioPage';
 import TenantWebsitePage from './pages/TenantWebsitePage';
+import InvoiceStudioPage from './pages/InvoiceStudioPage';
 import TenantPublicWebsitePage from './pages/TenantPublicWebsitePage';
 import { PlatformTenantsPage } from './pages/PlatformTenantsPage';
 import { LoginPage } from './pages/LoginPage';
@@ -261,6 +262,7 @@ const App = ({ initialBranding = defaultProductBranding }: AppProps) => {
       <Route path="/system/branding" element={<BrandingPage />} />
       <Route path="/tenant/branding" element={<TenantBrandingPage />} />
       <Route path="/tenant/website" element={<TenantWebsitePage />} />
+      <Route path="/tenant/invoice" element={<InvoiceStudioPage />} />
       <Route path="/isp/package-studio" element={<PackageStudioPage />} />
       <Route path="/operations" element={<OperationsPage />} />
       <Route path="/isp/vouchers" element={<HotspotVouchersPage />} />

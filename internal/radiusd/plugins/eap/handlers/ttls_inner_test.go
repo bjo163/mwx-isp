@@ -43,9 +43,13 @@ type ttlsPapPeer struct {
 	// comparing against pwd.
 	verifier eap.CredentialVerifier
 
-	// avpFlight overrides the inner AVP flight the peer sends; when nil it sends
-	// a standard User-Name + User-Password PAP flight.
+	// avpFlight overrides the inner AVP flight the peer sends; when nil the peer
+	// builds a standard User-Name + User-Password PAP flight.
 	avpFlight []byte
+	// buildFlight, when set, builds the inner AVP flight after the outer
+	// handshake completes and takes precedence over avpFlight. Challenge-based
+	// methods use it to derive their challenge from the live TLS session.
+	buildFlight func(*tls.Conn) []byte
 
 	client     *tls.Conn
 	toClient   *hsStream
@@ -91,6 +95,9 @@ func (p *ttlsPapPeer) run() (bool, error) {
 			// Phase 2 is peer-initiated: send the inner PAP AVP flight as a
 			// single application-data record.
 			flight := p.avpFlight
+			if p.buildFlight != nil {
+				flight = p.buildFlight(p.client)
+			}
 			if flight == nil {
 				flight = encodeTTLSPAP(p.username, p.password)
 			}

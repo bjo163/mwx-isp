@@ -146,6 +146,30 @@ Management of console accounts (`super`/`admin` only): username, password,
 contact info, level, status. The operator action log is kept in the database
 (`sys_opr_log`) and purged automatically after one year.
 
+## Tenant Brand, Website and Package Studios
+
+Tenant administrators work inside their own workspace; none of these pages can
+read or write another tenant's data.
+
+- **Tenant Brand Studio** (`#/tenant/branding`) — brand name, short name, logo
+  variants, favicon, social image, design tokens, theme and typography for the
+  tenant's own surfaces.
+- **Tenant Website Studio** (`#/tenant/website`) — section-based public site
+  drafts, publish, version history and restore. Drafts stay private until
+  published.
+- **Invoice Studio** (`#/tenant/invoice`) — issuer name, logo, header/footer,
+  accent color, paper size, tax-ID visibility and verified bank instructions for
+  invoices and receipts. Saving versions the template for future documents;
+  invoices already issued keep the issuer and payment details frozen at issue.
+- **Package Studio** (`#/isp/package-studio`) — customer-facing name,
+  description, category, badge, highlights and display order for packages the
+  tenant already owns; price and speed stay on the package and RADIUS profile.
+
+See [Tenant Brand Experience](./tenant-brand-experience.md) for role rules,
+verified hostnames, publishing semantics and the full API surface. Platform
+operators manage installation-wide branding on the **Product Branding** page;
+tenant branding is a separate, tenant-scoped state.
+
 ## UI conveniences
 
 - **Language switcher** — English / Bahasa Indonesia, persisted per browser.

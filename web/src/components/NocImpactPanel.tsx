@@ -100,7 +100,18 @@ export const NocImpactPanel: React.FC<NocImpactPanelProps> = ({ targetId, odpId,
   if (!selector) return null;
   if (query.isLoading) return <LinearProgress sx={{ my: 1.5 }} aria-label={translate('pages.noc.impact.loading')} />;
   if (query.isError) {
-    return <Alert severity="error">{translate('pages.noc.impact.error')}</Alert>;
+    return (
+      <Alert
+        severity="error"
+        action={
+          <Button size="small" color="inherit" onClick={() => void query.refetch()}>
+            {translate('pages.noc.impact.retry')}
+          </Button>
+        }
+      >
+        {translate('pages.noc.impact.error')}
+      </Alert>
+    );
   }
 
   const data = query.data;
@@ -115,10 +126,13 @@ export const NocImpactPanel: React.FC<NocImpactPanelProps> = ({ targetId, odpId,
   const totalPages = Math.max(1, Math.ceil(data.pagination.total / data.pagination.page_size));
 
   return (
-    <Stack spacing={1.5} sx={{ mt: 1 }}>
+    <Stack spacing={1.5} sx={{ mt: 1 }} data-testid="noc-impact-panel">
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
         <Chip size="small" color={state.color} label={translate(`pages.noc.impact.state.${stateKey}`, { _: state.label })} sx={{ fontWeight: 700 }} />
-        <Chip size="small" color={confidence.color} variant="outlined" label={translate(`pages.noc.impact.confidence.${confidenceKey}`, { _: confidence.label })} sx={{ fontWeight: 700 }} />
+        <Chip size="small" color={confidence.color} variant="outlined" label={translate(`pages.noc.impact.confidence.${confidenceKey}`, { _: confidence.label })} sx={{ fontWeight: 700 }} data-testid="noc-impact-confidence" />
+        {data.monitoring.stale && (
+          <Chip size="small" color="warning" variant="outlined" label={translate('pages.noc.impact.state.stale')} data-testid="noc-impact-stale" />
+        )}
         <Chip size="small" variant="outlined" label={translate('pages.noc.impact.customers_count', { count: data.counts.customers })} />
         <Chip size="small" variant="outlined" label={translate('pages.noc.impact.subscriptions_count', { count: data.counts.subscriptions })} />
         <Chip size="small" variant="outlined" label={translate('pages.noc.impact.sessions_count', { count: data.counts.online_sessions })} />

@@ -46,8 +46,8 @@ This is the canonical milestone definition: milestone status, guardrails, and wh
 | M16 | Automated dev-to-main versioning, changelog, and releases | TR-F022 | P2 | Delivered |
 | M17 | Safe VPS installation and first-run onboarding | TR-F020 / TR-F016 | P1 | Delivered |
 | M18 | Existing-feature containment, integrity and operational verification | TR-F012 / TR-F013 / TR-F017 / TR-F018 / TR-F020 / TR-F027 / TR-F028 / TR-F030 / TR-F031 / TR-F033 | P0 first | Delivered |
-| M19 | Tenant brand, website and package catalog experience | TR-F034 / TR-F033 | P1 | In progress (M19.0–M19.4 delivered in v0.20.0 — tenant branding, website studio, verified domains and package catalog are in `main`; M19.5.1 #107 acceptance and M19.5.2 #108 documentation remain) |
-| M20 | Tenant invoice and receipt branding | TR-F035 / TR-F034 / TR-F033 | P2 | Planned (#63) |
+| M19 | Tenant brand, website and package catalog experience | TR-F034 / TR-F033 | P1 | Done (M19.0–M19.4 shipped in v0.20.0; M19.5.1 #107 two-tenant acceptance and M19.5.2 #108 documentation delivered after v0.20.0 as tests and docs only) |
+| M20 | Tenant invoice and receipt branding | TR-F035 / TR-F034 / TR-F033 | P2 | In progress — issuer snapshots, tenant templates, PDF documents and payment instructions implemented; PostgreSQL acceptance and browser tests staged in PR #116 (#109–#113) |
 
 ## Cross-Cutting Baseline
 
@@ -97,10 +97,10 @@ M18 is **Delivered**. M18.1 is delivered by PR #31; M18.2, M18.4 and M18.5 are d
 - [x] M19.4.4 Catalog settings, Package Studio and live previews (#104).
 - [x] M19.4.5 Minimal read-only tenant package catalog (#105).
 - [x] M19.4.6 Price/speed/FUP and tenant isolation tests (#106).
-- [ ] M19.5.1 PostgreSQL and browser E2E two-tenant acceptance (#107).
-- [ ] M19.5.2 Roadmap, handbook, API, domain and release documentation (#108).
+- [x] M19.5.1 PostgreSQL and browser E2E two-tenant acceptance (#107).
+- [x] M19.5.2 Roadmap, handbook, API, domain and release documentation (#108).
 
-**M19 delivery evidence (v0.20.0, `main` `94fa0dd`).** M19.0–M19.4 ship as `internal/domain/tenant_branding.go`, `tenant_website.go`, `tenant_domain.go`, `tenant_package_presentation.go`; handlers in `internal/adminapi/branding.go`, `tenant_website.go`, `tenant_domains.go`, `package_presentation.go`; host resolution in `internal/tenancy/subdomain.go`; UI routes `/tenant/branding`, `/tenant/website`, `/isp/package-studio`, `/site/:identifier`; unit coverage in `branding_test.go`, `branding_editor_test.go`, `branding_upload_test.go`, `tenant_branding_assets_test.go`, `tenant_domains_test.go`, `tenant_website_test.go`, `package_presentation_test.go`. Residual, exactly the two unchecked lines: M19.5.1 has no two-tenant browser E2E spec and the integration suite carries no tenant-branding fixture, and M19.5.2 still lacks the EN/ID handbook section for Brand, Website and Package Studio.
+**M19 delivery evidence (v0.20.0, `main` `94fa0dd`; M19.5 completed post-v0.20.0).** M19.0–M19.4 ship as `internal/domain/tenant_branding.go`, `tenant_website.go`, `tenant_domain.go`, `tenant_package_presentation.go`; handlers in `internal/adminapi/branding.go`, `tenant_website.go`, `tenant_domains.go`, `package_presentation.go`; host resolution in `internal/tenancy/subdomain.go`; UI routes `/tenant/branding`, `/tenant/website`, `/isp/package-studio`, `/site/:identifier`; unit coverage in `branding_test.go`, `branding_editor_test.go`, `branding_upload_test.go`, `tenant_branding_assets_test.go`, `tenant_domains_test.go`, `tenant_website_test.go`, `package_presentation_test.go`. M19.5.1 adds `test/integration/tenant_brand_experience_test.go` (two tenants on PostgreSQL: branding isolation, website draft/publish/rollback history, host-resolved public catalog, hidden packages, cross-tenant writes, price integrity) and `web/e2e/tenant-brand-experience.spec.ts` (Brand, Website and Package Studio plus both public sites). M19.5.2 adds EN/ID handbook chapters `docs-site/src/en|id/tenant-brand-experience.md`, admin-manual sections, documentation-map entries and the API contract pointer.
 
 ### M20 — Tenant Invoice & Receipt Branding (TR-F035)
 

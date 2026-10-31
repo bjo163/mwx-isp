@@ -31,7 +31,12 @@ Where the two differ, the citations in this chapter take precedence.
 - **RFC 3748** — Extensible Authentication Protocol (EAP). The framework itself;
   also defines EAP-MD5, the MD5-Challenge method (§5.4).
 - **RFC 5216** — EAP-TLS; certificate-based mutual authentication (milestone M1).
-- **RFC 5281** — EAP-TTLSv0; a TLS tunnel carrying inner PAP / MS-CHAPv2 (M9).
+- **RFC 5281** — EAP-TTLSv0; a TLS tunnel carrying inner PAP, CHAP, MS-CHAP or
+  MS-CHAP-V2 (M9).
+- **RFC 1994** — PPP CHAP; the algorithm behind EAP-TTLS inner CHAP. Weak on its
+  own and therefore only used inside the TLS tunnel.
+- **RFC 2433** — MS-CHAP (v1); the algorithm behind EAP-TTLS inner MS-CHAP. Only
+  the NT-Response is accepted; LM-only clients are refused.
 - **RFC 2759** — MS-CHAP-V2, used as the inner method of EAP-MSCHAPv2 and PEAPv0
   (M8). MS-MPPE session keys are derived per RFC 2548 / RFC 5705.
 

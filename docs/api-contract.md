@@ -108,6 +108,43 @@ route), `INVALID_ID` (400, non-numeric path id), `NOT_FOUND` / `USER_NOT_FOUND`
 / `SETTING_NOT_FOUND` (404), `VALIDATION_ERROR` (400/422, with `details`),
 `DATABASE_ERROR` (500, details stripped).
 
+## Tenant brand surfaces
+
+Tenant branding, website and package presentation endpoints follow the same
+envelopes and error codes. They are tenant-scoped from the authenticated JWT
+(`/branding`, `/tenant-website/*`, `/tenant-domains`, `/isp/*presentation*`) or
+resolved from a verified hostname/identifier on the public routes
+(`/tenant-branding/:identifier`, `/tenant-website/public/:identifier`,
+`/public/packages`). Public responses expose only publishable fields and
+public-visible packages; a package owned by another tenant returns 404, never
+403 or a cross-tenant record. The full route table, isolation rules and
+acceptance evidence live in
+[tenant-brand-experience.md](tenant-brand-experience.md).
+
+## Invoice and receipt documents
+
+Document endpoints are authenticated and tenant-scoped; another tenant's invoice
+or receipt returns 404 with the standard envelope.
+
+| Route | Returns |
+| --- | --- |
+| `GET /api/v1/tenant-document-template` | The tenant's template, or its defaults (version 1, A4, `#16A34A`) before the first save |
+| `PUT /api/v1/tenant-document-template` | Saves presentation and payment-instruction text and bumps the template version |
+| `POST /api/v1/tenant-document-template/reset` | Restores the tenant defaults and bumps the template version |
+| `GET /api/v1/isp/invoices/:id/document` | Document view (`kind`, `number`, issuer, customer, items, totals, payments, `snapshot`, `template_version`) |
+| `GET /api/v1/isp/invoices/:id/document.pdf` | `application/pdf`, inline filename, no-store |
+| `GET /api/v1/isp/payments/:id/receipt` | Receipt view with the balance as of that payment |
+| `GET /api/v1/isp/payments/:id/receipt.pdf` | Receipt PDF, same headers |
+
+Issuing an invoice captures an immutable `InvoiceDocumentSnapshot`; later
+profile or template edits never rewrite it, while a not-yet-issued invoice is
+rendered from live data with `snapshot: false`. Document output is
+presentational: totals, numbering, payment status, reversal rules and the ledger
+stay on their operational records. `logo_url` and `qr_image_url` accept only an
+asset uploaded for the requesting tenant, because the PDF embeds the stored
+bytes instead of fetching a remote URL; payment instructions accept all three
+bank fields together.
+
 ## Contract tests
 
 `api_contract_test.go` pins the above per endpoint:
