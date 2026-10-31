@@ -21,7 +21,7 @@ import (
 const tenantDomainTXTPrefix = "mwx-isp-verification="
 
 var (
-	tenantHostnamePattern = regexp.MustCompile(`^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$`)
+	tenantHostnamePattern = regexp.MustCompile(`^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)
 	lookupTenantDomainTXT = net.LookupTXT
 )
 
@@ -85,9 +85,9 @@ func tenantDomainTXTMatches(records []string, token string) bool {
 func toTenantDomainResponse(row domain.TenantDomain) tenantDomainResponse {
 	return tenantDomainResponse{
 		ID: row.ID, Hostname: row.Hostname,
-		VerificationTXT: tenantDomainTXTName(row.Hostname),
+		VerificationTXT:   tenantDomainTXTName(row.Hostname),
 		VerificationValue: tenantDomainTXTValue(row.VerificationToken),
-		VerifiedAt: row.VerifiedAt, CreatedAt: row.CreatedAt,
+		VerifiedAt:        row.VerifiedAt, CreatedAt: row.CreatedAt,
 	}
 }
 

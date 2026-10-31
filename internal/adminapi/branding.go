@@ -414,30 +414,30 @@ func removeBrandLogo(dataDir, filename string) {
 }
 
 type tenantBrandingResponse struct {
-	BrandName string `json:"brand_name"`
-	ShortName string `json:"short_name"`
-	LogoURL string `json:"logo_url"`
-	CompactLogoURL string `json:"compact_logo_url"`
-	LightLogoURL string `json:"light_logo_url"`
-	DarkLogoURL string `json:"dark_logo_url"`
-	FaviconURL string `json:"favicon_url"`
-	SocialImageURL string `json:"social_image_url"`
-	PrimaryColor string `json:"primary_color"`
-	SecondaryColor string `json:"secondary_color"`
-	AccentColor string `json:"accent_color"`
+	BrandName       string `json:"brand_name"`
+	ShortName       string `json:"short_name"`
+	LogoURL         string `json:"logo_url"`
+	CompactLogoURL  string `json:"compact_logo_url"`
+	LightLogoURL    string `json:"light_logo_url"`
+	DarkLogoURL     string `json:"dark_logo_url"`
+	FaviconURL      string `json:"favicon_url"`
+	SocialImageURL  string `json:"social_image_url"`
+	PrimaryColor    string `json:"primary_color"`
+	SecondaryColor  string `json:"secondary_color"`
+	AccentColor     string `json:"accent_color"`
 	BackgroundColor string `json:"background_color"`
-	SurfaceColor string `json:"surface_color"`
-	TextColor string `json:"text_color"`
-	LinkColor string `json:"link_color"`
-	Theme string `json:"theme"`
-	Typography string `json:"typography"`
-	CompanyName string `json:"company_name"`
-	Tagline string `json:"tagline"`
-	WebsiteURL string `json:"website_url"`
-	SupportEmail string `json:"support_email"`
-	SupportPhone string `json:"support_phone"`
+	SurfaceColor    string `json:"surface_color"`
+	TextColor       string `json:"text_color"`
+	LinkColor       string `json:"link_color"`
+	Theme           string `json:"theme"`
+	Typography      string `json:"typography"`
+	CompanyName     string `json:"company_name"`
+	Tagline         string `json:"tagline"`
+	WebsiteURL      string `json:"website_url"`
+	SupportEmail    string `json:"support_email"`
+	SupportPhone    string `json:"support_phone"`
 	SupportWhatsApp string `json:"support_whatsapp"`
-	ContactAddress string `json:"contact_address"`
+	ContactAddress  string `json:"contact_address"`
 }
 
 func getPublicTenantBrandingHandler(c echo.Context) error {
@@ -506,30 +506,30 @@ func getTenantBrandingHandler(c echo.Context) error {
 }
 
 type updateBrandingPayload struct {
-	BrandName *string `json:"brand_name"`
-	ShortName *string `json:"short_name"`
-	LogoURL *string `json:"logo_url"`
-	CompactLogoURL *string `json:"compact_logo_url"`
-	LightLogoURL *string `json:"light_logo_url"`
-	DarkLogoURL *string `json:"dark_logo_url"`
-	FaviconURL *string `json:"favicon_url"`
-	SocialImageURL *string `json:"social_image_url"`
-	PrimaryColor *string `json:"primary_color"`
-	SecondaryColor *string `json:"secondary_color"`
-	AccentColor *string `json:"accent_color"`
+	BrandName       *string `json:"brand_name"`
+	ShortName       *string `json:"short_name"`
+	LogoURL         *string `json:"logo_url"`
+	CompactLogoURL  *string `json:"compact_logo_url"`
+	LightLogoURL    *string `json:"light_logo_url"`
+	DarkLogoURL     *string `json:"dark_logo_url"`
+	FaviconURL      *string `json:"favicon_url"`
+	SocialImageURL  *string `json:"social_image_url"`
+	PrimaryColor    *string `json:"primary_color"`
+	SecondaryColor  *string `json:"secondary_color"`
+	AccentColor     *string `json:"accent_color"`
 	BackgroundColor *string `json:"background_color"`
-	SurfaceColor *string `json:"surface_color"`
-	TextColor *string `json:"text_color"`
-	LinkColor *string `json:"link_color"`
-	Theme *string `json:"theme"`
-	Typography *string `json:"typography"`
-	CompanyName *string `json:"company_name"`
-	Tagline *string `json:"tagline"`
-	WebsiteURL *string `json:"website_url"`
-	SupportEmail *string `json:"support_email"`
-	SupportPhone *string `json:"support_phone"`
+	SurfaceColor    *string `json:"surface_color"`
+	TextColor       *string `json:"text_color"`
+	LinkColor       *string `json:"link_color"`
+	Theme           *string `json:"theme"`
+	Typography      *string `json:"typography"`
+	CompanyName     *string `json:"company_name"`
+	Tagline         *string `json:"tagline"`
+	WebsiteURL      *string `json:"website_url"`
+	SupportEmail    *string `json:"support_email"`
+	SupportPhone    *string `json:"support_phone"`
 	SupportWhatsApp *string `json:"support_whatsapp"`
-	ContactAddress *string `json:"contact_address"`
+	ContactAddress  *string `json:"contact_address"`
 }
 
 func validTenantBrandingAssetURL(value string) bool {
@@ -545,7 +545,11 @@ func validTenantBrandingAssetURL(value string) bool {
 }
 
 func validateTenantBrandingPayload(payload updateBrandingPayload) error {
-	limits := []struct { name string; value *string; max int }{
+	limits := []struct {
+		name  string
+		value *string
+		max   int
+	}{
 		{"brand_name", payload.BrandName, 150}, {"short_name", payload.ShortName, 24},
 		{"logo_url", payload.LogoURL, 500}, {"compact_logo_url", payload.CompactLogoURL, 500},
 		{"light_logo_url", payload.LightLogoURL, 500}, {"dark_logo_url", payload.DarkLogoURL, 500},
@@ -635,20 +639,48 @@ func updateTenantBrandingHandler(c echo.Context) error {
 	if payload.Theme != nil {
 		branding.Theme = strings.TrimSpace(*payload.Theme)
 	}
-	if payload.BrandName != nil { branding.BrandName = strings.TrimSpace(*payload.BrandName) }
-	if payload.ShortName != nil { branding.ShortName = strings.TrimSpace(*payload.ShortName) }
-	if payload.CompactLogoURL != nil { branding.CompactLogoURL = strings.TrimSpace(*payload.CompactLogoURL) }
-	if payload.LightLogoURL != nil { branding.LightLogoURL = strings.TrimSpace(*payload.LightLogoURL) }
-	if payload.DarkLogoURL != nil { branding.DarkLogoURL = strings.TrimSpace(*payload.DarkLogoURL) }
-	if payload.SocialImageURL != nil { branding.SocialImageURL = strings.TrimSpace(*payload.SocialImageURL) }
-	if payload.AccentColor != nil { branding.AccentColor = strings.TrimSpace(*payload.AccentColor) }
-	if payload.BackgroundColor != nil { branding.BackgroundColor = strings.TrimSpace(*payload.BackgroundColor) }
-	if payload.SurfaceColor != nil { branding.SurfaceColor = strings.TrimSpace(*payload.SurfaceColor) }
-	if payload.TextColor != nil { branding.TextColor = strings.TrimSpace(*payload.TextColor) }
-	if payload.LinkColor != nil { branding.LinkColor = strings.TrimSpace(*payload.LinkColor) }
-	if payload.Typography != nil { branding.Typography = strings.TrimSpace(*payload.Typography) }
-	if payload.SupportWhatsApp != nil { branding.SupportWhatsApp = strings.TrimSpace(*payload.SupportWhatsApp) }
-	if payload.ContactAddress != nil { branding.ContactAddress = strings.TrimSpace(*payload.ContactAddress) }
+	if payload.BrandName != nil {
+		branding.BrandName = strings.TrimSpace(*payload.BrandName)
+	}
+	if payload.ShortName != nil {
+		branding.ShortName = strings.TrimSpace(*payload.ShortName)
+	}
+	if payload.CompactLogoURL != nil {
+		branding.CompactLogoURL = strings.TrimSpace(*payload.CompactLogoURL)
+	}
+	if payload.LightLogoURL != nil {
+		branding.LightLogoURL = strings.TrimSpace(*payload.LightLogoURL)
+	}
+	if payload.DarkLogoURL != nil {
+		branding.DarkLogoURL = strings.TrimSpace(*payload.DarkLogoURL)
+	}
+	if payload.SocialImageURL != nil {
+		branding.SocialImageURL = strings.TrimSpace(*payload.SocialImageURL)
+	}
+	if payload.AccentColor != nil {
+		branding.AccentColor = strings.TrimSpace(*payload.AccentColor)
+	}
+	if payload.BackgroundColor != nil {
+		branding.BackgroundColor = strings.TrimSpace(*payload.BackgroundColor)
+	}
+	if payload.SurfaceColor != nil {
+		branding.SurfaceColor = strings.TrimSpace(*payload.SurfaceColor)
+	}
+	if payload.TextColor != nil {
+		branding.TextColor = strings.TrimSpace(*payload.TextColor)
+	}
+	if payload.LinkColor != nil {
+		branding.LinkColor = strings.TrimSpace(*payload.LinkColor)
+	}
+	if payload.Typography != nil {
+		branding.Typography = strings.TrimSpace(*payload.Typography)
+	}
+	if payload.SupportWhatsApp != nil {
+		branding.SupportWhatsApp = strings.TrimSpace(*payload.SupportWhatsApp)
+	}
+	if payload.ContactAddress != nil {
+		branding.ContactAddress = strings.TrimSpace(*payload.ContactAddress)
+	}
 	if payload.CompanyName != nil {
 		branding.CompanyName = strings.TrimSpace(*payload.CompanyName)
 	}
@@ -679,8 +711,7 @@ func updateTenantBrandingHandler(c echo.Context) error {
 	return ok(c, branding)
 }
 
-
-const tenantBrandingAssetPattern = regexp.MustCompile(`^asset-[a-f0-9]{32}\\.png$`)
+var tenantBrandingAssetPattern = regexp.MustCompile(`^asset-[a-f0-9]{32}\.png$`)
 
 // writeTenantBrandingAsset stores a fully decoded PNG beneath a tenant-specific
 // directory. The opaque filename prevents callers from choosing filesystem paths.
@@ -745,7 +776,7 @@ func getPublicTenantBrandingAsset(c echo.Context) error {
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Failed to resolve tenant asset", err.Error())
 	}
 	assetPath := filepath.Join(GetAppContext(c).Config().GetDataDir(), "tenant-branding", strconv.FormatInt(tenantID, 10), filename)
-	file, err := os.Open(assetPath)
+	file, err := os.Open(assetPath) //nolint:gosec // G304: tenantID is numeric and filename matched tenantBrandingAssetPattern
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return fail(c, http.StatusNotFound, "ASSET_NOT_FOUND", "Tenant asset not found", nil)
@@ -797,9 +828,9 @@ func tenantBrandingAssetInUse(db *gorm.DB, tenantID int64, filename string) (boo
 }
 
 func deleteTenantBrandingAsset(c echo.Context) error {
-	tenantID, ok := c.Get("tenant_id").(int64)
+	tenantID, found := c.Get("tenant_id").(int64)
 	filename := c.Param("filename")
-	if !ok || tenantID <= 0 {
+	if !found || tenantID <= 0 {
 		return fail(c, http.StatusBadRequest, "INVALID_TENANT", "Tenant context is required", nil)
 	}
 	if !tenantBrandingAssetPattern.MatchString(filename) {
