@@ -1,7 +1,7 @@
 # 100-item portfolio triage checklist (2026-10-27)
 
-Provenance: `MWX-ISP_100_ISSUES_MASTER_2026-10-27.md` (kept at the repository root as the
-source inventory), baseline `main`/`dev` at `1b791f8` (v0.14.0). The inventory lists
+Provenance: the 2026-10-27 source inventory (removed from the repository on 2026-10-31 so
+this file stays the single actionable backlog), baseline `main`/`dev` at `1b791f8` (v0.14.0). The inventory lists
 100 draft IDs — 64 Engineering, 24 Frontier, 12 Economy — with Charity and Faith/ontology
 set to zero because they do not apply to a RADIUS/ISP monolith.
 
@@ -113,7 +113,7 @@ Done: 61 / 100.
   while **0 of the 6** incident surfaces has a print path, so the paper half of the
   claim is currently empty. The sheet also cannot hold the answer: the skin's own
   metrics budget **32** slot rows against the **108** the ledger allows.
-  [Study](printable-incident-card-study-2026-10-29.md), `internal/incidentcard`
+  `internal/incidentcard`
   (read-only, imported by nothing, stdlib-only, 22 gates, digest
   `e667b8e47e590ac663f3b087de00fb1d7dcceb7db9724a22bfb9f764c26453ff`). **No-go,
   explicitly:** a real monochrome proof sheet (`G01`), a declared page geometry —
@@ -237,7 +237,7 @@ Done: 61 / 100.
   at all, so four of the ten cause classes reach the operator in an empty subsystem
   bucket. **16** statements confirmed, **6** gaps open, **4** mutations of the
   safety properties all caught by the suite. **5-row no-go register** in
-  `docs/incident-triage-sanitized-logs-2026-10-29.md`: a shipped triage surface
+  **5-row no-go register**: a shipped triage surface
   (`TR-F031` scope decision, `TR-N003` boundary), precision on real tenant logs
   (needs a real labeled incident corpus - six of ten classes here have one
   incident), any AI/LLM comparison (needs a sanctioned model and the data-handling
@@ -272,7 +272,7 @@ Done: 61 / 100.
   re-checked on every run. Two findings constrain any future palette regardless of
   the parser: the customer list accepts no date parameter, and the dashboard totals
   live at `GET /dashboard/stats` with no `<Resource>` entry to point at. **5-row
-  no-go register** in `docs/operator-intent-search-2026-10-29.md`: a shipped
+  **5-row no-go register**: a shipped
   palette (needs a `TR-F013` scope decision), measured resolution quality (needs
   named respondents - the 20 prompts are constructed, not observed), a
   state-word translation layer (needs an owner decision), free text beyond the
@@ -422,7 +422,7 @@ Done: 61 / 100.
   Unproven half of the criterion: the sanitized sample export — `Load(db)` is
   ready for it, but no sample database exists locally, so every number here is
   synthetic. Evidence:
-  [revenue-leakage-audit-2026-10-29.md](revenue-leakage-audit-2026-10-29.md).
+  `internal/revenue` test suite (28 cases).
 
 - `FUT-023` (2026-10-29, `dev` @ `f4de6b2`): RFC→feature→test navigation graph.
   Nothing joined `docs/rfcs`, the checklist entry points, and the Go files that
@@ -499,7 +499,7 @@ Done: 61 / 100.
   `go test ./internal/replay/` passes sixteen cases against pure fixtures and
   SQLite, coverage of every divergence kind, and
   `golangci-lint run ./internal/replay/...` reports 0 issues. Evidence:
-  [event-replay-simulator-2026-10-29.md](event-replay-simulator-2026-10-29.md).
+  `internal/replay` test suite.
 
 - `FUT-009` (2026-10-29, `dev` @ `c372ee3`): billing-suspend explanation
   trace. `suspension_reason=billing_overdue` says that billing suspended a
