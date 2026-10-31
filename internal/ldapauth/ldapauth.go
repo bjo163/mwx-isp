@@ -194,25 +194,39 @@ type conn interface {
 // abandoned instead of leaking the connection.
 type dialFunc func(ctx context.Context, cfg Config) (conn, error)
 
+// openLDAP performs the socket-level dial dialReal races against the caller's
+// context. It is separated so the abandonment path below is testable without a
+// real directory standing still for a timeout.
+func openLDAP(cfg Config) (conn, error) {
+	opts := []ldap.DialOpt{
+		ldap.DialWithDialer(&net.Dialer{Timeout: cfg.Timeout}),
+		ldap.DialWithTLSConfig(cfg.tlsConfig()),
+	}
+	return ldap.DialURL(cfg.ServerURL, opts...)
+}
+
 // dialReal connects to cfg.ServerURL, honoring the dial timeout and (for
 // ldaps://) the TLS configuration. It does not arm the per-operation timeout:
 // Verify does that once it knows how much of the caller's deadline is left.
 // The dial races against ctx so a stalled directory cannot pin a RADIUS worker
 // beyond the caller's own deadline: when ctx expires first, the socket that
-// DialURL eventually returns is closed by a background drain and ctx.Err() is
+// openLDAP eventually returns is closed by a background drain and ctx.Err() is
 // surfaced.
 func dialReal(ctx context.Context, cfg Config) (conn, error) {
+	return dialAbandonable(ctx, cfg, openLDAP)
+}
+
+// dialAbandonable runs open in a goroutine and returns as soon as ctx is done.
+// The goroutine keeps running, so its result is drained in the background and
+// any socket it produces is closed rather than leaked.
+func dialAbandonable(ctx context.Context, cfg Config, open func(Config) (conn, error)) (conn, error) {
 	type dialResult struct {
 		c   conn
 		err error
 	}
 	ch := make(chan dialResult, 1)
 	go func() {
-		opts := []ldap.DialOpt{
-			ldap.DialWithDialer(&net.Dialer{Timeout: cfg.Timeout}),
-			ldap.DialWithTLSConfig(cfg.tlsConfig()),
-		}
-		c, err := ldap.DialURL(cfg.ServerURL, opts...)
+		c, err := open(cfg)
 		ch <- dialResult{c, err}
 	}()
 	select {
@@ -302,9 +316,11 @@ func (v *Verifier) Verify(ctx context.Context, username, password string) error 
 
 	// Arm the socket timeout to the smaller of the configured operation
 	// timeout and the caller's remaining deadline, so a slow directory
-	// cannot pin the worker past the request's own budget.
+	// cannot pin the worker past the request's own budget. armTimeout only
+	// reports context errors, so the same "abandoned, not unreachable"
+	// distinction as the dial path applies here.
 	if err := armTimeout(c, ctx, v.cfg.Timeout); err != nil {
-		return fmt.Errorf("%w: dial: %v", ErrUnavailable, err)
+		return err
 	}
 
 	if v.cfg.StartTLS {
