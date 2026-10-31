@@ -31,7 +31,7 @@ the current tree.
 
 ## Progress
 
-Done: 61 / 100.
+Done: 65 / 100.
 
 - `FUT-020` (2026-10-29, `dev` @ `a50f99f`): per-tenant private operational
   statistics, delivered as a census of what a served response already reconstructs
@@ -1262,7 +1262,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-032` TR-F028 P1 — Invariant suspend manual tidak tertimpa bayar otomatis · LOKAL · PROPOSED_VERIFICATION · commit `5c1946a`
 - [x] `ENG-019` TR-F033 P1 — Ratcheting audit query SQL raw dan joins tenancy · LOKAL · PROPOSED_VERIFICATION · commit `fc7390d`
 - [x] `ENG-028` TR-F022 P1 — Penyamaran PII di logs, traces dan support evidence · LOKAL · PROPOSED_VERIFICATION · commit `59a429d`
-- [ ] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · dep ENG-049 · PROPOSED_VERIFICATION
+- [x] `ENG-055` TR-F031 P1 — State loading, stale-data dan retry pada OperationsPage · LOKAL · PROPOSED_VERIFICATION · commit `6fb38ca`
 - [x] `ENG-011` TR-F001 P1 — Harness fuzz paket RADIUS cacat dan oversized · LOKAL · PROPOSED_VERIFICATION · commit `6fcd5ad`
 - [x] `ENG-031` TR-F028 P1 — Invoice numbering tahan retry setelah crash PostgreSQL · LOKAL · PROPOSED_VERIFICATION · commit `74fa4c1`
 - [x] `ENG-033` TR-F028 P1 — Idempotency pembayaran manual dengan request ulang · LOKAL · PROPOSED_VERIFICATION · commit `c89624d`
@@ -1280,7 +1280,7 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ENG-038` TR-F007 P1 — Voucher terminal-state concurrency regressions · LOKAL · PROPOSED_VERIFICATION · commit `7c2e06e`
 - [x] `ENG-056` TR-F029 P1 — Informasi jujur untuk action portal/payment yang disabled · LOKAL · dep ENG-021 · PROPOSED_VERIFICATION · commit `a171299`
 - [x] `ENG-061` TR-F022 P1 — Stabilitas test E2E CI branch main dan dev · LOKAL · PROPOSED_VERIFICATION · commit `521963e`
-- [ ] `ENG-064` TR-F010 P1 — Pemeriksaan session-action queue dead-letter dan alert · LOKAL · dep ENG-013 · PROPOSED_VERIFICATION
+- [x] `ENG-064` TR-F010 P1 — Pemeriksaan session-action queue dead-letter dan alert · LOKAL · PROPOSED_VERIFICATION · commit `2f4879d`, `bd609cb`
 - [x] `ENG-053` TR-F013 P2 — Navigasi keyboard pada data-grid dan dialog kritis · LOKAL · PROPOSED_VERIFICATION · commit `4404b1b`
 - [x] `ENG-004` TR-F003 P2 — Kesiapan rotasi sertifikat RadSec dan EAP · LOKAL · PROPOSED_VERIFICATION · commit `3cf307c`
 - [x] `ENG-030` TR-F022 P2 — Inventory SBOM backend/frontend serta lisensi · LOKAL · PROPOSED_VERIFICATION · commit `bf4b18e`
@@ -1299,14 +1299,14 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 
 ## Wave 2 — 25 item (LOKAL 13 · RISET 2 · ASET 7 · RISET+ASET 3)
 
-- [ ] `ENG-058` TR-F031 P2 — Label confidence dan mapping pada NOC impact UI · LOKAL · dep ENG-055 · PROPOSED_VERIFICATION
+- [x] `ENG-058` TR-F031 P2 — Label confidence dan mapping pada NOC impact UI · LOKAL · PROPOSED_VERIFICATION · commit `6fb38ca`
 - [x] `ENG-036` TR-F033 P2 — Jejak scheduler FUP terpisah per tenant sesudah perbaikan · LOKAL · dep ENG-019 · PROPOSED_VERIFICATION · commit `39caa5f`
 - [x] `ENG-054` TR-F023 P2 — Rekonsiliasi ID/EN seluruh status tagihan dan insiden · LOKAL · PROPOSED_VERIFICATION · commit `ef3c286`
 - [x] `ENG-057` TR-F015 P2 — Audit grafik dashboard konsistensi timezone dan nominal · LOKAL · PROPOSED_VERIFICATION · commit `e308244`
 - [x] `ENG-059` TR-F007 P2 — Audit import RADIUS user dengan preview dry-run saja · LOKAL · PROPOSED_VERIFICATION · commit `06e7ae4`
 - [x] `ENG-062` TR-F022 P2 — Sistem upgrade dependency dengan ratchet keamanan · LOKAL · dep ENG-030 · PROPOSED_VERIFICATION · commit `5173519`
 - [x] `ENG-003` TR-F004 P2 — Pemetaan kebijakan pencabutan sertifikat EAP-TLS · LOKAL · PROPOSED_VERIFICATION · commit `d463ec4`
-- [ ] `ENG-005` TR-F004 P2 — Evaluasi dukungan inner EAP-TTLS CHAP dan MS-CHAP · LOKAL · dep ENG-002 · PROPOSED_VERIFICATION
+- [x] `ENG-005` TR-F004 P2 — Evaluasi dukungan inner EAP-TTLS CHAP dan MS-CHAP · LOKAL · PROPOSED_VERIFICATION · commit `dba0660`, `2a84f56`
 - [x] `ENG-026` TR-F020 P2 — Evaluasi parameter KDF dan envelope backup · LOKAL · PROPOSED_VERIFICATION · commit `33c0f5e`
 - [x] `ENG-034` TR-F028 P2 — Pembetulan transaksi payment operator yang salah input · LOKAL · PROPOSED_VERIFICATION · commit `9bc7368`
 - [x] `ENG-060` TR-F022 P2 — Studi support bundle tersensor untuk insiden operator · LOKAL · dep ENG-028 · PROPOSED_VERIFICATION · commit `e3e5e57`
@@ -1334,13 +1334,13 @@ been claimed yet, so the unblocked queue is `LOKAL`-only.
 - [x] `ECO-006` TR-F027 P2 — Validasi jasa onboarding dan migrasi pelanggan · RISET · dep ENG-059 · PROPOSED_VERIFICATION · commit `4b2ea0a`
 - [ ] `ECO-008` TR-F015 P2 — Cost allocation unit per NAS dan subscriber aktif · RISET · dep ECO-003 · PROPOSED_VERIFICATION
 - [ ] `ECO-011` TR-F023 P2 — Kajian strategi distribusi community/open-source · RISET · dep ECO-001 · PROPOSED_VERIFICATION
-- [ ] `FUT-013` TR-F031 P3 — Offline read-only NOC snapshot dengan TTL dan enkripsi · RISET · dep ENG-055 · PROPOSED_VERIFICATION
+- [ ] `FUT-013` TR-F031 P3 — Offline read-only NOC snapshot dengan TTL dan enkripsi · RISET · dep ENG-049 · PROPOSED_VERIFICATION
 - [x] `FUT-017` TR-F029 P3 — Experimental neo-brutalist manga skin via existing tokens · RISET · dep ENG-053 · PROPOSED_VERIFICATION · commit `7a8b944`
 - [x] `FUT-001` TR-F013 P3 — Proof-of-concept intent search untuk perintah operator read-only · RISET · dep ENG-052 · PROPOSED_VERIFICATION · commit `8f9b85c`
 - [x] `FUT-002` TR-F031 P3 — AI incident triage berbasis log tersensor · RISET · dep ENG-028 · PROPOSED_VERIFICATION · commit `62c80bb`
-- [ ] `FUT-003` TR-F031 P3 — Ringkasan insiden berbukti tanpa mengklaim pelanggan offline · RISET · dep ENG-058 · PROPOSED_VERIFICATION
+- [ ] `FUT-003` TR-F031 P3 — Ringkasan insiden berbukti tanpa mengklaim pelanggan offline · RISET · dep ENG-049 · PROPOSED_VERIFICATION
 - [ ] `FUT-004` TR-F031 P3 — Deteksi pola anomali latency dari metrik historis bounded · RISET · dep ENG-049 · PROPOSED_VERIFICATION
-- [ ] `FUT-005` TR-F031 P3 — Graph hipotesis penyebab insiden dengan uncertainty · RISET · dep ENG-058 · PROPOSED_VERIFICATION
+- [ ] `FUT-005` TR-F031 P3 — Graph hipotesis penyebab insiden dengan uncertainty · RISET · dep ENG-049 · PROPOSED_VERIFICATION
 - [x] `FUT-006` TR-F031 P3 — Visual graph statis NAS-ODP dari relasi yang telah diisi operator · RISET · dep ENG-018 · PROPOSED_VERIFICATION · commit `f026ff4`
 - [ ] `FUT-008` TR-F010 P3 — Preview dampak CoA terhadap sesi yang aktif sebelum aksi · RISET · dep ENG-013 · PROPOSED_VERIFICATION
 - [x] `FUT-009` TR-F028 P3 — Explanation trace billing-suspend dari rule engine existing · RISET · dep ENG-032 · PROPOSED_VERIFICATION · commit `c372ee3`
@@ -1373,9 +1373,9 @@ taken from the checkboxes in the wave lists, not from memory:
 | Wave | Items | Done | Open | Open that needs an asset or a dependency on one |
 | --- | ---: | ---: | ---: | --- |
 | 0 | 5 | 4 | 1 | the 1 (`ENG-041` clean VPS) |
-| 1 | 37 | 28 | 9 | all 9 — 7 `ASET` rows plus `ENG-055`/`ENG-064`, whose only unsatisfied dependency is an `ASET` row |
-| 2 | 25 | 12 | 13 | all 13 — 7 `ASET`, 3 `RISET+ASET`, plus `ENG-005`, `ENG-058` and `ECO-003` behind one |
-| **Waves 0-2** | **67** | **44** | **23** | **23 of 23** |
+| 1 | 37 | 30 | 7 | all 7 — the 7 `ASET` rows; the former local blockers `ENG-055`/`ENG-064` are delivered and leave only the asset they used to reference |
+| 2 | 25 | 14 | 11 | all 11 — 7 `ASET`, 3 `RISET+ASET`, plus `ECO-003` behind `ENG-045` in the clean-VPS chain |
+| **Waves 0-2** | **67** | **48** | **19** | **19 of 19** |
 
 The inventory-wide total adds the rows delivered out of wave order because they
 were locally executable — **12** Wave 3 rows (`ENG-006`, `ENG-007`, `ECO-006`,
@@ -1385,7 +1385,7 @@ were locally executable — **12** Wave 3 rows (`ENG-006`, `ENG-007`, `ECO-006`,
 
 Every remaining open row is listed with the reason it cannot be closed by
 repository work in the blocked register below, so the Wave 0-2 close-out is a
-complete statement: 44 delivered, 23 no-go, none undecided.
+complete statement: 48 delivered, 19 no-go, none undecided.
 
 Work continues in Waves 3-4, where the rows that need no asset remain. Ordered so
 each step stays executable without hardware; `ENG-006` (TEAP readiness for M11),
@@ -1435,16 +1435,24 @@ PITR), `ENG-045` (RTO/RPO from a rehearsal), `ECO-003` (TCO model, depends on
 
 **No-go — needs a real NAS in a lab (`ENG-013` chain).** `ENG-013` (RFC 5176
 CoA/Disconnect pilot), `ENG-050` (tested NAS/firmware matrix), `ENG-014` (VSA
-priority from a real device model), `ENG-064` (queue dead-letter and alert check,
-depends on `ENG-013`).
+priority from a real device model). `ENG-064` used to sit here but is delivered:
+the queue summary endpoint, per-tenant dead-letter alert and their tests landed in
+`2f4879d`/`bd609cb`, so what remains from the real device is the pilot's own
+answer in `ENG-013`.
 
 **No-go — needs supplicant hardware.** `ENG-002` (EAP-TLS 1.2/1.3
-interoperability matrix with real supplicants), `ENG-005` (TTLS inner CHAP /
-MS-CHAP evaluation, depends on `ENG-002`).
+interoperability matrix with real supplicants). `ENG-005` used to sit here but is
+delivered: inner EAP-TTLS CHAP and MS-CHAP are implemented with RFC 1994/RFC 2433
+citations (`dba0660`), the NT hash is derived from UTF-16LE (`2a84f56`), and the
+live-RADIUS acceptance subtests drive valid and wrong-password cases for both
+methods; only the real-supplicant matrix in `ENG-002` remains external.
 
-**No-go — needs a running SNMPv3 device.** `ENG-049` (SNMPv3 authPriv UAT),
-`ENG-055` (OperationsPage loading, stale and retry states, depends on `ENG-049`),
-`ENG-058` (NOC impact confidence labels, depends on `ENG-055`).
+**No-go — needs a running SNMPv3 device.** `ENG-049` (SNMPv3 authPriv UAT).
+`ENG-055` and `ENG-058` used to sit here but are delivered: the OperationsPage
+loading/stale/retry states and the NOC impact confidence labels landed in
+`6fb38ca` with a Playwright acceptance spec
+(`web/e2e/operations-feedback.spec.ts`), so what remains is judging those states
+against real device data, which is `ENG-049` itself.
 
 **No-go — needs a live WhatsApp pairing number.** `ENG-048` (pairing UAT to an
 opt-in test number), `ECO-007` (telemetry and whatsmeow cost control, depends on
@@ -1473,11 +1481,12 @@ same thing as above: repository work cannot close the row as written.
 anomaly patterns from historical metrics) is measured against the device's own
 history; `FUT-013` (offline read-only NOC snapshot with TTL and encryption),
 `FUT-014` (the field mini-mode built on it), `FUT-003` (an evidenced incident
-summary) and `FUT-005` (a cause-hypothesis graph with uncertainty) wait on `ENG-055`
-and `ENG-058`, which are local rows whose only unsatisfied dependency is `ENG-049`,
-so their staleness, TTL and confidence claims have nothing real to be judged
-against; `FUT-019` (edge collector polling on a constrained link) and `FUT-024`
-(capacity prediction bounded by real SNMP data) are `RISET+ASET` themselves.
+summary) and `FUT-005` (a cause-hypothesis graph with uncertainty) are built on
+the stale/retry and confidence surfaces `ENG-055`/`ENG-058` now ship, but their
+staleness, TTL and confidence claims have nothing real to be judged against until
+`ENG-049` exists; `FUT-019` (edge collector polling on a constrained link) and
+`FUT-024` (capacity prediction bounded by real SNMP data) are `RISET+ASET`
+themselves.
 
 **No-go — needs a real NAS in a lab (`ENG-013` chain).** `FUT-008` (preview the
 impact of a CoA on the sessions that are actually up) needs the pilot's answer, and

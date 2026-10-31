@@ -24,35 +24,31 @@ Penanda tipe: `LOKAL` = bisa dikerjakan di repo · `ASET` = butuh perangkat/host
 
 ## Status baseline
 
-- `main` = `dev` = `94fa0dd` — rilis **v0.20.0**, CI hijau, aset dan image GHCR sudah diverifikasi.
-- M19 fitur (brand tenant, website, katalog paket) **sudah rilis**; tersisa acceptance dan dokumentasi.
+- `main` = `dev` = `f9102e2` — rilis **v0.21.0**, CI hijau (PR #116).
+- M19 (brand tenant, website, katalog paket) dan M20 (invoice & receipt branding) **sudah di `main`** beserta acceptance PostgreSQL/browser.
 - M11 TEAP `M11.1`–`M11.10` **sudah di `main`** bersama `test/integration/teap_acceptance_test.go`; yang tersisa hanya interoperabilitas peer nyata (`ENG-002`).
 - Tidak ada PR terbuka.
 
 ---
 
-## 1. Aktif sekarang — tutup M19
+## 1. Selesai — M19 close-out
 
-| # | Item | Kode | Tipe | Sumber |
-| --- | --- | --- | --- | --- |
-| 1 | Acceptance dua tenant: PostgreSQL + browser E2E untuk branding/website/katalog | M19.5.1 | `LOKAL` | issue #107 |
-| 2 | Handbook EN/ID, API, domain, roadmap, dan bukti rilis untuk tenant brand experience | M19.5.2 | `LOKAL` | issue #108 |
+| # | Item | Kode | Tipe | Sumber | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Acceptance dua tenant: PostgreSQL + browser E2E untuk branding/website/katalog | M19.5.1 | `LOKAL` | issue #107 | `test/integration/tenant_brand_experience_test.go`, `web/e2e/tenant-brand-experience.spec.ts`; merge #116 |
+| 2 | Handbook EN/ID, API, domain, roadmap, dan bukti rilis untuk tenant brand experience | M19.5.2 | `LOKAL` | issue #108 | `docs-site/src/en|id/tenant-brand-experience.md`, `docs/tenant-brand-experience.md`; merge #116 |
 
-Catatan #108: `docs/tenant-brand-experience.md` sudah ada, tetapi `docs-site/src/en` dan `docs-site/src/id` **belum** menyebut Brand Studio / Website Studio / Package Studio sama sekali.
+## 2. Selesai — M20 invoice & receipt branding (TR-F035)
 
-## 2. Berikutnya — M20 invoice & receipt branding (TR-F035)
+| # | Item | Kode | Tipe | Sumber | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| 3 | Snapshot identitas legal issuer saat invoice diterbitkan | M20.1 | `LOKAL` | issue #109 | `domain.InvoiceDocumentSnapshot`, `billing/document.go`; merge #116 |
+| 4 | Template invoice dan receipt per tenant | M20.2 | `LOKAL` | issue #110 | `domain.TenantDocumentTemplate`, `/tenant/invoice`, `InvoiceStudioPage.tsx`; merge #116 |
+| 5 | Preview PDF/print dengan kesetiaan historis | M20.3 | `LOKAL` | issue #111 | `internal/invoicedoc/render.go`, snapshot-only rendering; merge #116 |
+| 6 | Instruksi pembayaran dan QR dari sumber terverifikasi | M20.4 | `LOKAL` | issue #112 | template payment fields + tenant-scoped asset validation; merge #116 |
+| 7 | Uji riwayat PostgreSQL, isolasi tenant, dan invarian billing | M20.5 | `LOKAL` | issue #113 | `test/integration/invoice_branding_test.go`, `adminapi/invoice_document_test.go`; merge #116 |
 
-Belum ada implementasi sama sekali: tidak ada issuer snapshot, template invoice/receipt, maupun jalur PDF/print di `internal/`.
-
-| # | Item | Kode | Tipe | Sumber |
-| --- | --- | --- | --- | --- |
-| 3 | Snapshot identitas legal issuer saat invoice diterbitkan | M20.1 | `LOKAL` | issue #109 |
-| 4 | Template invoice dan receipt per tenant | M20.2 | `LOKAL` | issue #110 |
-| 5 | Preview PDF/print dengan kesetiaan historis | M20.3 | `LOKAL` | issue #111 |
-| 6 | Instruksi pembayaran dan QR dari sumber terverifikasi | M20.4 | `LOKAL` | issue #112 |
-| 7 | Uji riwayat PostgreSQL, isolasi tenant, dan invarian billing | M20.5 | `LOKAL` | issue #113 |
-
-Batas keras M20: jangan mengubah total invoice, penomoran dokumen, status pembayaran, aturan reversal, atau semantik ledger.
+Batas keras M20 terpenuhi: total invoice, penomoran dokumen, status pembayaran, aturan reversal, dan semantik ledger tidak berubah; dokumen hanya membaca baris billing.
 
 ## 3. Menunggu keputusan atau permintaan
 
@@ -63,18 +59,18 @@ Batas keras M20: jangan mengubah total invoice, penomoran dokumen, status pembay
 | 10 | LDAP pooling/reconnect | M14.5 / ENG-015 | `BLOCKED` | menunggu bukti beban koneksi |
 | 11 | Observability dan operasi | M6 | `LOKAL` | P3, belum dijadwalkan |
 
-## 4. Backlog audit — 39 item sisa
+## 4. Backlog audit — 35 item sisa
 
-### 4.1 Bisa dieksekusi lokal (4)
+### 4.1 Bisa dieksekusi lokal — selesai semua
 
-| ID | Item | TR-F | Catatan |
-| --- | --- | --- | --- |
-| ENG-055 | State loading, stale-data, retry pada OperationsPage | TR-F031 | dep `ENG-049` (SNMP nyata) untuk verifikasi akhir |
-| ENG-064 | Pemeriksaan dead-letter dan alert session-action queue | TR-F010 | dep `ENG-013` (NAS nyata) |
-| ENG-058 | Label confidence dan mapping pada NOC impact UI | TR-F031 | dep `ENG-055` |
-| ENG-005 | Evaluasi inner EAP-TTLS CHAP dan MS-CHAP | TR-F004 | dep `ENG-002` (supplicant nyata) |
+| ID | Item | TR-F | Bukti | Sisa |
+| --- | --- | --- | --- | --- |
+| ENG-055 | State loading, stale-data, retry pada OperationsPage | TR-F031 | commit `6fb38ca`, e2e `operations-feedback.spec.ts` | verifikasi SNMP nyata tetap `ENG-049` |
+| ENG-064 | Pemeriksaan dead-letter dan alert session-action queue | TR-F010 | commit `2f4879d` + `bd609cb`, alert per tenant | pilot NAS nyata tetap `ENG-013` |
+| ENG-058 | Label confidence dan mapping pada NOC impact UI | TR-F031 | commit `6fb38ca`, e2e NOC impact | ikut `ENG-055` |
+| ENG-005 | Evaluasi inner EAP-TTLS CHAP dan MS-CHAP | TR-F004 | commit `dba0660` + `2a84f56`, unit + `test/integration/ttls_test.go` | interoperabilitas supplicant nyata tetap `ENG-002` |
 
-Keempatnya masih bergantung pada bukti eksternal di ujung, jadi hasil lokalnya adalah implementasi + tes, bukan klaim interoperabilitas.
+Implementasi dan tes lokalnya selesai; klaim interoperabilitas/perangkat nyata tetap tidak dibuat dan tetap berada di daftar `ASET`.
 
 ### 4.2 Butuh aset nyata (15 · `ASET`)
 

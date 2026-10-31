@@ -47,7 +47,7 @@ This is the canonical milestone definition: milestone status, guardrails, and wh
 | M17 | Safe VPS installation and first-run onboarding | TR-F020 / TR-F016 | P1 | Delivered |
 | M18 | Existing-feature containment, integrity and operational verification | TR-F012 / TR-F013 / TR-F017 / TR-F018 / TR-F020 / TR-F027 / TR-F028 / TR-F030 / TR-F031 / TR-F033 | P0 first | Delivered |
 | M19 | Tenant brand, website and package catalog experience | TR-F034 / TR-F033 | P1 | Done (M19.0–M19.4 shipped in v0.20.0; M19.5.1 #107 two-tenant acceptance and M19.5.2 #108 documentation delivered after v0.20.0 as tests and docs only) |
-| M20 | Tenant invoice and receipt branding | TR-F035 / TR-F034 / TR-F033 | P2 | In progress — issuer snapshots, tenant templates, PDF documents and payment instructions implemented; PostgreSQL acceptance and browser tests staged in PR #116 (#109–#113) |
+| M20 | Tenant invoice and receipt branding | TR-F035 / TR-F034 / TR-F033 | P2 | Done (M20.1–M20.5 merged in v0.21.0 via PR #116; #109–#113) |
 
 ## Cross-Cutting Baseline
 
@@ -104,13 +104,15 @@ M18 is **Delivered**. M18.1 is delivered by PR #31; M18.2, M18.4 and M18.5 are d
 
 ### M20 — Tenant Invoice & Receipt Branding (TR-F035)
 
-- [ ] M20.1 Immutable legal issuer snapshot on invoice issue (#109).
-- [ ] M20.2 Tenant invoice and receipt templates (#110).
-- [ ] M20.3 PDF/print preview with historical fidelity (#111).
-- [ ] M20.4 Verified payment instructions and QR presentation (#112).
-- [ ] M20.5 PostgreSQL history, tenant isolation and billing invariant tests (#113).
+- [x] M20.1 Immutable legal issuer snapshot on invoice issue (#109).
+- [x] M20.2 Tenant invoice and receipt templates (#110).
+- [x] M20.3 PDF/print preview with historical fidelity (#111).
+- [x] M20.4 Verified payment instructions and QR presentation (#112).
+- [x] M20.5 PostgreSQL history, tenant isolation and billing invariant tests (#113).
 
-**Delivery rule:** M19 and M20 remain in progress/planned until their PRs reach `main` and required backend, frontend, PostgreSQL and browser acceptance gates pass. Public package read is read-only; existing customer lookup, voucher, registration and payment actions stay protected.
+**M20 delivery evidence (v0.21.0, `main` `f9102e2`, PR #116).** `internal/domain/invoice_document.go` holds `TenantDocumentTemplate` and the immutable `InvoiceDocumentSnapshot` (`isp_document_template`, `isp_invoice_document`); `internal/billing/document.go` captures the snapshot at issue; `internal/invoicedoc/render.go` renders invoice and receipt PDFs from that snapshot; `internal/adminapi/invoice_document.go` serves the template, document, receipt and PDF endpoints with tenant-scoped asset validation (PNG/JPEG only, ≤5 MB, ≤4096 px). `web/src/pages/InvoiceStudioPage.tsx` is the tenant template editor. Acceptance: `test/integration/invoice_branding_test.go` (PostgreSQL two-tenant history, frozen issuer/payment instructions, cross-tenant 404, receipt as-of balance) and `internal/adminapi/invoice_document_test.go`. Totals, numbering, payment state, reversal rules and ledger semantics are untouched: the document layer only reads billing rows.
+
+**Delivery rule:** M19 and M20 are delivered on `main`; required backend, frontend, PostgreSQL and browser acceptance gates passed in PR #116. Public package read is read-only; existing customer lookup, voucher, registration and payment actions stay protected.
 
 The scheduled **M5 vendor VSA expansion** batch (M5.1 inventory + M5.2/M5.3/M5.4 parsers/enhancers) is delivered — M5.4 shipped the Cisco `cisco-avpair` Access-Accept enhancer (#543) — and the remaining vendor enhancers stay demand-driven. **M10.1** (TLS 1.3 negotiation + RFC 9190 protected success indication, #562), **M10.2** (version-branched MSK derivation → MS-MPPE keys on pure EAP-TLS Accepts, #564), and **M10.3** (tolerate the peer's `close_notify` after the success point, #607), and **M10.5** (anonymous outer NAI resolved from the certificate identity) are delivered; M10.4's CI acceptance-test scope is satisfied incrementally by each subtask's `test/integration/` subtests. M14.6 now has CI-backed OpenLDAP acceptance coverage; M14.5 remains blocked until load evidence justifies connection pooling / reconnect work.
 
