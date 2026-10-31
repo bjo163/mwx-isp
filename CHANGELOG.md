@@ -1,5 +1,24 @@
 # MWX-ISP Changelog
 
+## v0.21.0 — 2026-10-31
+
+Changes since v0.20.0:
+
+### Features
+
+- answer inner CHAP and MS-CHAP inside EAP-TTLS (ENG-005)
+- surface stale monitoring data and retry failed loads (ENG-055/ENG-058)
+- alert and summarize dead-lettered session actions
+- brand invoice and receipt documents with issuer snapshots
+
+### Fixes and Improvements
+
+- scope dead-letter alerts and receipt balance to their tenant
+- derive the inner MS-CHAP NT hash from UTF-16LE (ENG-005)
+- satisfy gosec and errcheck on tenant document assets
+- register the queue summary route
+- keep tenant acceptance operator usernames within the platform limit
+
 ## v0.20.0 — 2026-10-31
 
 Changes since v0.19.8:
