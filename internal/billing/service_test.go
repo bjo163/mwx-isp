@@ -315,6 +315,48 @@ func TestSuspendOverdueSkipsManualSuspension(t *testing.T) {
 	require.Zero(t, suspensions)
 }
 
+// TestSuspendOverdueContinuesPastADanglingInvoice proves an overdue invoice with
+// no subscription row behind it does not stop the sweep. A demo reseed deletes
+// subscriptions and leaves their unpaid invoices, so failing on the dangling row
+// would block every later suspension for that tenant indefinitely.
+func TestSuspendOverdueContinuesPastADanglingInvoice(t *testing.T) {
+	db := billingTestDB(t)
+	now := time.Date(2026, time.November, 4, 10, 0, 0, 0, time.UTC)
+	customer := domain.Customer{Name: "Dangling And Due", Status: domain.CustomerActive}
+	require.NoError(t, db.Create(&customer).Error)
+	user := domain.RadiusUser{Username: "after-dangling", Password: "secret", Status: "enabled"}
+	require.NoError(t, db.Create(&user).Error)
+	sub := domain.Subscription{SubscriptionNo: "SUB-AFTER-DANGLING", CustomerID: customer.ID, RadiusUserID: user.ID,
+		Status: domain.SubscriptionActive, StartDate: now.AddDate(0, -1, 0), BillingDay: 1, GraceDays: 3}
+	require.NoError(t, db.Create(&sub).Error)
+
+	// The dangling invoices come first: one with no subscription at all, and one
+	// whose subscription row has been deleted.
+	require.NoError(t, db.Create(&domain.Invoice{InvoiceNo: "INV-ORPHAN", CustomerID: customer.ID,
+		InvoiceDate: now.AddDate(0, 0, -14), DueDate: now.AddDate(0, 0, -10),
+		PeriodStart: now.AddDate(0, 0, -14), PeriodEnd: now.AddDate(0, 0, 16),
+		Total: 1, Balance: 1, Status: domain.InvoiceOverdue}).Error)
+	deleted := domain.Subscription{SubscriptionNo: "SUB-DELETED", CustomerID: customer.ID,
+		Status: domain.SubscriptionActive, StartDate: now.AddDate(0, -1, 0), BillingDay: 1, GraceDays: 3}
+	require.NoError(t, db.Create(&deleted).Error)
+	require.NoError(t, db.Create(&domain.Invoice{InvoiceNo: "INV-GONE-SUB", CustomerID: customer.ID, SubscriptionID: deleted.ID,
+		InvoiceDate: now.AddDate(0, 0, -14), DueDate: now.AddDate(0, 0, -10),
+		PeriodStart: now.AddDate(0, 0, -14), PeriodEnd: now.AddDate(0, 0, 16),
+		Total: 2000, Balance: 2000, Status: domain.InvoiceOverdue}).Error)
+	require.NoError(t, db.Delete(&domain.Subscription{}, deleted.ID).Error)
+	require.NoError(t, db.Create(&domain.Invoice{InvoiceNo: "INV-DUE", CustomerID: customer.ID, SubscriptionID: sub.ID,
+		InvoiceDate: now.AddDate(0, 0, -14), DueDate: now.AddDate(0, 0, -10),
+		PeriodStart: now.AddDate(0, 0, -14), PeriodEnd: now.AddDate(0, 0, 16),
+		Total: 2000, Balance: 2000, Status: domain.InvoiceOverdue}).Error)
+
+	require.NoError(t, SuspendOverdueSubscriptions(db, now))
+	require.NoError(t, db.First(&sub, sub.ID).Error)
+	require.Equal(t, domain.SubscriptionSuspended, sub.Status)
+	require.Equal(t, domain.SuspensionBillingOverdue, sub.SuspensionReason)
+	require.NoError(t, db.First(&user, user.ID).Error)
+	require.Equal(t, "disabled", user.Status)
+}
+
 func TestProcessOverdueAndSuspendAfterGrace(t *testing.T) {
 	db := billingTestDB(t)
 	now := time.Date(2026, time.October, 15, 12, 0, 0, 0, time.UTC)

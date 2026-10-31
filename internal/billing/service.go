@@ -169,7 +169,9 @@ func ProcessOverdueInvoices(db *gorm.DB, now time.Time) error {
 // subscription status, billing suspension reason, linked RadiusUser disable,
 // and billing event are updated in one transaction. It does not send
 // Disconnect-Requests; callers must disconnect matching online sessions after
-// this function succeeds. It returns the first database error encountered.
+// this function succeeds. It returns the first database error encountered; an
+// invoice whose subscription row no longer exists is skipped rather than
+// reported.
 func SuspendOverdueSubscriptions(db *gorm.DB, now time.Time) error {
 	var invoices []domain.Invoice
 	if err := db.Where("balance > 0 AND status = ?", domain.InvoiceOverdue).Find(&invoices).Error; err != nil {
@@ -178,6 +180,14 @@ func SuspendOverdueSubscriptions(db *gorm.DB, now time.Time) error {
 	for _, invoice := range invoices {
 		var sub domain.Subscription
 		if err := db.First(&sub, invoice.SubscriptionID).Error; err != nil {
+			// A demo reseed deletes subscriptions and leaves their unpaid
+			// invoices behind, and a document-serial fixture can carry no
+			// subscription at all. Returning here would let one dangling row
+			// block every later suspension for the tenant indefinitely, so the
+			// sweep moves on to the invoices it can act on.
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
 			return err
 		}
 		if sub.Status != domain.SubscriptionActive || !dateAfter(now, invoice.DueDate.AddDate(0, 0, sub.GraceDays)) {
