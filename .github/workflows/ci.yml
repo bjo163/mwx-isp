@@ -174,6 +174,17 @@ jobs:
       - name: Run tests
         run: go test -v -short -coverprofile=coverage.out ./...
 
+      # The release workflows build linux/arm/v7 (docker-publish and the
+      # GitHub Release assets), where Go's int is 32-bit; this CI matrix only
+      # covers amd64/arm64, so an untyped-constant overflow like
+      # `someInt > math.MaxUint32` compiles here and breaks the release. A
+      # compile-only check costs seconds and catches it before merge.
+      - name: Check 32-bit build
+        env:
+          GOOS: linux
+          GOARCH: arm
+        run: go build ./...
+
       - name: Upload coverage
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:

@@ -55,10 +55,10 @@ func (e *PfSenseAcceptEnhancer) Enhance(ctx context.Context, authCtx *auth.AuthC
 		profileCache = authCtx.Metadata["profile_cache"]
 	}
 
-	if up := user.GetUpRate(profileCache); up > 0 && up <= math.MaxUint32 {
+	if up := user.GetUpRate(profileCache); up > 0 && uint64(up) <= math.MaxUint32 {
 		_ = pfsense.PfSenseBandwidthMaxUp_Set(resp, pfsense.PfSenseBandwidthMaxUp(up)) //nolint:errcheck,gosec // G115: value guarded to 1..MaxUint32
 	}
-	if down := user.GetDownRate(profileCache); down > 0 && down <= math.MaxUint32 {
+	if down := user.GetDownRate(profileCache); down > 0 && uint64(down) <= math.MaxUint32 {
 		_ = pfsense.PfSenseBandwidthMaxDown_Set(resp, pfsense.PfSenseBandwidthMaxDown(down)) //nolint:errcheck,gosec // G115: value guarded to 1..MaxUint32
 	}
 

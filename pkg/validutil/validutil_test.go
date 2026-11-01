@@ -20,7 +20,7 @@ func TestIsE164PhoneNumber(t *testing.T) {
 		{name: "too short", value: "+1234567"},
 		{name: "too long", value: "+1234567890123456"},
 		{name: "contains formatting", value: "+62 812 3456 789"},
-		{name: "unsupported value type", value: 628123456789},
+		{name: "unsupported value type", value: int64(628123456789)},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
