@@ -1,5 +1,14 @@
 # MWX-ISP Changelog
 
+## v0.22.1 — 2026-11-01
+
+Changes since v0.22.0:
+
+### Fixes and Improvements
+
+- gate the 32-bit check on test files and stop overclaiming v0.22.0
+- compile on 32-bit GOARCH so the release image can be published
+
 ## v0.22.0 — 2026-11-01
 
 Changes since v0.21.0:
