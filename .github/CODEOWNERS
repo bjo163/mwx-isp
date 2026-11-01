@@ -1,8 +1,8 @@
 # Code owners for security-critical paths.
 #
 # GitHub auto-requests a review from the listed owner when a pull request changes
-# a matching path. This is defense-in-depth alongside the fork gate in
-# .github/workflows/external-pr-gate.yml (which hard-blocks all fork PRs).
+# a matching path. This is advisory while the "require code owner review" ruleset
+# toggle stays off (see the enforcement note below).
 #
 # Enforcement note: a requested code-owner review only *blocks* merging when the
 # main branch ruleset has "require code owner review" enabled. That toggle is

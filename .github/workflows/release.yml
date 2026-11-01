@@ -1,0 +1,221 @@
+name: Release
+
+# Tag-driven: bump VERSION + CHANGELOG by hand, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+# A workflow_dispatch run publishes the same artifacts as a *draft* release, so the
+# pipeline can be proven without publishing anything real.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v-prefixed tag to build and publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GO_VERSION: '1.26'
+  NODE_VERSION: '20'
+  CGO_ENABLED: 0
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Resolve the tag
+        id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG="$GITHUB_REF_NAME"
+          fi
+          case "$TAG" in
+            v[0-9]*) ;;
+            *) echo "not a v-prefixed tag: '$TAG'" >&2; exit 1 ;;
+          esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.tag.outputs.tag }}
+
+      - name: Refuse a tag that does not match VERSION
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          FILE_VERSION=$(cat VERSION)
+          if [ "v${FILE_VERSION}" != "$TAG" ]; then
+            echo "VERSION says ${FILE_VERSION} but the tag is ${TAG}. Keep them in step." >&2
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend
+        working-directory: ./web
+        run: |
+          npm ci
+          npm run build
+
+      # web/static.go embeds dist/*; shipping a release whose admin console is empty
+      # would only surface after deploy, so fail here instead.
+      - name: Verify frontend build
+        run: |
+          test -d web/dist/admin/assets
+          COUNT=$(find web/dist/admin/assets -type f | wc -l)
+          if [ "$COUNT" -lt 1 ]; then
+            echo "web/dist/admin/assets holds no files" >&2
+            exit 1
+          fi
+          echo "frontend bundle: ${COUNT} asset files"
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+
+      - name: Cross-compile the supported platforms
+        env:
+          VERSION: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
+          LDFLAGS="-s -w -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${COMMIT} -extldflags '-static'"
+          mkdir -p ./release
+          rm -f ./release/*
+
+          build() { # os arch output [GOARM]
+            local goos=$1 goarch=$2 out=$3 goarm=${4:-}
+            echo "Building mwx-isp for ${goos}/${goarch}${goarm:+ (GOARM=$goarm)}"
+            CGO_ENABLED=0 GOOS=$goos GOARCH=$goarch GOARM=$goarm \
+              go build -a -ldflags "$LDFLAGS" -o "./release/$out" main.go
+          }
+
+          build linux   amd64   mwx-isp_linux_amd64
+          build linux   arm64   mwx-isp_linux_arm64
+          build linux   arm     mwx-isp_linux_armv7 7
+          build linux   riscv64 mwx-isp_linux_riscv64
+          build linux   loong64 mwx-isp_linux_loong64
+          build darwin  amd64   mwx-isp_darwin_amd64
+          build darwin  arm64   mwx-isp_darwin_arm64
+          build windows amd64   mwx-isp_windows_amd64.exe
+          build windows arm64   mwx-isp_windows_arm64.exe
+
+          cd ./release
+          sha256sum * > checksums.txt
+          ls -lah
+
+      - name: Verify the shipped binary reports its version
+        env:
+          VERSION: ${{ steps.tag.outputs.tag }}
+        run: |
+          COMMIT=$(git rev-parse --short HEAD)
+          report="$(./release/mwx-isp_linux_amd64 -v)"
+          printf '%s\n' "$report"
+          grep -Fx "MWX-ISP ${VERSION}" <<<"$report"
+          grep -Fx "Git Commit: ${COMMIT}" <<<"$report"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish the container image
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          COMMIT=$(git rev-parse --short HEAD)
+          BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
+          IMAGES=ghcr.io/${{ github.repository_owner }}/mwx-isp
+          # A draft release must not move :latest or land a real version tag.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAGS="${IMAGES}:draft-${TAG}"
+          else
+            TAGS="${IMAGES}:${VERSION},${IMAGES}:v${VERSION},${IMAGES}:latest"
+          fi
+          docker buildx build --push \
+            --platform linux/amd64,linux/arm64,linux/arm/v7 \
+            --tag ${TAGS} \
+            --build-arg MWX_ISP_VERSION="${TAG}" \
+            --build-arg MWX_ISP_COMMIT="${COMMIT}" \
+            --build-arg MWX_ISP_BUILD_TIME="${BUILD_TIME}" \
+            --label org.opencontainers.image.title=MWX-ISP \
+            --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+            --label org.opencontainers.image.version="${VERSION}" \
+            --label org.opencontainers.image.revision="${COMMIT}" \
+            --cache-from type=gha --cache-to type=gha,mode=max \
+            .
+
+      - name: Write the download table
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          {
+            echo '### Downloads'
+            echo
+            echo '| Platform | Architecture | File |'
+            echo '|----------|--------------|------|'
+            echo "| Linux | x86_64 | \`mwx-isp_linux_amd64\` |"
+            echo "| Linux | aarch64 | \`mwx-isp_linux_arm64\` |"
+            echo "| Linux | ARMv7 | \`mwx-isp_linux_armv7\` |"
+            echo "| Linux | RISC-V 64 | \`mwx-isp_linux_riscv64\` |"
+            echo "| Linux | LoongArch 64 | \`mwx-isp_linux_loong64\` |"
+            echo "| macOS | Intel | \`mwx-isp_darwin_amd64\` |"
+            echo "| macOS | Apple Silicon | \`mwx-isp_darwin_arm64\` |"
+            echo "| Windows | x86_64 | \`mwx-isp_windows_amd64.exe\` |"
+            echo "| Windows | ARM64 | \`mwx-isp_windows_arm64.exe\` |"
+            echo
+            echo '### Docker'
+            echo
+            echo '```bash'
+            echo "docker pull ghcr.io/${{ github.repository_owner }}/mwx-isp:${VERSION}"
+            echo '```'
+          } > release_notes.md
+
+      - name: Publish the GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: MWX-ISP ${{ steps.tag.outputs.tag }}
+          body_path: release_notes.md
+          files: ./release/*
+          generate_release_notes: true
+          draft: ${{ github.event_name == 'workflow_dispatch' }}
+          make_latest: ${{ github.event_name != 'workflow_dispatch' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
