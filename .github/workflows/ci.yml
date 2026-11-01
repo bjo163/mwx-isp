@@ -242,4 +242,3 @@ jobs:
           asset_path: dist/mwx-isp_linux_amd64
           asset_name: mwx-isp_linux_amd64
           asset_content_type: application/octet-stream
-EOF
