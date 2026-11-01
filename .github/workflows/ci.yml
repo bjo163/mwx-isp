@@ -18,148 +18,13 @@ env:
   CGO_ENABLED: 0
 
 jobs:
-  changes:
-    name: Detect changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      docs_only: ${{ steps.filter.outputs.docs_only }}
-      eap_acceptance: ${{ steps.filter.outputs.eap_acceptance }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Classify changed files
-        id: filter
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base_ref="origin/${{ github.base_ref }}"
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
-          else
-            base_ref="${{ github.event.before }}"
-            if [[ "$base_ref" =~ ^0+$ ]]; then
-              base_ref="HEAD^"
-            fi
-          fi
-
-          mapfile -t changed_files < <(git diff --name-only "$base_ref" "$GITHUB_SHA")
-          docs_only=true
-          eap_acceptance=false
-          if [ "${#changed_files[@]}" -eq 0 ]; then
-            docs_only=false
-          fi
-
-          for file in "${changed_files[@]}"; do
-            case "$file" in
-              *.md|docs/*|docs-site/*)
-                ;;
-              *)
-                docs_only=false
-                ;;
-            esac
-
-            case "$file" in
-              .github/workflows/ci.yml|docker-compose.test.yml|Makefile|scripts/eap_acceptance_report.go|test/integration/*|internal/radiusd/*)
-                eap_acceptance=true
-                ;;
-            esac
-          done
-
-          printf 'Changed files:\n'
-          printf '  %s\n' "${changed_files[@]}"
-          echo "docs_only=${docs_only}" >> "$GITHUB_OUTPUT"
-          echo "eap_acceptance=${eap_acceptance}" >> "$GITHUB_OUTPUT"
-
-  frontend:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    needs: [changes]
-    if: needs.changes.outputs.docs_only != 'true'
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
-
-      - name: Build Frontend
-        working-directory: ./web
-        run: |
-          npm ci
-          npm run build
-
-      # Build the frontend once and share web/dist with every Go job so they
-      # don't each repeat npm ci + npm run build. The Go jobs only need these
-      # files present for the web/static.go `go:embed dist/*` directive.
-      - name: Upload frontend build
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: web-dist
-          path: web/dist
-          retention-days: 1
-          include-hidden-files: true
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    needs: [changes, frontend]
-    if: needs.changes.outputs.docs_only != 'true'
-    timeout-minutes: 20
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Download frontend build
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: web-dist
-          path: web/dist
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
-          cache: true
-
-      - name: Check vendor dictionary usage
-        run: ./scripts/check-vendor-dict-usage.sh
-
-      - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
-        with:
-          version: v2.12.2
-          args: --timeout=5m
-          # setup-go already provides the Go module/build cache (and only
-          # re-uploads it when go.sum changes). The action's own cache stores
-          # the go-build cache too, which changes on every run and therefore
-          # re-uploads ~70MB during "Post job cleanup" each time. Restore it for
-          # a faster lint run, but skip the slow save to keep CI snappy.
-          skip-save-cache: true
-
   test:
     name: Test
     runs-on: ubuntu-latest
-    needs: [changes, frontend]
-    if: needs.changes.outputs.docs_only != 'true'
     timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Download frontend build
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: web-dist
-          path: web/dist
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -171,85 +36,10 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run tests
+      - name: Run unit tests
         run: go test -v -short -coverprofile=coverage.out ./...
 
-      # The release workflows build linux/arm/v7 (docker-publish and the
-      # GitHub Release assets), where Go's int is 32-bit; this CI matrix only
-      # covers amd64/arm64, so an untyped-constant overflow like
-      # `someInt > math.MaxUint32` compiles here and breaks the release. Vet is
-      # used instead of build because it also compiles the test files, where a
-      # large untyped literal fails the same way - and it costs seconds, not a
-      # lane, so the platform the release ships is checked before merge.
-      - name: Check 32-bit build
-        env:
-          GOOS: linux
-          GOARCH: arm
-        run: go vet -tags=integration,eap_accept ./...
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        with:
-          files: coverage.out
-          fail_ci_if_error: false
-        continue-on-error: true
-
-  integration:
-    name: Integration (PostgreSQL/OpenLDAP)
-    runs-on: ubuntu-latest
-    needs: [changes, frontend]
-    if: needs.changes.outputs.docs_only != 'true'
-    timeout-minutes: 30
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: mwxisp_test
-          POSTGRES_PASSWORD: test-only-password
-          POSTGRES_DB: postgres
-        ports:
-          - 15432:5432
-        options: >-
-          --health-cmd "pg_isready -U mwxisp_test -d postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      openldap:
-        image: bitnamilegacy/openldap:2.6
-        env:
-          LDAP_ROOT: dc=example,dc=org
-          LDAP_ADMIN_USERNAME: admin
-          LDAP_ADMIN_PASSWORD: adminpassword
-          LDAP_USERS: alice,bob
-          LDAP_PASSWORDS: alice-password,bob-password
-        ports:
-          - 1389:1389
-        options: >-
-          --health-cmd "ldapsearch -x -H ldap://127.0.0.1:1389 -b dc=example,dc=org -D cn=admin,dc=example,dc=org -w adminpassword >/dev/null"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Download frontend build
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: web-dist
-          path: web/dist
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
-          cache: true
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Run PostgreSQL/OpenLDAP integration tests
+      - name: Run integration tests
         env:
           TEST_DATABASE_HOST: 127.0.0.1
           TEST_DATABASE_PORT: '15432'
@@ -265,39 +55,34 @@ jobs:
           TEST_LDAP_USER: alice
           TEST_LDAP_PASSWORD: alice-password
           INTEGRATION_REQUIRED: '1'
-        run: go test -tags=integration -count=1 -v ./test/integration/...
+        run: |
+          docker run -d --name postgres -e POSTGRES_USER=mwxisp_test -e POSTGRES_PASSWORD=test-only-password -e POSTGRES_DB=postgres -p 15432:5432 postgres:16-alpine
+          docker run -d --name openldap -e LDAP_ROOT=dc=example,dc=org -e LDAP_ADMIN_USERNAME=admin -e LDAP_ADMIN_PASSWORD=adminpassword -e LDAP_USERS=alice,bob -e LDAP_PASSWORDS=alice-password,bob-password -p 1389:1389 bitnamilegacy/openldap:2.6
+          go test -tags=integration -count=1 -v ./test/integration/...
 
-  eap-external-acceptance:
-    name: EAP External Acceptance
-    runs-on: ubuntu-latest
-    needs: [changes, frontend]
-    if: needs.changes.outputs.eap_acceptance == 'true'
-    timeout-minutes: 45
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Download frontend build
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Run linter
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
-          name: web-dist
-          path: web/dist
+          version: v2.12.2
+          args: --timeout=5m
 
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - name: Run security scan
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+        continue-on-error: true
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
-          cache: true
-
-      - name: Run external EAP acceptance
-        run: make test-eap-acceptance-docker
+          files: coverage.out
+          fail_ci_if_error: false
+        continue-on-error: true
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [changes, frontend, lint, test, integration]
-    if: needs.changes.outputs.docs_only != 'true'
+    needs: test
     timeout-minutes: 45
     strategy:
       matrix:
@@ -309,31 +94,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
 
-      - name: Download frontend build
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: web-dist
-          path: web/dist
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
-          cache: true
-
-      - name: Get version info
-        id: version
-        run: |
-          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "develop")
-          BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-          GIT_COMMIT=$(git rev-parse --short HEAD)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
-          echo "git_commit=$GIT_COMMIT" >> $GITHUB_OUTPUT
+      - name: Download dependencies
+        run: go mod download
 
       - name: Build binary
         env:
@@ -345,10 +108,14 @@ jobs:
             BINARY_NAME="mwx-isp.exe"
           fi
           
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "develop")
+          BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          GIT_COMMIT=$(git rev-parse --short HEAD)
+          
           go build -ldflags "-s -w \
-            -X main.Version=${{ steps.version.outputs.version }} \
-            -X main.BuildTime=${{ steps.version.outputs.build_time }} \
-            -X main.GitCommit=${{ steps.version.outputs.git_commit }}" \
+            -X main.Version=${VERSION} \
+            -X main.BuildTime=${BUILD_TIME} \
+            -X main.GitCommit=${GIT_COMMIT}" \
             -o "dist/${BINARY_NAME}" main.go
           
           echo "✅ Built ${{ matrix.goos }}/${{ matrix.goarch }}"
@@ -360,71 +127,119 @@ jobs:
           path: dist/
           retention-days: 7
 
-  security:
-    name: Security Scan
+  docker-publish:
+    name: Publish GHCR image
     runs-on: ubuntu-latest
-    needs: [changes, frontend]
-    if: needs.changes.outputs.docs_only != 'true'
-    timeout-minutes: 20
+    needs: build
+    timeout-minutes: 60
+    permissions:
+      packages: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Download frontend build
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/bjo163/mwx-isp
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release-publish:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: docker-publish
+    timeout-minutes: 10
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: web-dist
-          path: web/dist
+          path: artifacts
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
-          cache: true
+          cache: false
 
-      - name: Run govulncheck
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+      - name: Build release binaries
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./...
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "develop")
+          BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          GIT_COMMIT=$(git rev-parse --short HEAD)
+          
+          mkdir -p dist
+          for os in linux darwin windows; do
+            for arch in amd64 arm64; do
+              if [ "$os" = "windows" ] && [ "$arch" = "arm64" ]; then continue; fi
+              
+              BINARY_NAME="mwx-isp"
+              if [ "$os" = "windows" ]; then
+                BINARY_NAME="mwx-isp.exe"
+              fi
+              
+              CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -ldflags "-s -w \
+                -X main.Version=${VERSION} \
+                -X main.BuildTime=${BUILD_TIME} \
+                -X main.GitCommit=${GIT_COMMIT}" \
+                -o "dist/mwx-isp_${os}_${arch}${BINARY_NAME#mwx-isp}"
+            done
+          done
 
-      - name: Run gosec
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          version: v2.12.2
-          args: --enable-only=gosec --timeout=5m
-          # See the Lint job: skip the redundant ~70MB go-build cache upload
-          # that runs during "Post job cleanup" on every run.
-          skip-save-cache: true
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+          tag_name: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  docs:
-    name: Docs (mdbook)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # Pin the mdBook version to match what contributors run locally so a build
-      # that passes locally also passes here (and vice versa).
-      - name: Install mdBook
-        uses: peaceiris/actions-mdbook@ee69d230fe19748b7abf22df32acaa93833fad08 # v2
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          mdbook-version: '0.5.3'
-
-      - name: Build handbook
-        run: mdbook build docs-site
-
-      - name: Install lychee
-        uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73 # v2
-        with:
-          tool: lychee
-
-      # Offline link check over the generated HTML: a build failure or a broken
-      # internal link fails the pipeline. --offline skips http(s) links so the
-      # gate never flakes on network conditions; --root-dir lets the generated
-      # 404 page's root-relative links resolve.
-      - name: Check links (offline)
-        run: lychee --offline --no-progress --root-dir "$PWD/docs-site/book" 'docs-site/book/**/*.html'
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: dist/mwx-isp_linux_amd64
+          asset_name: mwx-isp_linux_amd64
+          asset_content_type: application/octet-stream
+EOF

@@ -1,110 +1,59 @@
 # MWX-ISP
 
-![MWX-ISP — ISP operations, billing, and RADIUS](docs-site/src/assets/mwx-isp-cover.svg)
+RADIUS server with billing, LDAP, EAP, and vendor enhancers.
 
-**ISP operations, subscriber billing, and RADIUS in one platform.**
+## Overview
 
-[Documentation](https://bjo163.github.io/mwx-isp/) · [Quick start](https://bjo163.github.io/mwx-isp/en/quickstart.html) · [Latest release](https://github.com/bjo163/mwx-isp/releases/latest) · [Issues](https://github.com/bjo163/mwx-isp/issues)
+- **Core**: RADIUS authentication/authorization/accounting
+- **Billing**: Invoice generation, overdue enforcement, payment processing
+- **Auth**: EAP-TLS, EAP-TTLS, PEAP, TEAP, PAP, CHAP, MS-CHAP, MS-CHAPv2
+- **VSA**: Vendor-specific attributes (Alcatel, Juniper, Microsoft, F5, Hillstone, pfSense, etc.)
+- **LDAP/AD**: Bind authentication backend for PAP-family methods
+- **Metrics**: Prometheus text exposition at `/metrics` (token-gated)
+- **Multi-arch**: Builds for amd64, arm64, arm/v7, loong64, riscv64
 
-MWX-ISP is a self-hosted ISP management platform for ISP and RT/RW Net
-operations. It combines subscriber and billing workflows with RADIUS services,
-tenant-aware administration, network monitoring, alerts, and a web console.
-
-## What it includes
-
-For current engineering priorities, see the [roadmap](docs/roadmap.md),
-[feature checklist](docs/feature-checklist.md), and [product blueprint](docs/MWX-ISP-blueprint.md).
-The October 2026 audit close-out is tracked in milestone M18; proposed features are listed
-separately from verified capabilities.
-
-- **ISP operations and billing:** customers, packages, subscriptions, invoices,
-  payments, automatic document numbering, and billing-based suspend/reactivate.
-- **Network access:** RADIUS authentication and accounting, NAS management,
-  online sessions, RadSec, CoA, and Disconnect.
-- **Tenant-aware administration:** manage separate ISP and RT/RW Net
-  organizations in one installation.
-- **Operations visibility:** dashboards, network monitoring, alerts, and
-  optional WhatsApp integration.
-- **Production storage:** PostgreSQL by default. SQLite is available for local
-  development and supported legacy deployments.
-
-See the handbook for the complete [feature overview](https://bjo163.github.io/mwx-isp/en/overview.html),
-[admin guide](https://bjo163.github.io/mwx-isp/en/admin-manual.html), and
-[operations guide](https://bjo163.github.io/mwx-isp/en/ops-guide.html).
-
-## Install on an Ubuntu or Debian VPS
-
-One command installs Docker when required, prepares PostgreSQL, generates
-deployment credentials, and starts MWX-ISP:
+## Quick Start
 
 ```bash
-bash -o pipefail -c 'curl -fsSL https://raw.githubusercontent.com/bjo163/mwx-isp/main/scripts/vps-install.sh | sudo bash'
+# Build
+go build ./...
+
+# Run unit tests
+go test -v -short ./...
+
+# Run integration tests (requires Docker)
+TEST_DATABASE_HOST=127.0.0.1 TEST_DATABASE_PORT=15432 \
+TEST_LDAP_URL=ldap://127.0.0.1:1389 INTEGRATION_REQUIRED=1 \
+go test -tags=integration -v ./test/integration/...
+
+# Build multi-arch (Docker)
+docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t mwx-isp:latest .
 ```
 
-Save the one-time admin password shown by the installer. A resolvable server
-hostname can use Caddy HTTPS; without one, admin access stays on loopback. For
-interactive web/TLS setup, run the command with `sudo bash -s -- --interactive`
-and choose Let's Encrypt, Caddy's self-hosted CA, or localhost HTTP through an
-SSH tunnel. Let's Encrypt requires public DNS to point to the VPS and inbound
-TCP `80`/`443`; self-hosted HTTPS requires installing Caddy's root CA on each
-client. The installer does not change firewall rules.
+## Configuration
 
-The first start of a completely empty database automatically adds marked sample
-records so you can explore the interface. Existing data is not reseeded or
-overwritten. Sample NAS and RADIUS users are disabled by default. Read the
-[Quick Start](https://bjo163.github.io/mwx-isp/en/quickstart.html) and
-[VPS operations guide](https://bjo163.github.io/mwx-isp/en/ops-guide.html)
-before connecting production NAS devices.
+Environment variables (see `config/` directory):
+- `TOUGHRADIUS_METRICS_TOKEN` - Prometheus metrics token
+- `DATABASE_URL` - PostgreSQL connection
+- `LDAP_URL` - LDAP server URL
+- `RADIUS_SECRET` - RADIUS shared secret
 
-To uninstall remotely while preserving the database and app data volumes:
+## Project Structure
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/bjo163/mwx-isp/main/scripts/vps-uninstall.sh | sudo bash
+```
+internal/     - Core packages (billing, auth, LDAP, etc.)
+cmd/          - Command-line tools (radtest, config-tool, etc.)
+pkg/          - Shared utilities
+test/         - Integration tests (Docker required)
+web/          - Frontend assets (embedded via go:embed)
 ```
 
-Add `-s -- --purge` to the command only when you intend to permanently delete
-the database and app data. Add `--remove-backups` after `--purge` to also delete
-`/var/backups/mwx-isp`. A repair command can refresh the checkout, validate the
-Compose configuration, and restart the stack without deleting data:
+## Release
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/bjo163/mwx-isp/main/scripts/vps-repair.sh | sudo bash
-```
+Automated via GitHub Actions:
+- Push to `main` → bump version → publish GHCR image + GitHub Release
+- Tag `vX.Y.Z` → release assets published
 
-If a previous uninstall removed the directory your SSH shell was using, run
-`cd /opt` once before rerunning the installer. The installer now recovers from
-that stale shell directory automatically.
+## Single Work Queue
 
-## Build from source
-
-Requirements: the Go version specified in `go.mod` and Node.js 18 or newer.
-
-```bash
-cd web && npm ci && npm run build
-cd ..
-go build -o mwx-isp .
-```
-
-The frontend build embeds the admin UI in the Go binary. For frontend
-development, run `npm run dev` from `web/`. For local configuration and manual
-deployment, follow the [Operations Guide](https://bjo163.github.io/mwx-isp/en/ops-guide.html).
-
-## Development and releases
-
-- `main` is the stable line; `dev` is the integration line. The repository
-  automation promotes changes from `dev` to `main` through a pull request.
-- CI builds and verifies changes on both lines. Pushes and pull requests also
-  produce a Windows AMD64 preview artifact with a SHA-256 checksum; preview
-  artifacts expire after 14 days.
-- Version tags (`v*`) publish release binaries and a multi-architecture image
-  at `ghcr.io/bjo163/mwx-isp`.
-- Product-facing names use MWX-ISP. Existing `TOUGHRADIUS_*` environment
-  variables and data paths remain supported for upgrade compatibility.
-
-## Project references
-
-- [Product blueprint](docs/MWX-ISP-blueprint.md)
-- [Feature scope checklist](docs/feature-checklist.md)
-- [Development roadmap](docs/roadmap.md)
-- [Agent development guide](AGENT.md)
-- [Security policy](SECURITY.md)
+All work lives in [`Todo.md`](Todo.md). Mark items as completed there.

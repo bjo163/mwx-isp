@@ -1,56 +1,32 @@
-.idea
-.vscode
-assets/build.txt
-assets/buildver.txt
-/release/
-release
-web/node_modules/
-__pycache__/
-*.py[cod]
-web/dist/*
-!web/dist/.gitkeep
-web/.vite/
-__debug_bin
-coverage.out
+# Binaries
+*.exe
+mwx-isp*
+dist/
+/tmp/mwx-*
+/tmp/err-*.txt
+
+# Go
+*.mod.sum
+vendor/
+go.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
-/.fleet/
-/testdatas/
-/config.yml
-/config.yaml
-/mwx-isp.yml
-/mwx-isp.yaml
-/toughradius.yml
-/toughradius.yaml
-/.toughradius/
-/.env
-/.env.installing.*
-/.mwx-isp-install-state
-/.mwx-isp-install-state.tmp
-/tmp/
-log_info.log
-__debug_bin*
-.log
-debian/backups/
-toughradius
-*.db
-*.db-shm
-*.db-wal
-rundata/
-bin/
-.playwright-mcp/
-test-reports/.github/prompts/rework.prompt.md
-.github/prompts/review.prompt.md
+Thumbs.db
 
-# Test reports
-test-reports/
-pkg/tls
-pkg/tls/ca.crt
-pkg/tls/ca.key
-pkg/tls/my.crt
-pkg/tls/my.key
-# mdBook handbook build output (docs-site)
-docs-site/book/
+# Docker
+.docker/
+docker-compose.override.yml
 
-# Local verification databases contain runtime data and must stay out of Git.
-/bin/automatic-verify-db/
-/bin/verify-work/
+# Logs
+*.log
+
+# Test outputs
+coverage.out

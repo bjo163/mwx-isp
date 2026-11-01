@@ -1,7 +1,0 @@
-# MWX-ISP Caddy reverse proxy. The installer selects the address and TLS mode.
-
-{$MWX_ISP_CADDY_ADDRESS:localhost} {
-    {$MWX_ISP_CADDY_TLS_DIRECTIVE}
-    encode gzip zstd
-    reverse_proxy app:1816
-}
