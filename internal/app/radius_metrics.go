@@ -4,6 +4,9 @@ import (
 	"github.com/bjo163/mwx-isp/pkg/metrics"
 )
 
+// RADIUS counters exposed by app.GetAllRadiusMetrics and scraped from
+// GET /metrics. radus_online and radus_offline count successful accounting
+// Start and Stop events, not the number of sessions currently online.
 const (
 	MetricsRadiusOline              = "radus_online"
 	MetricsRadiusOffline            = "radus_offline"
@@ -61,7 +64,7 @@ var metricsNames = []string{
 // Common metrics include:
 //   - MetricsRadiusAccept: Successful authentication count
 //   - MetricsRadiusRejectPasswdError: Password mismatch rejections
-//   - MetricsRadiusOline: Active online sessions
+//   - MetricsRadiusOline: Successful accounting Start events
 //   - MetricsRadiusAccounting: Accounting requests processed
 //
 // Parameters:

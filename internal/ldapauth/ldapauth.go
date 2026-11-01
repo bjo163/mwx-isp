@@ -98,7 +98,7 @@ type Config struct {
 	UserFilter         string        // BindModeSearch filter with a single %s for the username, e.g. (uid=%s)
 	StartTLS           bool          // upgrade an ldap:// connection with StartTLS before binding
 	TLSSkipVerify      bool          // skip TLS certificate verification (lab use only)
-	Timeout            time.Duration // dial and per-operation timeout
+	Timeout            time.Duration // per-operation timeout, and the budget the RADIUS adapter arms as the deadline for one whole exchange
 }
 
 // Settings is the read-only configuration accessor LoadConfig needs. It is the
@@ -185,31 +185,78 @@ type conn interface {
 	Bind(username, password string) error
 	Search(req *ldap.SearchRequest) (*ldap.SearchResult, error)
 	Close() error
+	SetTimeout(time.Duration)
 }
 
-// dialFunc opens a connection to the directory described by cfg.
-type dialFunc func(cfg Config) (conn, error)
+// dialFunc opens a connection to the directory described by cfg. It receives
+// the caller's context so a request whose deadline has already lapsed can bail
+// out before the socket is opened and so a dial that outlives the caller is
+// abandoned instead of leaking the connection.
+type dialFunc func(ctx context.Context, cfg Config) (conn, error)
 
-// dialReal is the production dialer: it connects to cfg.ServerURL honoring the
-// dial timeout and (for ldaps://) the TLS configuration, then arms the
-// per-operation timeout.
-func dialReal(cfg Config) (conn, error) {
+// openLDAP performs the socket-level dial dialReal races against the caller's
+// context. It is separated so the abandonment path below is testable without a
+// real directory standing still for a timeout.
+func openLDAP(cfg Config) (conn, error) {
 	opts := []ldap.DialOpt{
 		ldap.DialWithDialer(&net.Dialer{Timeout: cfg.Timeout}),
 		ldap.DialWithTLSConfig(cfg.tlsConfig()),
 	}
-	c, err := ldap.DialURL(cfg.ServerURL, opts...)
-	if err != nil {
-		return nil, err
+	return ldap.DialURL(cfg.ServerURL, opts...)
+}
+
+// dialReal connects to cfg.ServerURL, honoring the dial timeout and (for
+// ldaps://) the TLS configuration. It does not arm the per-operation timeout:
+// Verify does that once it knows how much of the caller's deadline is left.
+// The dial races against ctx so a stalled directory cannot pin a RADIUS worker
+// beyond the caller's own deadline: when ctx expires first, the socket that
+// openLDAP eventually returns is closed by a background drain and ctx.Err() is
+// surfaced.
+func dialReal(ctx context.Context, cfg Config) (conn, error) {
+	return dialAbandonable(ctx, cfg, openLDAP)
+}
+
+// dialAbandonable runs open in a goroutine and returns as soon as ctx is done.
+// The goroutine keeps running, so its result is drained in the background and
+// any socket it produces is closed rather than leaked.
+func dialAbandonable(ctx context.Context, cfg Config, open func(Config) (conn, error)) (conn, error) {
+	type dialResult struct {
+		c   conn
+		err error
 	}
-	c.SetTimeout(cfg.Timeout)
-	return c, nil
+	ch := make(chan dialResult, 1)
+	go func() {
+		c, err := open(cfg)
+		ch <- dialResult{c, err}
+	}()
+	select {
+	case <-ctx.Done():
+		// The dial goroutine may still be in flight; drain its result in
+		// the background and close the socket so a slow directory cannot
+		// leak a connection that nobody waits on.
+		go func() {
+			r := <-ch
+			if r.err == nil && r.c != nil {
+				_ = r.c.Close()
+			}
+		}()
+		return nil, ctx.Err()
+	case r := <-ch:
+		if r.err != nil {
+			return nil, r.err
+		}
+		return r.c, nil
+	}
 }
 
 // Verifier authenticates usernames and passwords against the configured
 // directory. Construct it with New and call Verify per authentication attempt.
 // A Verifier is safe for concurrent use; each Verify opens and closes its own
-// connection (connection pooling and reconnection are deferred to M14.3).
+// connection. Reuse is deliberately not implemented: a Bind leaves the
+// connection carrying that subscriber's identity, so pooling one across
+// authentications risks serving a later request under the previous user's
+// identity (M14.5 measured the cost and recorded the re-open trigger in
+// docs/ldap-connection-load-evidence-2026-10-31.md).
 type Verifier struct {
 	cfg  Config
 	dial dialFunc
@@ -235,6 +282,13 @@ func (v *Verifier) Config() Config { return v.cfg }
 // per RFC 4513 section 5.1.2 a Bind carrying a DN with an empty password is an
 // unauthenticated bind that many servers complete as anonymous, which would
 // otherwise falsely authenticate the user.
+//
+// The caller's context is honored at every checkpoint: a canceled or expired
+// context bails out before the dial and before each Bind/Search, and the
+// socket timeout is capped to the remaining deadline. A caller therefore bounds
+// the whole directory exchange with one deadline instead of letting every round
+// trip consume a timeout in full, and can abandon an in-flight authentication
+// when its own budget runs out.
 func (v *Verifier) Verify(ctx context.Context, username, password string) error {
 	if err := v.cfg.Validate(); err != nil {
 		return err
@@ -246,13 +300,33 @@ func (v *Verifier) Verify(ctx context.Context, username, password string) error 
 		return err
 	}
 
-	c, err := v.dial(v.cfg)
+	c, err := v.dial(ctx, v.cfg)
 	if err != nil {
+		// A context error (canceled or deadline exceeded) is propagated as-is
+		// so callers can distinguish "the request was abandoned" from "the
+		// directory was unreachable". Wrapping it in ErrUnavailable would
+		// collapse the two and report a directory outage for a request that
+		// the caller had already given up on.
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
 		return fmt.Errorf("%w: dial: %v", ErrUnavailable, err)
 	}
 	defer func() { _ = c.Close() }()
 
+	// Arm the socket timeout to the smaller of the configured operation
+	// timeout and the caller's remaining deadline, so a slow directory
+	// cannot pin the worker past the request's own budget. armTimeout only
+	// reports context errors, so the same "abandoned, not unreachable"
+	// distinction as the dial path applies here.
+	if err := armTimeout(c, ctx, v.cfg.Timeout); err != nil {
+		return err
+	}
+
 	if v.cfg.StartTLS {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if err := c.StartTLS(v.cfg.tlsConfig()); err != nil {
 			return fmt.Errorf("%w: starttls: %v", ErrUnavailable, err)
 		}
@@ -260,15 +334,40 @@ func (v *Verifier) Verify(ctx context.Context, username, password string) error 
 
 	switch v.cfg.BindMode {
 	case BindModeSearch:
-		return v.verifySearch(c, username, password)
+		return v.verifySearch(c, ctx, username, password)
 	default:
-		return v.verifyTemplate(c, username, password)
+		return v.verifyTemplate(c, ctx, username, password)
 	}
+}
+
+// armTimeout sets the connection's per-operation timeout to the smaller of the
+// configured timeout and the caller's remaining context deadline. It returns
+// ctx.Err() when the deadline has already lapsed, so Verify fails fast instead
+// of opening a socket for a request that has already been abandoned.
+func armTimeout(c conn, ctx context.Context, timeout time.Duration) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	deadline, hasDeadline := ctx.Deadline()
+	if hasDeadline {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return ctx.Err()
+		}
+		if remaining < timeout {
+			timeout = remaining
+		}
+	}
+	c.SetTimeout(timeout)
+	return nil
 }
 
 // verifyTemplate binds directly as the DN produced by substituting the
 // username into BindDNTemplate.
-func (v *Verifier) verifyTemplate(c conn, username, password string) error {
+func (v *Verifier) verifyTemplate(c conn, ctx context.Context, username, password string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	userDN := strings.ReplaceAll(v.cfg.BindDNTemplate, "%s", ldap.EscapeDN(username))
 	if err := c.Bind(userDN, password); err != nil {
 		return mapBindError(err)
@@ -277,10 +376,20 @@ func (v *Verifier) verifyTemplate(c conn, username, password string) error {
 }
 
 // verifySearch binds as the service account, locates the user's DN with
-// UserFilter, then re-binds as that DN with the supplied password.
-func (v *Verifier) verifySearch(c conn, username, password string) error {
+// UserFilter, then re-binds as that DN with the supplied password. Each
+// round trip is preceded by a context check so a deadline that lapses between
+// the service bind and the search, or between the search and the user bind,
+// aborts the authentication instead of continuing against a directory that is
+// no longer answering the request.
+func (v *Verifier) verifySearch(c conn, ctx context.Context, username, password string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := c.Bind(v.cfg.SearchBindDN, v.cfg.SearchBindPassword); err != nil {
 		return fmt.Errorf("%w: service bind: %v", ErrUnavailable, err)
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
 	// EscapeFilter neutralizes LDAP filter metacharacters in the
@@ -296,6 +405,9 @@ func (v *Verifier) verifySearch(c conn, username, password string) error {
 	if err != nil {
 		return fmt.Errorf("%w: search: %v", ErrUnavailable, err)
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	switch {
 	case len(res.Entries) == 0:
 		return ErrUserNotFound
@@ -308,6 +420,9 @@ func (v *Verifier) verifySearch(c conn, username, password string) error {
 		return ErrUserNotFound
 	}
 
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := c.Bind(userDN, password); err != nil {
 		return mapBindError(err)
 	}

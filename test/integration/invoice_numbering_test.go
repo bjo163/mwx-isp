@@ -32,6 +32,14 @@ func TestPostgresInvoiceNumberingConcurrentAndRollback(t *testing.T) {
 	}
 	require.NoError(t, db.Create(&customer).Error)
 
+	// These fixtures carry no subscription, so the shared overdue sweep would
+	// otherwise treat them as dangling invoices for the rest of the run.
+	t.Cleanup(func() {
+		require.NoError(t, db.Where("customer_id = ?", customer.ID).Delete(&domain.Invoice{}).Error)
+		require.NoError(t, db.Where("id = ?", customer.ID).Delete(&domain.Customer{}).Error)
+		require.NoError(t, db.Where("kind = ? AND period = ?", kind, period).Delete(&domain.DocumentSequence{}).Error)
+	})
+
 	const workers = 8
 	serials := make([]int64, workers)
 	errs := make([]error, workers)

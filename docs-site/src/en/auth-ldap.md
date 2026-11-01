@@ -67,7 +67,7 @@ changes take effect immediately without a restart.
 | `ldap.SearchBindPassword` | string | _(empty)_ | search | Password for the service-account DN. |
 | `ldap.StartTLS` | bool | `false` | both | Upgrade an `ldap://` connection to TLS with StartTLS (RFC 4513 §3) before binding. Leave off for `ldaps://`. |
 | `ldap.TLSSkipVerify` | bool | `false` | both | Skip TLS certificate verification. **Insecure — lab / self-signed only.** |
-| `ldap.Timeout` | int (s) | `5` | both | Dial and per-operation timeout in seconds (1–60). |
+| `ldap.Timeout` | int (s) | `5` | both | Timeout in seconds for one directory authentication (1–60). It bounds the whole exchange — see [Connection handling and timeouts](#connection-handling-and-timeouts). |
 
 ### Bind modes
 
@@ -106,6 +106,31 @@ SearchBindPassword = ********
 - Leave `TLSSkipVerify = false` in production. Enable it only against a lab or
   self-signed directory — it disables certificate verification and exposes the
   bind to interception.
+
+## Connection handling and timeouts
+
+Each authentication attempt opens its own connection to the directory and closes
+it when the attempt finishes. There is deliberately **no connection pool**: a
+directory Bind makes the connection identity-bearing, so returning one to a
+shared pool after binding as a subscriber would risk serving a later request
+under the previous user's identity. The cost of a fresh connection is real but
+small (about half a millisecond of setup per attempt on a local network), and the
+guarantee is worth more than that — the measurements behind this decision are
+recorded in `docs/ldap-connection-load-evidence-2026-10-31.md`.
+
+What bounds the attempt instead is a **single deadline for the whole directory
+exchange**. The caller's context reaches every step: the connect races it, the
+socket timeout is capped to whatever time is left, and a deadline check precedes
+StartTLS and each Bind/Search round trip. The auth pipeline supplies no deadline
+of its own, so `ldap.Timeout` is armed as the deadline for the attempt — which
+means it now bounds the exchange once, rather than being spendable in full by
+every round trip inside it. Against a directory that accepts the TCP connection
+and then goes silent, search mode used to cost the timeout four times over; it
+now costs it once.
+
+Read `ldap.Timeout` as "the most time any single login may spend waiting on the
+directory". A login that hits it is rejected and counted as
+`radus_reject_ldap_error`, never as a wrong password.
 
 ## How authentication flows
 

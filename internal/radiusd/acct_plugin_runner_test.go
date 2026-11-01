@@ -6,10 +6,14 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/bjo163/mwx-isp/internal/app"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/radiusd/plugins/accounting"
 	vendorparsers "github.com/bjo163/mwx-isp/internal/radiusd/plugins/vendorparsers"
 	"github.com/bjo163/mwx-isp/internal/radiusd/registry"
+	"github.com/bjo163/mwx-isp/pkg/metrics"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"layeh.com/radius"
 	"layeh.com/radius/rfc2866"
 )
@@ -132,4 +136,50 @@ func TestHandleAccountingWithPluginsParsesInterimUpdateStatusType(t *testing.T) 
 	if got := atomic.LoadInt32(&calls); got != 1 {
 		t.Fatalf("expected handler to be called once, got %d", got)
 	}
+}
+
+// TestHandleAccountingStartAndStopCounters pins that the radus_online and
+// radus_offline counters track successfully handled Start and Stop accounting,
+// so an operator scraping /metrics sees session-event volumes instead of two
+// permanently zero series.
+func TestHandleAccountingStartAndStopCounters(t *testing.T) {
+	registry.ResetForTest()
+	t.Cleanup(registry.ResetForTest)
+	require.NoError(t, metrics.InitMetrics(""))
+
+	var calls int32
+	registry.RegisterAccountingHandler(&mockAccountingHandler{
+		name:      "handler",
+		calls:     &calls,
+		canHandle: true,
+	})
+
+	acctSvc := &AcctService{RadiusService: &RadiusService{}}
+	account := func(statusType rfc2866.AcctStatusType) {
+		t.Helper()
+		packet := radius.New(radius.CodeAccountingRequest, []byte("secret"))
+		_ = rfc2866.AcctStatusType_Set(packet, statusType)
+		req := &radius.Request{
+			Packet:     packet,
+			RemoteAddr: &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1813},
+		}
+		require.NoError(t, acctSvc.HandleAccountingWithPlugins(
+			context.Background(), req, &vendorparsers.VendorRequest{}, "alice", &domain.NetNas{}, "10.0.0.1",
+		))
+	}
+
+	onlineBefore := app.GetRadiusMetrics(app.MetricsRadiusOline)
+	offlineBefore := app.GetRadiusMetrics(app.MetricsRadiusOffline)
+
+	account(rfc2866.AcctStatusType_Value_Start)
+	assert.Equal(t, onlineBefore+1, app.GetRadiusMetrics(app.MetricsRadiusOline))
+	assert.Equal(t, offlineBefore, app.GetRadiusMetrics(app.MetricsRadiusOffline))
+
+	account(rfc2866.AcctStatusType_Value_Stop)
+	assert.Equal(t, offlineBefore+1, app.GetRadiusMetrics(app.MetricsRadiusOffline))
+
+	// An Interim-Update changes neither session-event counter.
+	account(rfc2866.AcctStatusType_Value_InterimUpdate)
+	assert.Equal(t, onlineBefore+1, app.GetRadiusMetrics(app.MetricsRadiusOline))
+	assert.Equal(t, offlineBefore+1, app.GetRadiusMetrics(app.MetricsRadiusOffline))
 }

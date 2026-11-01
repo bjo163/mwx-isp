@@ -4,13 +4,39 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
 	"github.com/bjo163/mwx-isp/internal/domain"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+// orphanInvoices counts the enforcement decisions skipped because an invoice
+// could not be attached to a subscription. One invoice is counted again by every
+// later sweep that still finds it overdue, so this is a rate of skipped work,
+// not a row count. The label set is fixed - no tenant, customer or invoice
+// identifier is part of the name - so the series does not grow with the data.
+var orphanInvoices atomic.Int64
+
+// OrphanInvoices reports how many enforcement decisions have been skipped over
+// invoices with no subscription row behind them since the process started.
+// Published through GET /metrics as billing_invoice_without_subscription_total.
+func OrphanInvoices() int64 { return orphanInvoices.Load() }
+
+// noteOrphanInvoice records an invoice that cannot reach a subscription, so a
+// skipped enforcement decision stays visible in the log and the metrics instead
+// of only in the untouched invoice row.
+func noteOrphanInvoice(op string, invoice domain.Invoice) {
+	orphanInvoices.Add(1)
+	zap.L().Warn("invoice has no subscription row; skipping it",
+		zap.String("operation", op),
+		zap.Int64("invoice_id", invoice.ID),
+		zap.String("invoice_no", invoice.InvoiceNo),
+		zap.Int64("subscription_id", invoice.SubscriptionID))
+}
 
 var (
 	// ErrInvalidPayment indicates that a payment is non-positive or exceeds the remaining invoice balance.
@@ -169,7 +195,9 @@ func ProcessOverdueInvoices(db *gorm.DB, now time.Time) error {
 // subscription status, billing suspension reason, linked RadiusUser disable,
 // and billing event are updated in one transaction. It does not send
 // Disconnect-Requests; callers must disconnect matching online sessions after
-// this function succeeds. It returns the first database error encountered.
+// this function succeeds. It returns the first database error encountered; an
+// invoice with no subscription row behind it is skipped, counted in
+// OrphanInvoices, and logged instead of reported.
 func SuspendOverdueSubscriptions(db *gorm.DB, now time.Time) error {
 	var invoices []domain.Invoice
 	if err := db.Where("balance > 0 AND status = ?", domain.InvoiceOverdue).Find(&invoices).Error; err != nil {
@@ -178,6 +206,16 @@ func SuspendOverdueSubscriptions(db *gorm.DB, now time.Time) error {
 	for _, invoice := range invoices {
 		var sub domain.Subscription
 		if err := db.First(&sub, invoice.SubscriptionID).Error; err != nil {
+			// An unpaid invoice can outlive its subscription: a backup restore
+			// upserts invoices without validating that reference, and a row
+			// written without one never had it. Returning here would let a
+			// single dangling row stop every later suspension in the sweep's
+			// scope, and keep stopping them for as long as the invoice sits
+			// overdue, so the sweep moves on to what it can act on.
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				noteOrphanInvoice("suspend_overdue", invoice)
+				continue
+			}
 			return err
 		}
 		if sub.Status != domain.SubscriptionActive || !dateAfter(now, invoice.DueDate.AddDate(0, 0, sub.GraceDays)) {
@@ -216,7 +254,9 @@ func SuspendOverdueSubscriptions(db *gorm.DB, now time.Time) error {
 // payment that closed the invoice still reports a duplicate instead of a closed
 // invoice. Reusing the key with different details returns ErrIdempotencyConflict.
 // Payments without a key are always recorded as new payments, which keeps two
-// legitimately identical cash payments separate.
+// legitimately identical cash payments separate. An invoice whose subscription
+// row is gone is still paid: the money is booked and only the reactivation step
+// is skipped.
 func RecordPayment(db *gorm.DB, payment *domain.Payment, now time.Time, autoReactivate bool) error {
 	if payment.Amount <= 0 {
 		return ErrInvalidPayment
@@ -275,9 +315,19 @@ func RecordPayment(db *gorm.DB, payment *domain.Payment, now time.Time, autoReac
 		if err := tx.Create(&domain.BillingEvent{CustomerID: invoice.CustomerID, SubscriptionID: invoice.SubscriptionID, InvoiceID: invoice.ID, Type: "payment_received", Description: payment.PaymentNo, CreatedAt: now}).Error; err != nil {
 			return err
 		}
-		if invoice.Status == domain.InvoicePaid && autoReactivate && invoice.SubscriptionID > 0 {
+		if invoice.Status == domain.InvoicePaid && autoReactivate {
 			var sub domain.Subscription
 			if err := tx.First(&sub, invoice.SubscriptionID).Error; err != nil {
+				// The money is real whether or not a subscription row is still
+				// behind the invoice, so the payment stands and only the
+				// reactivation is skipped. Failing here would refuse a
+				// customer's full payment over a dangling reference. An invoice
+				// written without any subscription reference (0) is the same
+				// case and is counted the same way the sweep counts it.
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					noteOrphanInvoice("record_payment", invoice)
+					return nil
+				}
 				return err
 			}
 			if sub.Status == domain.SubscriptionSuspended && sub.SuspensionReason == domain.SuspensionBillingOverdue {

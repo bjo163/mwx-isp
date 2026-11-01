@@ -295,6 +295,8 @@ func NewAdminServer(appCtx app.AppContext) *AdminServer {
 		return c.String(200, c.RealIP())
 	})
 
+	registerMetricsRoute(s.root)
+
 	s.root.GET("/.well-known/appspecific/com.chrome.devtools.json", chromeDevtoolsManifest)
 
 	// JWT middleware

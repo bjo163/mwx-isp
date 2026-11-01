@@ -35,8 +35,10 @@ import (
 // directory is out of scope.
 //
 // The backend reads ldap.* settings on every attempt so a runtime configuration
-// change (enable/disable, server URL, bind mode) takes effect immediately;
-// connection reuse and richer observability are deferred to M14.3.
+// change (enable/disable, server URL, bind mode) takes effect immediately.
+// Directory connections are not pooled: M14.5 measured the cost of opening one
+// per authentication and declined reuse, because a Bind leaves the connection
+// carrying that subscriber's identity.
 type ldapCredentialBackend struct {
 	settings ldapauth.Settings
 }
@@ -82,8 +84,21 @@ func (b *ldapCredentialBackend) Active() bool {
 // tagged radus_reject_passwd_error for a credential rejection (wrong password,
 // user not in the directory, empty credential), and an AuthError tagged
 // radus_reject_ldap_error for a backend that is unreachable or misconfigured.
+//
+// The auth pipeline hands this seam a context without a deadline (the stage
+// context is built from context.Background()), so the backend arms one from
+// ldap.Timeout when the caller did not bring a tighter budget. That turns ldap.Timeout into a bound on the whole directory
+// exchange rather than a bound that each of its round trips may consume in full,
+// which is what keeps a slow — not dead — directory from occupying a RADIUS
+// worker for several times the configured timeout.
 func (b *ldapCredentialBackend) VerifyCleartext(ctx context.Context, username, password string) error {
-	return mapLDAPVerifyError(ldapauth.New(b.config()).Verify(ctx, username, password))
+	cfg := b.config()
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
+		defer cancel()
+	}
+	return mapLDAPVerifyError(ldapauth.New(cfg).Verify(ctx, username, password))
 }
 
 // mapLDAPVerifyError translates an internal/ldapauth result into a pipeline
@@ -102,7 +117,12 @@ func mapLDAPVerifyError(err error) error {
 			"ldap authentication rejected", err)
 	default:
 		// ErrUnavailable / ErrNotConfigured / ErrDisabled / unknown: a server-side
-		// condition, not a credential rejection.
+		// condition, not a credential rejection. A context.Canceled or
+		// context.DeadlineExceeded returned by the verifier lands here too: the
+		// request was abandoned (the RADIUS worker's own deadline, or the EAP
+		// handshake timeout) while the directory Bind was in flight, so it is a
+		// backend-side condition from the client's point of view and must not be
+		// counted as a wrong password.
 		return radiuserrors.NewAuthErrorWithCause(app.MetricsRadiusRejectLdapError,
 			"ldap backend unavailable", err)
 	}

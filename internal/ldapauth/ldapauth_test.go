@@ -36,18 +36,25 @@ type bindCall struct {
 // fakeConn is a scripted directory connection used to exercise the verifier
 // without a real LDAP server.
 type fakeConn struct {
-	startTLSErr    error
-	startTLSCalled bool
-	binds          []bindCall
-	bindFunc       func(dn, password string) error
-	searchReq      *ldap.SearchRequest
-	searchFunc     func(req *ldap.SearchRequest) (*ldap.SearchResult, error)
-	closed         bool
+	startTLSErr     error
+	startTLSCalled  bool
+	binds           []bindCall
+	bindFunc        func(dn, password string) error
+	searchReq       *ldap.SearchRequest
+	searchFunc      func(req *ldap.SearchRequest) (*ldap.SearchResult, error)
+	closed          bool
+	timeout         time.Duration
+	setTimeoutCalls int
 }
 
 func (f *fakeConn) StartTLS(*tls.Config) error { //nolint:revive // satisfies conn
 	f.startTLSCalled = true
 	return f.startTLSErr
+}
+
+func (f *fakeConn) SetTimeout(d time.Duration) {
+	f.timeout = d
+	f.setTimeoutCalls++
 }
 
 func (f *fakeConn) Bind(dn, password string) error {
@@ -80,7 +87,7 @@ func invalidCreds() error {
 // returns dialErr; otherwise it returns fc and records that it was called.
 func newVerifier(cfg Config, fc *fakeConn, dialErr error) (*Verifier, *bool) {
 	dialed := false
-	v := &Verifier{cfg: cfg, dial: func(Config) (conn, error) {
+	v := &Verifier{cfg: cfg, dial: func(context.Context, Config) (conn, error) {
 		dialed = true
 		if fc == nil {
 			return nil, dialErr
@@ -315,6 +322,136 @@ func TestVerify_DialErrorIsUnavailable(t *testing.T) {
 	v, dialed := newVerifier(templateConfig(), nil, errors.New("no route to host"))
 	require.ErrorIs(t, v.Verify(context.Background(), "alice", "pw"), ErrUnavailable)
 	require.True(t, *dialed)
+}
+
+// TestVerify_ContextHonoredAfterDial exercises the request-context propagation
+// added in M14.5. The load evidence showed that a caller deadline was ignored
+// and Verify blocked on the full operation timeout; these tests pin the three
+// new checkpoints: the socket timeout is capped to the remaining deadline, a
+// deadline that lapses between operations aborts the authentication, and a
+// dial that outlives the caller is abandoned rather than leaked.
+func TestVerify_ContextHonoredAfterDial(t *testing.T) {
+	t.Run("socket timeout capped to remaining deadline", func(t *testing.T) {
+		cfg := templateConfig()
+		cfg.Timeout = 10 * time.Second
+		fc := &fakeConn{}
+		v, _ := newVerifier(cfg, fc, nil)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		require.NoError(t, v.Verify(ctx, "alice", "pw"))
+		require.Equal(t, 1, fc.setTimeoutCalls, "SetTimeout must be called once")
+		require.LessOrEqual(t, fc.timeout, 2*time.Second,
+			"socket timeout must be capped to the caller's remaining deadline, not the configured 10s")
+	})
+
+	t.Run("already-expired deadline fails before dial", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), -1*time.Millisecond)
+		defer cancel()
+		v, dialed := newVerifier(templateConfig(), &fakeConn{}, nil)
+		require.ErrorIs(t, v.Verify(ctx, "alice", "pw"), context.DeadlineExceeded)
+		require.False(t, *dialed, "must not dial when the deadline has already lapsed")
+	})
+
+	t.Run("deadline lapsing between service bind and search aborts", func(t *testing.T) {
+		cfg := searchConfig()
+		cfg.Timeout = 10 * time.Second
+		fc := &fakeConn{
+			// The service bind takes long enough that the caller's deadline
+			// lapses while it is in flight. Verify must surface ctx.Err()
+			// rather than continuing to the search against a directory that is
+			// no longer answering the request.
+			bindFunc: func(dn, _ string) error {
+				if dn == cfg.SearchBindDN {
+					time.Sleep(200 * time.Millisecond)
+				}
+				return nil
+			},
+		}
+		v, _ := newVerifier(cfg, fc, nil)
+		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(50*time.Millisecond))
+		defer cancel()
+		err := v.Verify(ctx, "alice", "pw")
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+
+	t.Run("deadline lapsing as the dial returns is not an outage", func(t *testing.T) {
+		// A dial that hands back its connection just as the caller's deadline
+		// lapses must surface the context error rather than ErrUnavailable:
+		// an abandoned request is not a directory outage, and wrapping it
+		// would report one on the metrics.
+		v := &Verifier{
+			cfg: templateConfig(),
+			dial: func(ctx context.Context, _ Config) (conn, error) {
+				<-ctx.Done()
+				return &fakeConn{}, nil
+			},
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		defer cancel()
+		err := v.Verify(ctx, "alice", "pw")
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		require.NotErrorIs(t, err, ErrUnavailable)
+	})
+
+	t.Run("dial that outlives the caller is abandoned", func(t *testing.T) {
+		// The fake dialer races its own work against ctx, simulating a
+		// directory that never answers. Verify must return ctx.Err(), not
+		// block forever and not leak the connection.
+		cfg := templateConfig()
+		v := &Verifier{
+			cfg: cfg,
+			dial: func(ctx context.Context, _ Config) (conn, error) {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(3 * time.Second):
+					return nil, errors.New("unreachable")
+				}
+			},
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+		defer cancel()
+		require.ErrorIs(t, v.Verify(ctx, "alice", "pw"), context.DeadlineExceeded)
+	})
+}
+
+// TestDialAbandonable_ClosesLateSocket covers the leak-prevention drain: when
+// the caller's context lapses before the dial returns, the socket that dial
+// eventually hands back must be closed by the background drain. Delete that
+// drain and every other test stays green while production leaks one directory
+// connection per abandoned dial, so this is the only test that fails.
+func TestDialAbandonable_ClosesLateSocket(t *testing.T) {
+	late := &signalConn{closed: make(chan struct{})}
+	release := make(chan struct{})
+	open := func(Config) (conn, error) {
+		<-release // the directory answers only after the caller gave up
+		return late, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	c, err := dialAbandonable(ctx, templateConfig(), open)
+	require.Nil(t, c)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+
+	close(release)
+	select {
+	case <-late.closed:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the dial returned a socket after the caller gave up, and nothing closed it")
+	}
+}
+
+// signalConn is a fakeConn whose Close signals over a channel, so a test can
+// observe a close performed by another goroutine without racing a field.
+type signalConn struct {
+	fakeConn
+	closed chan struct{}
+}
+
+func (s *signalConn) Close() error {
+	close(s.closed)
+	return nil
 }
 
 func TestVerify_StartTLS(t *testing.T) {

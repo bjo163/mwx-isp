@@ -2,7 +2,9 @@ package radiusd
 
 import (
 	"context"
+	"net"
 	"testing"
+	"time"
 
 	"github.com/bjo163/mwx-isp/internal/app"
 	"github.com/bjo163/mwx-isp/internal/domain"
@@ -156,6 +158,55 @@ func TestLDAPBackend_VerifyCleartext_Mapping(t *testing.T) {
 	}
 	if metric := authErrorMetric(t, err); metric != app.MetricsRadiusRejectPasswdError {
 		t.Fatalf("empty-password metric = %q, want %q", metric, app.MetricsRadiusRejectPasswdError)
+	}
+}
+
+// TestLDAPBackend_VerifyCleartextBoundsSilentDirectory covers the M14.5 budget:
+// the pipeline supplies a context without a deadline, so the backend must arm
+// one from ldap.Timeout. Before that, ldap.Timeout bounded each round trip
+// separately and a directory that accepts the connection and then stays silent
+// could hold a RADIUS worker for several times the configured timeout.
+func TestLDAPBackend_VerifyCleartextBoundsSilentDirectory(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	// Accept and hold: the peer never answers, which is the case that pins workers.
+	// The channel is never closed; the goroutine exits with the listener.
+	accepted := make(chan net.Conn, 8)
+	go func() {
+		for {
+			c, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			select {
+			case accepted <- c:
+			default:
+				_ = c.Close()
+			}
+		}
+	}()
+
+	settings := enabledTemplateSettings()
+	settings.ints = map[string]int64{"ldap.Timeout": 1} // one second, so the bound is observable
+	settings.strs["ldap.ServerURL"] = "ldap://" + listener.Addr().String()
+	backend := newLDAPCredentialBackend(settings)
+
+	begin := time.Now()
+	err = backend.VerifyCleartext(context.Background(), "alice", "pw")
+	waited := time.Since(begin)
+	if err == nil {
+		t.Fatal("a silent directory must not authenticate")
+	}
+	if metric := authErrorMetric(t, err); metric != app.MetricsRadiusRejectLdapError {
+		t.Fatalf("silent-directory metric = %q, want %q", metric, app.MetricsRadiusRejectLdapError)
+	}
+	if waited > 3*time.Second {
+		t.Fatalf("VerifyCleartext waited %s against a silent directory; the ldap.Timeout " +
+			"deadline must bound the whole exchange", waited)
 	}
 }
 

@@ -915,7 +915,7 @@ const customEnglishMessages: TranslationMessages = {
       },
       timeout: {
         title: 'LDAP Timeout',
-        description: 'Dial and per-operation timeout in seconds.',
+        description: 'Timeout in seconds for one directory authentication; it bounds the whole exchange, not each round trip inside it.',
       },
     },
   },

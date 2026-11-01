@@ -97,6 +97,10 @@ func TestISPBillingLifecycleThroughRadius(t *testing.T) {
 	require.Equal(t, radius.CodeAccountingResponse, acctResp.Code)
 	online := waitForOnline(t, sessionID)
 	require.Equal(t, username, online.Username)
+	// The Start handler writes the online row before the accounting row, and both
+	// are applied asynchronously after the response, so the Stop must wait for the
+	// accounting row it updates to exist.
+	waitForAccounting(t, sessionID)
 	acctStop := accountingRequestISP(t, rfc2866.AcctStatusType_Value_Stop, secret, username, nasID, nasIP, sessionID)
 	acctResp, err = exchangeFromNAS(context.Background(), acctStop, acctAddr, nasIP)
 	require.NoError(t, err)

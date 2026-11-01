@@ -45,6 +45,49 @@ kredensialnya sendiri sebelum onboarding pelanggan.
 Jangan membuka database PostgreSQL ke publik. Terapkan allowlist firewall untuk
 NAS dan port yang benar-benar digunakan.
 
+## Metrik dan pemantauan
+
+Semua counter RADIUS dan gauge sistem (CPU/memori host dan proses) disimpan di
+memori dan disajikan ulang dalam format teks Prometheus pada `GET /metrics`.
+Endpoint ini **nonaktif secara default** dan menjawab 404 sampai token scrape
+dikonfigurasi:
+
+```bash
+# .env (docker compose memetakan MWX_ISP_METRICS_TOKEN ke TOUGHRADIUS_METRICS_TOKEN)
+MWX_ISP_METRICS_TOKEN=$(openssl rand -hex 24)
+```
+
+```bash
+curl -H "Authorization: Bearer ${MWX_ISP_METRICS_TOKEN}" https://isp.example.com/metrics
+```
+
+Token salah atau kosong menghasilkan 401. Namanya tidak berubah dari yang
+sudah dikenal di log dan handbook: `radus_accept`, `radus_accounting`,
+`radus_online`/`radus_offline` (penghitung accounting Start/Stop yang sukses, bukan
+jumlah sesi yang sedang online — untuk itu lihat daftar online session),
+`radus_auth_drop`/`radus_acct_drop`, `radus_radsec_saturated`, serta counter
+penolakan per penyebab seperti `radus_reject_passwd_error` dan
+`radus_reject_ldap_error`. Gauge sistem diekspor sebagai `system_cpuuse`,
+`system_memuse`, `mwx_isp_cpuuse`, dan `mwx_isp_memuse` dengan sampling tiap
+30 detik.
+
+Tiga series lain berasal dari job latar dan berlabel tetap — tanpa dimensi
+tenant maupun pelanggan, jadi jumlahnya tidak bertambah mengikuti banyak tenant:
+`fup_scheduler_tenant_attempts_total` dan `fup_scheduler_tenant_failures_total`
+menghitung percobaan FUP per tenant dan yang gagal (tenant yang error diisolasi;
+tenant setelahnya tetap di-throttle pada run yang sama), sedangkan
+`billing_invoice_without_subscription_total` menghitung setiap kali penegakan
+tagihan melewati invoice karena baris subscription-nya tidak ada. Invoice yang
+tetap jatuh tempo dihitung lagi oleh sweep harian berikutnya, jadi baca angka
+ini sebagai keputusan yang dilewati, bukan jumlah baris. Angka terakhir yang
+bukan nol perlu diperiksa: utangnya nyata tapi tidak ada yang bisa disuspend,
+biasanya karena restore backup membawa invoice tanpa subscription-nya. Tiap
+kejadian juga dicatat di log level warn beserta nomor invoice.
+
+Counter ini bersifat per proses dan kembali nol setelah restart; dashboard admin
+membaca tabel accounting dan sesi yang tersimpan di database, sehingga tren
+7 hari tidak berubah ketika layanan dimulai ulang.
+
 ## Perbaikan dan uninstall deployment VPS
 
 Perintah repair online mengunduh installer resmi terbaru dari branch `main`
