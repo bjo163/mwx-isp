@@ -1,5 +1,29 @@
 # MWX-ISP Changelog
 
+## v0.23.0 — 2026-11-01
+
+Changes since v0.22.1:
+
+### Features
+
+- publish a release from a `v*` tag: nine binaries, `checksums.txt` and one
+  multi-arch image in a single `release.yml`
+
+### Fixes and Improvements
+
+- build the admin console once in CI and share it with the test and build jobs, so
+  a CI binary never ships with an empty embedded UI
+- `README.md` now lists the keys, ports and build order that are actually in the
+  tree
+- `go.sum` is tracked again, so a fresh clone builds the same dependencies
+
+### Breaking
+
+- `docs/roadmap.md`, `docs/feature-checklist.md`, the October audit backlog,
+  `Makefile` and `scripts/` are gone; `Todo.md` is the only work queue
+- cutting a version is now `VERSION` + `CHANGELOG` + `git tag`; `auto-release.yml`,
+  `docker-publish.yml` and `release-publish.yml` are replaced by `release.yml`
+
 ## v0.22.1 — 2026-11-01
 
 Changes since v0.22.0:
