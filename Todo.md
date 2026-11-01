@@ -24,13 +24,13 @@ Penanda tipe: `LOKAL` = bisa dikerjakan di repo · `ASET` = butuh perangkat/host
 
 ## Status baseline
 
-- Rilis terakhir **v0.21.0** (PR #116, tag `v0.21.0`). Tag `v0.22.0` sudah ada di `main` (PR #120 merge) tapi GitHub Release-nya belum terbit — lihat §8.
+- Rilis terakhir **v0.22.1** (PR #121 merge, tag `v0.22.1`); GitHub Release-nya terbit lengkap beserta image multi-arch termasuk `linux/arm/v7`. `main` memuat seluruh `dev`. Perubahan docs-only setelahnya tidak memicu rilis baru, sesuai kebijakan rilis.
 - M19 (brand tenant, website, katalog paket) dan M20 (invoice & receipt branding) **sudah di `main`** beserta acceptance PostgreSQL/browser.
 - M11 TEAP `M11.1`–`M11.10` **sudah di `main`** bersama `test/integration/teap_acceptance_test.go`; yang tersisa hanya interoperabilitas peer nyata (`ENG-002`).
 - M5 vendor VSA expansion (`M5.1`–`M5.5`) **selesai dan sudah di `main`**: seluruh 14 paket dictionary vendor punya consumer, dan tidak ada enhancer vendor yang tersisa.
 - M6 observability **selesai dan sudah di `main`**: counter dan gauge yang sudah dikumpulkan kini terbaca lewat `GET /metrics` (format teks Prometheus, bertoken, default nonaktif).
 - M14 LDAP **selesai dan sudah di `main`** dengan tertutupnya M14.5: tenggat permintaan kini membatasi setiap round trip ke directory; connection pooling dievaluasi terhadap angka nyata dan sengaja tidak diambil.
-- PR promosi **#120** (`dev` → `main`) sudah merge (31 check hijau pada SHA yang direview) dan memicu tag `v0.22.0`; **#121** adalah PR promosi berikutnya dan membawa perbaikan build 32-bit yang membuat rilis `v0.22.0` gagal.
+- PR promosi **#120** (`dev` → `main`) sudah merge (31 check hijau pada SHA yang direview) dan memicu tag `v0.22.0` (tanpa rilis karena build arm/v7 gagal); **#121** adalah PR promosi berikutnya yang membawa perbaikan build 32-bit dan **berhasil menerbitkan rilis `v0.22.1`**.
 
 ---
 
@@ -128,5 +128,9 @@ Semua `FUT` dan `ECO` berstatus research-only: tidak boleh naik ke kode produksi
 ## 8. Residual rilis
 
 - Tag `v0.18.0`–`v0.19.8` ada tanpa GitHub Release (sudah tersaingi `v0.20.0`). Backfill hanya lewat `workflow_dispatch` dengan `release_tag`, dan **butuh persetujuan eksplisit**.
-- Tag `v0.22.0` juga ada tanpa GitHub Release: job `Publish GHCR image` jatuh di `linux/arm/v7` (#18) sehingga image dan aset rilis tidak pernah terbit. Perbaikan build sudah ada di `dev` (PR #121); merge berikutnya menaikkan versi ke `v0.22.1` dan rilis itu yang terbit lengkap, jadi `v0.22.0` tidak di-backfill kecuali diminta.
+- Tag `v0.22.0` tetap ada tanpa GitHub Release: build `linux/arm/v7` gagal sehingga aset tidak pernah terbit. Perbaikan sudah masuk di `v0.22.1` yang terbit lengkap, jadi `v0.22.0` tidak di-backfill kecuali diminta.
 - Pemeriksaan operasional eksternal yang belum pernah dieksekusi dan tidak boleh diklaim: instalasi/upgrade VPS bersih, kegagalan registry/port nyata, timer, dan RTO produksi.
+
+## 9. Status penutupan (2026-11-01)
+
+Semua pekerjaan lokal yang tercatat di `Todo.md` sudah selesai. Sisa `ASET` (14 item) dan `RISET` (20 item) tetap membutuhkan aset nyata atau kajian — tidak bisa diselesaikan dari repo ini. Audit rilis terverifikasi: `v0.22.1` terbit lengkap (multi-arch, assets, GHCR), `v0.22.0` tag ada tanpa aset karena gagal build arm/v7 (semua dipindai dan diperbaiki). Catatan rilis otomatis di `CHANGELOG.md`.
