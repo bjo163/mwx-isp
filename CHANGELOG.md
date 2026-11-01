@@ -1,5 +1,22 @@
 # MWX-ISP Changelog
 
+## v0.22.0 — 2026-11-01
+
+Changes since v0.21.0:
+
+### Features
+
+- bound a directory authentication by one deadline
+- expose the collected metrics over GET /metrics
+- add the remaining vendor Access-Accept enhancers
+
+### Fixes and Improvements
+
+- publish the background-job counters that were only collected
+- keep a dangling invoice from stopping enforcement or payment
+- keep the overdue sweep running past a dangling invoice
+- report an abandoned bind as abandoned, not as an outage
+
 ## v0.21.0 — 2026-10-31
 
 Changes since v0.20.0:
