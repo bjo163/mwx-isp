@@ -1,32 +1,55 @@
-# Binaries
+# Build output
+/release/
+/dist/
+/bin/
+/mwx-isp
+web/dist/*
+!web/dist/.gitkeep
 *.exe
-mwx-isp*
-dist/
+__debug_bin*
+
+# Runtime data
+*.db
+*.db-shm
+*.db-wal
+rundata/
+log_info.log
+*.log
+
+# Secrets and local environment — never commit these
+/.env
+/.env.*
+!/.env.example
+/.toughradius/
+/.mwx-isp-install-state
+/.mwx-isp-install-state.tmp
+/pkg/tls/
+
+# Local scratch
+/tmp/
 /tmp/mwx-*
 /tmp/err-*.txt
+/test-reports/
+/.playwright-mcp/
 
-# Go
-*.mod.sum
+# Dependencies
+web/node_modules/
+node_modules/
 vendor/
-go.sum
+web/.vite/
 
-# IDE
-.vscode/
+# Tooling
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
 
 # Docker
 .docker/
 docker-compose.override.yml
-
-# Logs
-*.log
 
 # Test outputs
 coverage.out
