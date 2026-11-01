@@ -435,8 +435,8 @@ func (s *AdminServer) Start() error {
 	return err
 }
 
-func shouldStartTLSManagementPort(enabled bool) bool {
-	return enabled
+func shouldStartTLSManagementPort(enabled *bool) bool {
+	return enabled == nil || *enabled
 }
 
 // ParseJwtToken Parse Jwt Token
