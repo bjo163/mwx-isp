@@ -163,13 +163,13 @@ jobs:
           IMAGES=ghcr.io/${{ github.repository_owner }}/mwx-isp
           # A draft release must not move :latest or land a real version tag.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAGS="${IMAGES}:draft-${TAG}"
+            TAG_ARGS=(--tag "${IMAGES}:draft-${TAG}")
           else
-            TAGS="${IMAGES}:${VERSION},${IMAGES}:v${VERSION},${IMAGES}:latest"
+            TAG_ARGS=(--tag "${IMAGES}:${VERSION}" --tag "${IMAGES}:v${VERSION}" --tag "${IMAGES}:latest")
           fi
           docker buildx build --push \
             --platform linux/amd64,linux/arm64,linux/arm/v7 \
-            --tag ${TAGS} \
+            "${TAG_ARGS[@]}" \
             --build-arg MWX_ISP_VERSION="${TAG}" \
             --build-arg MWX_ISP_COMMIT="${COMMIT}" \
             --build-arg MWX_ISP_BUILD_TIME="${BUILD_TIME}" \
