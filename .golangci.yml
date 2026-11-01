@@ -1,0 +1,44 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - unconvert
+    - gosec
+
+  exclusions:
+    paths:
+      # Some npm packages (e.g. flatted) vendor Go sources under node_modules;
+      # these must never be treated as project code or linted.
+      - node_modules
+
+  settings:
+    errcheck:
+      check-type-assertions: false # Disable type assertion checks - too many false positives in test files
+      check-blank: false # Don't check explicitly ignored errors with _ =
+
+    misspell:
+      locale: US
+
+    staticcheck:
+      checks:
+        - all
+        - "-ST1003" # Disable naming convention (Id vs ID, etc)
+        - "-ST1005" # Disable error string format check
+        - "-ST1006" # Disable receiver name style check
+        - "-ST1016" # Disable receiver name consistency check
+
+    gosec:
+      excludes:
+        # MD5/SHA1 are required by RADIUS protocol (RFC 2865) - cannot be changed
+        - G401 # Use of weak cryptographic primitive (MD5)
+        - G501 # Blocklisted import crypto/md5

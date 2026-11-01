@@ -5,11 +5,11 @@
 // the unit-test suite never covers because it uses in-memory SQLite.
 //
 // These tests are gated behind the `integration` build tag and require a running
-// PostgreSQL instance described by TEST_DATABASE_* environment variables. Use the
-// `make test-integration-pg` target or the provided docker-compose.test.yml to
-// provision one. When the environment is absent the suite skips locally, but
-// fails hard in CI (or when INTEGRATION_REQUIRED=1) so a misconfigured pipeline
-// can never report a false-green.
+// PostgreSQL instance described by TEST_DATABASE_* environment variables; the CI
+// job in .github/workflows/ci.yml provisions one with `docker run` alongside an
+// OpenLDAP server for TEST_LDAP_*. When the environment is absent the suite skips
+// locally, but fails hard in CI (or when INTEGRATION_REQUIRED=1) so a
+// misconfigured pipeline can never report a false-green.
 package integration
 
 import (
