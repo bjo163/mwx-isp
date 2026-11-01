@@ -80,6 +80,14 @@ func TestMetricsEndpointRendersPrometheusText(t *testing.T) {
 	} {
 		assert.Contains(t, body, "# TYPE "+name+" counter\n"+name+" ")
 	}
+	// The background-job counters are collected in their own packages but must
+	// reach the scrape too; a counter nobody can read is not observability.
+	for _, name := range []string{
+		"fup_scheduler_tenant_attempts_total", "fup_scheduler_tenant_failures_total",
+		"billing_invoice_without_subscription_total",
+	} {
+		assert.Contains(t, body, "# TYPE "+name+" counter\n"+name+" ")
+	}
 	// The token is never echoed back into the payload.
 	assert.NotContains(t, body, "s3cret-scrape-token")
 }

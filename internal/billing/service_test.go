@@ -385,6 +385,19 @@ func TestRecordPaymentBooksAnInvoiceWithoutSubscription(t *testing.T) {
 	require.Equal(t, domain.InvoicePaid, invoice.Status)
 	require.Zero(t, invoice.Balance)
 	require.EqualValues(t, 1, OrphanInvoices()-orphanBefore)
+
+	// A restored invoice that never carried a subscription reference at all is
+	// the same case, and is paid and counted identically.
+	noRef := domain.Invoice{InvoiceNo: "INV-NO-SUB-REF", CustomerID: customer.ID,
+		InvoiceDate: now.AddDate(0, 0, -14), DueDate: now.AddDate(0, 0, -10),
+		PeriodStart: now.AddDate(0, 0, -14), PeriodEnd: now.AddDate(0, 0, 16),
+		Total: 7500, Balance: 7500, Status: domain.InvoiceOverdue}
+	require.NoError(t, db.Create(&noRef).Error)
+	refPayment := domain.Payment{InvoiceID: noRef.ID, CustomerID: customer.ID, Amount: 7500, Method: "cash"}
+	require.NoError(t, RecordPayment(db, &refPayment, now, true))
+	require.NoError(t, db.First(&noRef, noRef.ID).Error)
+	require.Equal(t, domain.InvoicePaid, noRef.Status)
+	require.EqualValues(t, 2, OrphanInvoices()-orphanBefore, "both unpaid-orphan shapes are counted")
 }
 
 func TestProcessOverdueAndSuspendAfterGrace(t *testing.T) {

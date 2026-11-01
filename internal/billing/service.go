@@ -14,14 +14,16 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// orphanInvoices counts overdue invoices the enforcement paths could not attach
-// to a subscription. The label set is fixed - no tenant, customer or invoice
+// orphanInvoices counts the enforcement decisions skipped because an invoice
+// could not be attached to a subscription. One invoice is counted again by every
+// later sweep that still finds it overdue, so this is a rate of skipped work,
+// not a row count. The label set is fixed - no tenant, customer or invoice
 // identifier is part of the name - so the series does not grow with the data.
 var orphanInvoices atomic.Int64
 
-// OrphanInvoices reports how many invoices have been seen without a
-// subscription row behind them since the process started. Exported through
-// GET /metrics as billing_invoice_without_subscription_total.
+// OrphanInvoices reports how many enforcement decisions have been skipped over
+// invoices with no subscription row behind them since the process started.
+// Published through GET /metrics as billing_invoice_without_subscription_total.
 func OrphanInvoices() int64 { return orphanInvoices.Load() }
 
 // noteOrphanInvoice records an invoice that cannot reach a subscription, so a
@@ -313,13 +315,15 @@ func RecordPayment(db *gorm.DB, payment *domain.Payment, now time.Time, autoReac
 		if err := tx.Create(&domain.BillingEvent{CustomerID: invoice.CustomerID, SubscriptionID: invoice.SubscriptionID, InvoiceID: invoice.ID, Type: "payment_received", Description: payment.PaymentNo, CreatedAt: now}).Error; err != nil {
 			return err
 		}
-		if invoice.Status == domain.InvoicePaid && autoReactivate && invoice.SubscriptionID > 0 {
+		if invoice.Status == domain.InvoicePaid && autoReactivate {
 			var sub domain.Subscription
 			if err := tx.First(&sub, invoice.SubscriptionID).Error; err != nil {
 				// The money is real whether or not a subscription row is still
 				// behind the invoice, so the payment stands and only the
 				// reactivation is skipped. Failing here would refuse a
-				// customer's full payment over a dangling reference.
+				// customer's full payment over a dangling reference. An invoice
+				// written without any subscription reference (0) is the same
+				// case and is counted the same way the sweep counts it.
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					noteOrphanInvoice("record_payment", invoice)
 					return nil

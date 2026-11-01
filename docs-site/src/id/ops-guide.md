@@ -76,8 +76,10 @@ tenant maupun pelanggan, jadi jumlahnya tidak bertambah mengikuti banyak tenant:
 `fup_scheduler_tenant_attempts_total` dan `fup_scheduler_tenant_failures_total`
 menghitung percobaan FUP per tenant dan yang gagal (tenant yang error diisolasi;
 tenant setelahnya tetap di-throttle pada run yang sama), sedangkan
-`billing_invoice_without_subscription_total` menghitung invoice jatuh tempo yang
-dilewati penagihan karena baris subscription-nya tidak ada. Angka terakhir yang
+`billing_invoice_without_subscription_total` menghitung setiap kali penegakan
+tagihan melewati invoice karena baris subscription-nya tidak ada. Invoice yang
+tetap jatuh tempo dihitung lagi oleh sweep harian berikutnya, jadi baca angka
+ini sebagai keputusan yang dilewati, bukan jumlah baris. Angka terakhir yang
 bukan nol perlu diperiksa: utangnya nyata tapi tidak ada yang bisa disuspend,
 biasanya karena restore backup membawa invoice tanpa subscription-nya. Tiap
 kejadian juga dicatat di log level warn beserta nomor invoice.

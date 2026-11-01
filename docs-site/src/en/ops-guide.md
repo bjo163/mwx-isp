@@ -236,8 +236,10 @@ count: `fup_scheduler_tenant_attempts_total` and
 `fup_scheduler_tenant_failures_total` count the per-tenant FUP passes and the
 ones that errored (a failing tenant is isolated; the tenants queued after it are
 still throttled in the same run), and `billing_invoice_without_subscription_total`
-counts overdue invoices the billing enforcement skipped because no subscription
-row sits behind them. A non-zero last series is worth investigating: the invoice
+counts each time billing enforcement skipped an invoice because no subscription
+row sits behind it. An invoice that stays overdue is counted again by the next
+daily sweep, so read it as skipped decisions rather than as a row count. A
+non-zero last series is worth investigating: the invoice
 debt is real but nothing can be suspended for it, which usually means a backup
 restore brought in invoices whose subscription was not restored. Each event is
 also logged at warn level with the invoice number.

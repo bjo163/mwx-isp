@@ -67,6 +67,12 @@ func prometheusMetricsText() string {
 			}
 		}
 	}
+	// The scheduler and billing counters live in their owning packages and reach
+	// the scrape through one snapshot, so a new one is published without editing
+	// this handler - and cannot add a tenant-shaped label by accident.
+	for name, value := range app.GetSystemMetrics() {
+		counters[name] = value
+	}
 	names := sortedKeys(counters)
 	for _, name := range names {
 		fmt.Fprintf(&b, "# TYPE %s counter\n%s %d\n", name, name, counters[name])
