@@ -15,9 +15,8 @@ File ini hanya berisi pointer ke sana, bukan task tracker.
 
 | # | Issue | Kode | Tipe |
 | --- | --- | --- | --- |
-| 1 | [Accounting-Stop processed before Start missing trace](https://github.com/bjo163/mwx-isp/issues/128) | TR-F010 | `LOKAL` |
-| 2 | [EAP-PWD (RFC 5931) M12.2–M12.5](https://github.com/bjo163/mwx-isp/issues/129) | M12.2–M12.5 | `LOKAL` |
-| 3 | [RADSEC production certificate missing](https://github.com/bjo163/mwx-isp/issues/130) | — | `ASET` |
+| 1 | [EAP-PWD (RFC 5931) M12.2–M12.5](https://github.com/bjo163/mwx-isp/issues/129) | M12.2–M12.5 | `LOKAL` |
+| 2 | [RADSEC production certificate missing](https://github.com/bjo163/mwx-isp/issues/130) | — | `ASET` |
 
 Lihat [open issues](https://github.com/bjo163/mwx-isp/issues) untuk daftar lengkap.
 
@@ -31,8 +30,10 @@ Lihat [open issues](https://github.com/bjo163/mwx-isp/issues) untuk daftar lengk
 ## Aturan repo
 
 - Hanya branch `dev` dan `main` yang aktif (ruleset).
-- Push hanya ke `dev`. `main` dilindungi: CI wajib hijau, linear history, no force push.
-- CI hijau di `dev` → `auto-merge.yml` buka (atau pakai PR `dev → main` yang sudah ada) lalu mem-promosinya dengan **squash + admin override**. Alasannya: `main` wajib linear history, jadi merge commit ditolak, dan aturan yang sama membuat `--auto` menggantung selamanya di `BEHIND` karena GitHub tidak boleh meng-update branch `dev` yang tertinggal.
+- Push hanya ke `dev`. `main` dilindungi (classic branch protection): required checks = **nama job CI** `Test`, `Frontend Build`, `Build (linux, amd64)` (app `github-actions`) dengan `strict: false`, wajib PR (0 approval), linear history, conversation resolution selesai, no force push, no delete, `enforce_admins: false`.
+- CI hijau di `dev` → `auto-merge.yml` membuka (atau memakai kembali) PR `dev → main` dan mempromosikannya dengan **`gh pr merge --squash`, tanpa `--admin` dan tanpa langkah sinkronisasi**. Yang dulu membuatnya macet, semuanya dibereskan 2026-11-02: required check bernama `CI` adalah konteks yang tidak pernah diposting job mana pun (job Actions memakai **nama job**, dan `Build (...)` lahir dari matrix), sehingga promosi selalu tertolak bagi token Actions yang memang bukan admin; dan langkah "bawa `main` ke `dev`" tidak bisa dipakai karena push yang dilakukan `GITHUB_TOKEN` **tidak memicu CI**, jadi rantai `workflow_run` putus. Karena itu `strict` dimatikan. Gerbangnya tetap sama: job ini hanya jalan untuk run CI hijau pada SHA yang dipromosikan, dan SHA itu wajib head dari PR.
+- `main` wajib linear history, jadi merge commit ditolak dan `--rebase` menolak PR yang memuat merge commit — promosi dengan squash juga berarti `dev` tidak pernah benar-benar "membawa" `main`, jadi `dev` selalu tampak tertinggal dan itu memang disengaja.
+- File workflow yang dieksekusi adalah salinan di `main`, jadi perbaikan `auto-merge.yml` baru berlaku pada ronde berikutnya; run hasil `workflow_run` menampilkan `headSha` = ujung `main`, bukan SHA `dev` — jangan memfilter run dari kolom itu.
 - Tag `v*` di `main` → `release.yml` otomatis rilis.
 
 ---
