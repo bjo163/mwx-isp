@@ -171,20 +171,44 @@ func TestAccountingSessionIDReuseIsTenantScoped(t *testing.T) {
 	requireFinalCounters(t, rowsB[0], 7000, 9000, 90)
 }
 
-// TestAccountingEventsWithoutStartDoNotInventHistory is the negative case: a
-// stop or interim that arrives before any start (delayed start still in flight)
-// must not fabricate an accounting row or an online row. The ledger stays empty
-// until a start actually creates the session.
-func TestAccountingEventsWithoutStartDoNotInventHistory(t *testing.T) {
+// TestAccountingStopWithoutStartUpsertsTerminalRecord covers the race between an
+// asynchronous Accounting-Start and an Accounting-Stop that arrives first. The
+// Start task runs after the response is sent, so a reordered Stop can win the
+// race and find no accounting row yet. Rather than dropping the Stop, the handler
+// upserts a terminal record from the Stop packet itself so the session is still
+// accounted for and no traffic is lost. An InterimUpdate still mutates nothing
+// when no online session exists, so it never invents state.
+//
+// The invariant this test guards is: a Stop without a preceding Start must produce
+// exactly one finalized accounting row and no online row, and a subsequent Start
+// must not append a second row because Start's Create is idempotent on
+// acct_session_id.
+func TestAccountingStopWithoutStartUpsertsTerminalRecord(t *testing.T) {
 	h := newAccountingOrderHarness(t)
 	nas := &domain.NetNas{ID: 805, TenantID: 1, Name: "nas-order-e", Ipaddr: "203.0.113.5", Secret: "e"}
 	const sessionID = "unstarted-session"
 	const username = "unstarted-user"
 
+	// Interim before any start: UpdateHandler updates nothing because no online
+	// session exists yet. It must not fabricate an online row.
 	require.NoError(t, h.send(t, nas, rfc2866.AcctStatusType_Value_InterimUpdate, sessionID, username, 1024, 2048, 30))
+	assert.Zero(t, h.onlineCount(t, nas.TenantID, sessionID), "interim before start must not create an online row")
+
+	// Stop before the Start task has run: the handler upserts a terminal record.
 	require.NoError(t, h.send(t, nas, rfc2866.AcctStatusType_Value_Stop, sessionID, username, 2048, 4096, 60))
+	// Retransmitted stop must converge on the same row, not append a second one.
 	require.NoError(t, h.send(t, nas, rfc2866.AcctStatusType_Value_Stop, sessionID, username, 2048, 4096, 60))
 
-	assert.Empty(t, h.history(t, nas.TenantID, sessionID), "accounting history must not be invented without a start")
-	assert.Zero(t, h.onlineCount(t, nas.TenantID, sessionID))
+	assert.Zero(t, h.onlineCount(t, nas.TenantID, sessionID), "stop must clear the online row")
+	rows := h.history(t, nas.TenantID, sessionID)
+	require.Len(t, rows, 1, "stop without start must produce exactly one terminal accounting row")
+	requireFinalCounters(t, rows[0], 2048, 4096, 60)
+
+	// The delayed Start task finally runs. Its Create is idempotent on
+	// acct_session_id, so it must not append a second accounting row; the
+	// terminal record from the Stop remains the authoritative one.
+	require.NoError(t, h.send(t, nas, rfc2866.AcctStatusType_Value_Start, sessionID, username, 0, 0, 0))
+	rows = h.history(t, nas.TenantID, sessionID)
+	require.Len(t, rows, 1, "delayed start must not append a second accounting row")
+	requireFinalCounters(t, rows[0], 2048, 4096, 60)
 }

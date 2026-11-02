@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -93,6 +94,31 @@ func (h *StartHandler) Handle(acctCtx *accounting.AccountingContext) error {
 	}
 
 	// Create accounting record (only for newly created sessions)
+// First check if an accounting row already exists for this session ID to
+// avoid creating a duplicate when a Stop arrived before this Start (the
+// Start task runs asynchronously after the response is sent, so a Stop can
+// legitimately arrive first and upsert a terminal record).
+	if existing, err := h.accountingRepo.FindBySessionId(acctCtx.Context, online.AcctSessionId); err == nil {
+		// Accounting row already exists (likely from a Stop that arrived before
+		// the Start task ran). Skip creating a new one to avoid double-billing.
+		zap.L().Debug("accounting row already exists for session, skipping create",
+			zap.String("namespace", "radius"),
+			zap.String("username", acctCtx.Username),
+			zap.String("session_id", online.AcctSessionId),
+			zap.Int64("existing_id", existing.ID),
+		)
+		return nil
+	} else if !errors.Is(err, repository.ErrAccountingNotFound) {
+		// Unexpected error checking for existing accounting row
+		zap.L().Error("failed to check for existing accounting row",
+			zap.String("namespace", "radius"),
+			zap.String("username", acctCtx.Username),
+			zap.String("session_id", online.AcctSessionId),
+			zap.Error(err),
+		)
+		// Fall through to Create - if it fails, we'll clean up the online row
+	}
+
 	accounting := h.buildRadiusAccounting(&online, true)
 	if err := h.accountingRepo.Create(acctCtx.Context, &accounting); err != nil {
 		zap.L().Error("add radius accounting error",
