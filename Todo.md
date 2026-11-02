@@ -32,7 +32,7 @@ Lihat [open issues](https://github.com/bjo163/mwx-isp/issues) untuk daftar lengk
 
 - Hanya branch `dev` dan `main` yang aktif (ruleset).
 - Push hanya ke `dev`. `main` dilindungi: CI wajib hijau, linear history, no force push.
-- CI hijau di `dev` → `auto-merge.yml` buka (atau pakai PR `dev → main` yang sudah ada) lalu mem-promosinya dengan **squash + admin override**. Alasannya: `main` wajib linear history, jadi merge commit ditolak, dan aturan yang sama membuat `--auto` menggantung selamanya di `BEHIND` karena GitHub tidak boleh meng-update branch `dev` yang tertinggal.
+- CI hijau di `dev` → `auto-merge.yml` menyinkronkan `main` ke `dev` bila `dev` tertinggal, lalu membuka (atau memakai kembali) PR `dev → main` dan mempromosikannya dengan **squash, tanpa `--admin`**. Kunci perbaikan 2026-11-02: `main` kini mewajibkan status check berdasarkan **nama job CI** — `Test`, `Frontend Build`, `Build (linux, amd64)` (app `github-actions`) — sebelumnya required check-nya bernama `CI`, sebuah konteks yang tidak pernah diposting job mana pun, sehingga promosi selalu tertolak bagi token Actions yang bukan admin. `linear history` menolak merge commit dan `--rebase` menolak PR yang memuat merge commit sinkronisasi, karena itu squash yang dipakai.
 - Tag `v*` di `main` → `release.yml` otomatis rilis.
 
 ---
