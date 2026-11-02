@@ -1,5 +1,23 @@
 # MWX-ISP Changelog
 
+## v0.23.1 — 2026-11-02
+
+Changes since v0.23.0:
+
+### Fixes and Improvements
+
+- an Accounting-Stop that arrives before its asynchronous Accounting-Start no longer
+  loses the session: the placeholder row Stop creates is marked `start_pending`, and
+  the Start that follows fills that row in instead of appending a second history row
+- an `Acct-Session-Id` reused after the session was finalised opens a new accounting
+  row rather than overwriting the closed one
+- the admin console, test helper and integration test suites keep the tenant tables
+  in sync with `domain.Tables`, so a fresh test database migrates the same schema as
+  production
+- `dev → main` promotion merges by squash without an admin override: `main` now
+  requires the CI jobs by name (`Test`, `Frontend Build`, `Build (linux, amd64)`)
+  instead of a `CI` context no job ever posted
+
 ## v0.23.0 — 2026-11-01
 
 Changes since v0.22.1:
