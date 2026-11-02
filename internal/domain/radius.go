@@ -233,6 +233,12 @@ type RadiusAccounting struct {
 	LastUpdate          time.Time `json:"last_update"`
 	AcctStartTime       time.Time `gorm:"index" json:"acct_start_time"`
 	AcctStopTime        time.Time `gorm:"index" json:"acct_stop_time"`
+	// StartPending marks a row that Accounting-Stop created because the packet
+	// arrived before the asynchronous Accounting-Start task had persisted the
+	// session. A late Start that meets this marker completes that row instead of
+	// inserting a duplicate; a Start that meets a finalized row without the marker
+	// belongs to a reused Acct-Session-Id and must add its own history row.
+	StartPending bool `gorm:"not null;default:false" json:"start_pending"`
 }
 
 // TableName Specify table name

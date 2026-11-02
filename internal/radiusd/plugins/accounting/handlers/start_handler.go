@@ -93,37 +93,33 @@ func (h *StartHandler) Handle(acctCtx *accounting.AccountingContext) error {
 		return nil
 	}
 
-	// Create accounting record (only for newly created sessions).
-	// A finalized accounting row from a prior Stop means this Start belongs to
-	// a new session that reuses the same Acct-Session-Id. Start's Create is
-	// idempotent on acct_session_id, so it will either insert a fresh row or be
-	// a no-op; either way we let it proceed rather than preemptively skipping.
-	// If an accounting row already exists (likely from a Stop that arrived before
-	// this Start task ran because the Start task runs asynchronously after the
-	// response is sent), we check whether it has been finalized with AcctStopTime.
-	// If finalized, we proceed to create a new row for the new session. If not finalized,
-	// we create a fresh row so the session has billing history (rare in normal flow).
+	// Accounting-Start is persisted asynchronously after the response is sent, so
+	// an Accounting-Stop for the same session can win the race and materialize a
+	// terminal row first. Such a row carries StartPending: this Start belongs to it,
+	// so complete it instead of inserting a second row that would double-bill, and
+	// drop the online row just created because the session has already ended.
+	//
+	// A newest row without StartPending was written by a Start, so it belongs to an
+	// earlier session whose Acct-Session-Id the NAS has now reused. That row is
+	// billing history and this Start must add its own row.
 	if existing, err := h.accountingRepo.FindBySessionId(acctCtx.Context, online.AcctSessionId); err == nil {
-		// Finalized row: a Stop arrived before the Start task and upserted a
-		// terminal record. Proceed to create a new accounting row for the new
-		// session that reuses the Acct-Session-Id. The existing row remains
-		// authoritative for the previous session.
-		if !existing.AcctStopTime.IsZero() {
-			zap.L().Debug("finalized accounting row already exists for session, creating new history row for reused session",
+		if existing.StartPending {
+			zap.L().Debug("accounting stop preceded start, completing its terminal record",
 				zap.String("namespace", "radius"),
 				zap.String("username", acctCtx.Username),
 				zap.String("session_id", online.AcctSessionId),
 				zap.Int64("existing_id", existing.ID),
 			)
+			if delErr := h.sessionRepo.Delete(acctCtx.Context, online.AcctSessionId); delErr != nil {
+				zap.L().Error("delete online after stop-prior-to-start failed",
+					zap.String("namespace", "radius"),
+					zap.String("username", acctCtx.Username),
+					zap.String("session_id", online.AcctSessionId),
+					zap.Error(delErr),
+				)
+			}
+			return nil
 		}
-		// Open row (no AcctStopTime): defensively create a new row so the
-		// session has billing history (this should be rare in normal flow).
-		zap.L().Debug("open accounting row exists, creating new history row",
-			zap.String("namespace", "radius"),
-			zap.String("username", acctCtx.Username),
-			zap.String("session_id", online.AcctSessionId),
-			zap.Int64("existing_id", existing.ID),
-		)
 	} else if !errors.Is(err, repository.ErrAccountingNotFound) {
 		// Unexpected error checking for existing accounting row
 		zap.L().Error("failed to check for existing accounting row",

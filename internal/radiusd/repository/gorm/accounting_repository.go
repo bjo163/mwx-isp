@@ -107,11 +107,13 @@ func (r *GormAccountingRepository) UpsertStop(ctx context.Context, sessionId str
 
 	// No existing row: insert a terminal record built from the Stop packet.
 	// AcctStopTime is stamped now so the row is immediately queryable as a
-	// completed session by reporting and reconciliation jobs.
+	// completed session by reporting and reconciliation jobs. StartPending tells
+	// a late Accounting-Start to complete this row rather than insert a duplicate.
 	if accounting.ID == 0 {
 		accounting.ID = common.UUIDint64()
 	}
 	accounting.AcctStopTime = time.Now()
+	accounting.StartPending = true
 	return r.db.WithContext(ctx).Create(accounting).Error
 }
 
