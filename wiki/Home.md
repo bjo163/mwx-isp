@@ -1,4 +1,4 @@
-#WYWH-ISP Home
+# MWX-ISP Home
 
 MWX-ISP adalah server RADIUS open-source untuk ISP, enterprise, dan carrier.
 
@@ -25,9 +25,9 @@ MWX-ISP adalah server RADIUS open-source untuk ISP, enterprise, dan carrier.
 
 - Hanya branch `dev` dan `main` yang aktif
 - Push hanya ke `dev`
-- CI hijau di `dev` → auto PR → auto merge ke `maig` auto merge ke `main`
+- CI hijau di `dev` → auto PR → auto merge ke `main`
 - Tag `v*` di `main` → auto release (9 binary + image multi-arch)
 
 ---
 
-*
+*Last updated: 2026-11-02*
