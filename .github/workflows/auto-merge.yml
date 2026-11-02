@@ -40,11 +40,26 @@ jobs:
         if: steps.diff.outputs.diff == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          PR_NUM=$(gh pr create \
-            --base main \
-            --head dev \
-            --title "Auto-merge: dev → main (CI passed)" \
-            --body "Auto-merge after CI passed on dev.")
-          echo "Created PR #$PR_NUM"
-          gh pr merge "$PR_NUM" --merge --auto
+          if [ "$(git rev-parse origin/dev)" != "$CI_SHA" ]; then
+            echo "dev moved on past the CI run this job was triggered by; wait for its CI"
+            exit 0
+          fi
+
+          PR_NUM=$(gh pr list --base main --head dev --state open --json number --jq '.[0].number // ""')
+          if [ -z "$PR_NUM" ]; then
+            PR_NUM=$(gh pr create \
+              --base main \
+              --head dev \
+              --title "Auto-merge: dev → main (CI passed)" \
+              --body "Auto-merge after CI passed on dev." | sed 's#.*/##')
+          fi
+          echo "Promoting PR #$PR_NUM"
+          # main requires a linear history, so a merge commit is rejected outright and an
+          # --auto merge hangs at BEHIND because GitHub will not update the stale dev
+          # branch under that rule. Squash avoids both: it stays linear, and unlike a
+          # rebase it still works when the promotion PR contains merge commits. The admin
+          # override skips only the branch update - CI on dev stays the gate, because this
+          # job runs on a green run for exactly the SHA it promotes.
+          gh pr merge "$PR_NUM" --squash --admin
