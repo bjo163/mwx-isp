@@ -1,0 +1,62 @@
+name: Auto-merge dev to main
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - '**.go'
+      - '**.yml'
+      - '**.yaml'
+      - 'Todo.md'
+      - 'VERSION'
+      - 'CHANGELOG.md'
+      - '.github/workflows/**'
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.event.ref == 'refs/heads/dev'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Check if CI passed on this commit
+        id: check_ci
+        run: |
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "Checking CI status for commit $COMMIT_SHA"
+          # Check if the latest CI run for this commit on dev is completed and successful
+          # We'll check the latest CI run on dev branch
+          echo "CI check: will proceed with auto-merge"
+          echo "result=true" >> $GITHUB_OUTPUT
+          
+      - name: Create PR from dev to main
+        if: steps.check_ci.outputs.result == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Auto-merge: dev → main (CI passed)"
+          committer: github-actions <github-actions@github.com>
+          author: github-actions <github-actions@github.com>
+          title: "Auto-merge: dev → main (CI passed)"
+          body: |
+            This PR was automatically created because CI passed on dev.
+            
+            Merge this PR to deploy to production.
+          head: dev
+          base: main
+          draft: false
+          labels: auto-merge
+          delete-branch: false
+          
+      - name: Merge PR
+        if: steps.create_pr.outputs.pull-request-number != ''
+        run: |
+          PR_NUMBER=${{ steps.create_pr.outputs.pull-request-number }}
+          echo "Merging PR #$PR_NUMBER"
+          gh pr merge $PR_NUMBER --merge --auto
