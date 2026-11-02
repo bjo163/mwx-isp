@@ -158,6 +158,7 @@ func (m *mockAccountingRepository) UpsertStop(ctx context.Context, sessionId str
 		acct.ID = time.Now().UnixNano()
 	}
 	acct.AcctStopTime = time.Now()
+	acct.StartPending = true
 	m.records[sessionId] = acct
 	return nil
 }

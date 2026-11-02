@@ -88,7 +88,8 @@ type AccountingRepository interface {
 	// before the Start task has persisted the accounting row, UpsertStop
 	// materializes the final record from the Stop packet alone so the session
 	// is still accounted for and no traffic is lost.
-	// FindBySessionId returns the newest accounting row for a session ID, if any.
+	// FindBySessionId returns the newest accounting row for a session ID, if any,
+	// including its StartPending marker.
 	// Returns ErrAccountingNotFound if no accounting row exists for the session.
 	FindBySessionId(ctx context.Context, sessionId string) (*domain.RadiusAccounting, error)
 
