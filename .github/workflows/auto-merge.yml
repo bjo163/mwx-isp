@@ -36,20 +36,44 @@ jobs:
             echo "diff=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Bring main into dev
+        if: steps.diff.outputs.diff == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B dev origin/dev
+          if git merge-base --is-ancestor origin/main origin/dev; then
+            echo "dev already carries main"
+          else
+            # A rebase promotion replays dev onto main under new SHAs, so dev stops
+            # carrying main and the next promotion is refused as "can't be rebased".
+            git merge --no-edit origin/main
+            git push origin dev
+          fi
+
       - name: Create and merge PR
         if: steps.diff.outputs.diff == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          PR_NUM=$(gh pr create \
-            --base main \
-            --head dev \
-            --title "Auto-merge: dev → main (CI passed)" \
-            --body "Auto-merge after CI passed on dev.")
-          echo "Created PR #$PR_NUM"
-          # main requires a linear history, so the merge-commit method is rejected by
-          # branch protection, and the same rule leaves an --auto merge hanging at
-          # BEHIND because GitHub cannot update a stale dev branch itself. An admin
-          # rebase skips that update without weakening the gate: this job only runs
-          # after CI on dev reported success.
+          if [ "$(git rev-parse origin/dev)" != "$CI_SHA" ]; then
+            echo "dev moved on past the CI run this job was triggered by; wait for its CI"
+            exit 0
+          fi
+
+          # The sync push above makes this job run twice per promotion.
+          PR_NUM=$(gh pr list --base main --head dev --state open --json number --jq '.[0].number // ""')
+          if [ -z "$PR_NUM" ]; then
+            PR_NUM=$(gh pr create \
+              --base main \
+              --head dev \
+              --title "Auto-merge: dev → main (CI passed)" \
+              --body "Auto-merge after CI passed on dev." | sed 's#.*/##')
+          fi
+          echo "Promoting PR #$PR_NUM"
+          # main requires a linear history: merge commits are rejected, and an --auto
+          # merge would hang at BEHIND because GitHub cannot update a stale dev branch
+          # under that rule. Admin rebase skips the update; CI on dev is still the gate
+          # because this job only runs on a green CI for the SHA being promoted.
           gh pr merge "$PR_NUM" --rebase --admin
