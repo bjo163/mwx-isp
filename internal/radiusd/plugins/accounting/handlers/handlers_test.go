@@ -162,6 +162,13 @@ func (m *mockAccountingRepository) UpsertStop(ctx context.Context, sessionId str
 	return nil
 }
 
+func (m *mockAccountingRepository) FindBySessionId(ctx context.Context, sessionId string) (*domain.RadiusAccounting, error) {
+	if existing, ok := m.records[sessionId]; ok {
+		return existing, nil
+	}
+	return nil, repository.ErrAccountingNotFound
+}
+
 // Helper to create a mock accounting context
 func createMockAccountingContext(statusType int) *accounting.AccountingContext {
 	// Create a minimal RADIUS request with required attributes
