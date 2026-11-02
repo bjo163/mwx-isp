@@ -26,18 +26,37 @@ jobs:
       - name: Fetch main
         run: git fetch origin main
 
-      - name: Check if dev differs from main
+      - name: Check whether dev has work main lacks
         id: diff
         run: |
-          if git rev-parse origin/main == git rev-parse origin/dev; then
-            echo "No changes"
+          if git diff --quiet origin/main origin/dev; then
+            echo "main already carries dev's tree"
           else
             echo "Changes detected"
             echo "diff=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create and merge PR
+      - name: Bring main into dev
         if: steps.diff.outputs.diff == 'true'
+        id: sync
+        run: |
+          if git merge-base --is-ancestor origin/main origin/dev; then
+            echo "dev already carries main"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git checkout -B dev origin/dev
+            # main's required checks are strict, so a PR head that is behind main is
+            # BEHIND and unmergeable, and GitHub will not update dev under the
+            # linear-history rule. Carrying main in is the only move left to the bot;
+            # the squash merge below flattens this commit out of main.
+            git merge --no-edit origin/main
+            git push origin dev
+            echo "synced=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create and merge PR
+        if: steps.diff.outputs.diff == 'true' && steps.sync.outputs.synced != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -56,10 +75,8 @@ jobs:
               --body "Auto-merge after CI passed on dev." | sed 's#.*/##')
           fi
           echo "Promoting PR #$PR_NUM"
-          # main requires a linear history, so a merge commit is rejected outright and an
-          # --auto merge hangs at BEHIND because GitHub will not update the stale dev
-          # branch under that rule. Squash avoids both: it stays linear, and unlike a
-          # rebase it still works when the promotion PR contains merge commits. The admin
-          # override skips only the branch update - CI on dev stays the gate, because this
-          # job runs on a green run for exactly the SHA it promotes.
-          gh pr merge "$PR_NUM" --squash --admin
+          # Linear history rejects a --merge, and the sync commit above makes a --rebase
+          # refuse the PR, so squash is the only method left; it still keeps main linear.
+          # No --admin: the required checks are the CI job names, and they are green for
+          # exactly the SHA this job promotes.
+          gh pr merge "$PR_NUM" --squash
