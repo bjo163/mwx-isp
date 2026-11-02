@@ -13,12 +13,13 @@ Penanda: `LOKAL` = cukup repo · `ASET` = butuh perangkat/host/akun nyata · `RI
 
 ---
 
-## Status baseline (2026-11-01)
+## Status baseline (2026-11-02)
 
-- Rilis terakhir **v0.22.1** (`main`, tag ada, GitHub Release lengkap: 9 binary + `checksums.txt` + image multi-arch termasuk `linux/arm/v7`).
-- Repo baru saja dirampingkan (493 file: `docs/`, `docs-site/`, `scripts/`, `tools/`, `.agents/`, 10 workflow). Yang masih dibutuhkan produksi dan sengaja dipulangkan: `Dockerfile`, `docker-compose.yml`, `docker-compose.coolify.yml`, `.dockerignore`, `.golangci.yml`, `config/`, dua RFC yang dibaca tes TEAP.
-- Jalur rilis berubah: tidak ada lagi bot bump-otomatis. `VERSION` + `CHANGELOG.md` dinaikkan manual, tag `v*` memicu `.github/workflows/release.yml`.
-- **v0.23.0 menunggu persetujuan owner** — belum di-push, belum di-tag.
+- Rilis terakhir **v0.23.0** — `main` = `6e603f4`, tag `v0.23.0` memicu `release.yml`: GitHub Release berisi 9 binary + `checksums.txt`, dan `ghcr.io/bjo163/mwx-isp` punya `0.23.0` + `v0.23.0` + `latest` pada digest yang sama (`sha256:c10e90ab…`, `linux/amd64|arm64|arm/v7`). Produksi e-isp.id sudah berjalan di image itu.
+- Repo dirampingkan (493 file: `docs/`, `docs-site/`, `scripts/`, `tools/`, `.agents/`, 10 workflow). Yang masih dibutuhkan produksi dan sengaja dipulangkan: `Dockerfile`, `docker-compose.yml`, `docker-compose.coolify.yml`, `.dockerignore`, `.golangci.yml`, `config/`, dua RFC yang dibaca tes TEAP.
+- Jalur rilis: tidak ada bot bump-otomatis. `VERSION` + `CHANGELOG.md` dinaikkan manual, tag `v*` memicu `.github/workflows/release.yml`.
+- **Deploy masih manual.** Repo ini tidak punya webhook GitHub (`gh api repos/.../hooks` kosong), jadi merge ke `main` tidak memicu Coolify; dan `docker-compose.coolify.yml` menarik `ghcr.io/bjo163/mwx-isp:latest` dengan `pull_policy: always` — tanpa image rilis baru, deploy tidak mengubah apa pun. Pemicunya: API Coolify untuk app `9nwyxkdzrgidhvzfbghkd70a`.
+- RADSEC `2083` belum melayani di produksi: container mencatat `load RadSec key pair: open /var/toughradius/private/radsec.tls.crt: no such file or directory`. Service lain (`1812`, `1813`, `1816`) hidup dan menerima traffic NAS nyata.
 
 ## Antrean aktif
 
@@ -26,6 +27,8 @@ Penanda: `LOKAL` = cukup repo · `ASET` = butuh perangkat/host/akun nyata · `RI
 | --- | --- | --- | --- | --- |
 | 1 | Accounting-Stop yang diproses lebih dulu dari task Start-nya hilang tanpa jejak | TR-F010 | `LOKAL` | `internal/radiusd/radius_acct.go:103` mengirim Accounting-Response **sebelum** `submitAcctTask` (`:133`), dan worker pool tidak menjamin urutan per `Acct-Session-Id`; `start_handler.go:73` menulis `radius_online` sebelum `radius_accounting` (`:97`), jadi Stop di celah itu mengembalikan `no records found` dan trafik sesi tidak terbukukan. Flake CI `TestISPBillingLifecycleThroughRadius` sudah diredam dengan sync point di tes (`test/integration/isp_lifecycle_test.go`); perbaikan produknya butuh keputusan desain (satu transaksi di Start, atau Stop handler menunggu/meng-upsert, atau ordering per sesi) dan belum diambil |
 | 2 | EAP-PWD (RFC 5931) | M12.2–M12.5 | `LOKAL` | demand-gated, kode belum ada. Teks spesifikasinya tidak ikut dipulangkan saat perampingan — ambil ulang dari IETF sebelum mulai |
+| 3 | Sertifikat RADSEC production | — | `ASET` | `radsec.tls.crt`/`.key` belum ada di volume `mwx_isp_data`, jadi `2083` error saat start. Pilihan: pasang sertifikat (perlu CA/nama host yang benar) atau matikan listener-nya lewat konfigurasi supaya log tidak lagi menyesatkan |
+| 4 | Auto-deploy `main` → Coolify | — | `ASET` | belum diputuskan owner: pasang webhook deploy di repo, atau tetap trigger manual satu perintah. Sekarang manual |
 
 ## Sisa backlog audit
 
@@ -48,6 +51,7 @@ Riset lanjutan, research-only (10 · `RISET`): `FUT-003` ringkasan insiden berbu
 | Build 32-bit terjaring sebelum merge | `pfsense_enhancer.go` / `cmd/radtest` (`toUint32FromInt` bandingkan via `uint64`), `pkg/validutil/validutil_test.go`; penyebabnya matrix `Build` cuma amd64/arm64 sedangkan image menambahkan `arm/v7` |
 | FUP fixture tidak lagi kalah di dua jam pertama tiap bulan | `test/integration/fup_tenant_test.go` (`closedStart`/`closedStop` clamp ke `monthStart`), `internal/app/jobs_test.go` |
 | EN/ID untuk halaman custom + branding | `web/src/i18n/{en-US,id-ID}.ts`, `TestSaveSettings_UnknownAndInvalidValuesRejected` |
+| Jalur rilis tag-driven | `.github/workflows/release.yml` (9 binary + `checksums.txt` + image 3 platform + Release) dan job `frontend` di `ci.yml` yang artifact-nya dipakai `test`/`build` supaya `//go:embed dist/*` tidak pernah kosong. Dibuktikan v0.23.0; cacat pertama (satu `--tag` berisi daftar berkoma → *invalid reference*) tertangkap di run `41333813485`, diperbaiki `b1f92ff` |
 
 ## Residual rilis
 
