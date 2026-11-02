@@ -61,6 +61,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 		&domain.TenantMembership{},
 		&domain.SysConfig{},
 		&domain.SysCert{},
+		&domain.HotspotVoucher{},
 	)
 	require.NoError(t, err)
 	require.NoError(t, db.Create(&domain.Tenant{
