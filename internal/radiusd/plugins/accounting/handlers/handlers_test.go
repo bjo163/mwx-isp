@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/radiusd/plugins/accounting"
+	"github.com/bjo163/mwx-isp/internal/radiusd/repository"
 	vendorparserspkg "github.com/bjo163/mwx-isp/internal/radiusd/plugins/vendorparsers"
 	"layeh.com/radius"
 	"layeh.com/radius/rfc2866"
@@ -138,7 +139,26 @@ func (m *mockAccountingRepository) UpdateStop(ctx context.Context, sessionId str
 		existing.AcctInputTotal = acct.AcctInputTotal
 		existing.AcctOutputTotal = acct.AcctOutputTotal
 		existing.AcctSessionTime = acct.AcctSessionTime
+		return nil
 	}
+	return repository.ErrAccountingNotFound
+}
+
+func (m *mockAccountingRepository) UpsertStop(ctx context.Context, sessionId string, acct *domain.RadiusAccounting) error {
+	if existing, ok := m.records[sessionId]; ok {
+		existing.AcctStopTime = time.Now()
+		existing.AcctInputTotal = acct.AcctInputTotal
+		existing.AcctOutputTotal = acct.AcctOutputTotal
+		existing.AcctInputPackets = acct.AcctInputPackets
+		existing.AcctOutputPackets = acct.AcctOutputPackets
+		existing.AcctSessionTime = acct.AcctSessionTime
+		return nil
+	}
+	if acct.ID == 0 {
+		acct.ID = time.Now().UnixNano()
+	}
+	acct.AcctStopTime = time.Now()
+	m.records[sessionId] = acct
 	return nil
 }
 

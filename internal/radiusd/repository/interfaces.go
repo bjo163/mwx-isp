@@ -12,6 +12,13 @@ import (
 // client source address, so the server cannot safely select a shared secret.
 var ErrAmbiguousNASIP = errors.New("ambiguous NAS source IP")
 
+// ErrAccountingNotFound means no finalized accounting row exists yet for the
+// given Acct-Session-Id. This is the expected result when an Accounting-Stop
+// arrives before the matching Accounting-Start has been persisted (the Start
+// task runs asynchronously after the Access-Accept/Accounting-Response is sent,
+// so a retransmitted or reordered Stop can legitimately win the race).
+var ErrAccountingNotFound = errors.New("no accounting record found for acct_session_id")
+
 // UserRepository defines user data access operations
 type UserRepository interface {
 	// GetByUsername finds a user by username
@@ -69,8 +76,23 @@ type AccountingRepository interface {
 	// Create Create accounting record
 	Create(ctx context.Context, accounting *domain.RadiusAccounting) error
 
-	// UpdateStop updates stop time and traffic counters
+	// UpdateStop updates stop time and traffic counters for the newest
+	// accounting row of sessionId. Returns ErrAccountingNotFound when no
+	// accounting row exists yet for the session (the Start task has not been
+	// persisted), so callers can fall back to UpsertStop.
 	UpdateStop(ctx context.Context, sessionId string, accounting *domain.RadiusAccounting) error
+
+	// UpsertStop creates a terminal accounting row when none exists yet and
+	// updates the newest one when it does. It is the stop-side counterpart of
+	// the asynchronous Start handler: if a Stop wins the race and arrives
+	// before the Start task has persisted the accounting row, UpsertStop
+	// materializes the final record from the Stop packet alone so the session
+	// is still accounted for and no traffic is lost.
+	// FindBySessionId returns the newest accounting row for a session ID, if any.
+	// Returns ErrAccountingNotFound if no accounting row exists for the session.
+	FindBySessionId(ctx context.Context, sessionId string) (*domain.RadiusAccounting, error)
+
+	UpsertStop(ctx context.Context, sessionId string, accounting *domain.RadiusAccounting) error
 }
 
 // NasRepository manages NAS devices
