@@ -49,6 +49,10 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	// Automatically migrate common tables
 	err = db.AutoMigrate(
 		&domain.Tenant{},
+		&domain.TenantDomain{},
+		&domain.TenantBranding{},
+		&domain.TenantWebsite{},
+		&domain.TenantWebsiteVersion{},
 		&domain.RadiusProfile{},
 		&domain.RadiusUser{},
 		&domain.NetNode{},
