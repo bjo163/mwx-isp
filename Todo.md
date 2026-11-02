@@ -25,14 +25,14 @@ Lihat [open issues](https://github.com/bjo163/mwx-isp/issues) untuk daftar lengk
 
 - Rilis terakhir **v0.23.0** — `main` = `bbce8f5`, tag `v0.23.0` memicu `release.yml`: GitHub Release 9 binary + `checksums.txt`, image `0.23.0` + `v0.23.0` + `latest` pada digest `sha256:c10e90ab…` (`linux/amd64|arm64|arm/v7`). Produksi e-isp.id sudah berjalan di image itu.
 - Jalur rilis: tidak ada bot bump-otomatis. `VERSION` + `CHANGELOG.md` dinaikkan manual, tag `v*` memicu `release.yml`.
-- Deploy otomatis dari `main` (Coolify GitHub App). `docker-compose.coolify.yml` menarik `:latest` dengan `pull_policy: always`.
+- **Merge ke `main` tidak men-deploy apa pun.** Repo tidak punya webhook (`gh api repos/bjo163/mwx-isp/hooks` = `[]`) dan queue deploy Coolify kosong setelah merge hari ini. Produksi berubah hanya jika `release.yml` menerbitkan image `:latest` lalu deploy Coolify dipicu manual. `docker-compose.coolify.yml` menarik image dengan `pull_policy: always`.
 - RADSEC `2083` belum melayani di produksi: `open /var/toughradius/private/radsec.tls.crt: no such file or directory`.
 
 ## Aturan repo
 
 - Hanya branch `dev` dan `main` yang aktif (ruleset).
 - Push hanya ke `dev`. `main` dilindungi: CI wajib hijau, linear history, no force push.
-- CI hijau di `dev` → `auto-merge.yml` buka & merge PR ke `main` otomatis.
+- CI hijau di `dev` → `auto-merge.yml` buka (atau pakai PR `dev → main` yang sudah ada) lalu mem-promosinya dengan **squash + admin override**. Alasannya: `main` wajib linear history, jadi merge commit ditolak, dan aturan yang sama membuat `--auto` menggantung selamanya di `BEHIND` karena GitHub tidak boleh meng-update branch `dev` yang tertinggal.
 - Tag `v*` di `main` → `release.yml` otomatis rilis.
 
 ---
