@@ -101,20 +101,20 @@ func (h *StartHandler) Handle(acctCtx *accounting.AccountingContext) error {
 	// If an accounting row already exists (likely from a Stop that arrived before
 	// this Start task ran because the Start task runs asynchronously after the
 	// response is sent), we check whether it has been finalized with AcctStopTime.
-	// If finalized, skip creating a new one to avoid double-billing. If not finalized,
-	// proceed to create a fresh row so the session has billing history.
+	// If finalized, we proceed to create a new row for the new session. If not finalized,
+	// we create a fresh row so the session has billing history (rare in normal flow).
 	if existing, err := h.accountingRepo.FindBySessionId(acctCtx.Context, online.AcctSessionId); err == nil {
 		// Finalized row: a Stop arrived before the Start task and upserted a
-		// terminal record. Skip creating a new accounting row to avoid
-		// double-billing. The existing row remains authoritative.
+		// terminal record. Proceed to create a new accounting row for the new
+		// session that reuses the Acct-Session-Id. The existing row remains
+		// authoritative for the previous session.
 		if !existing.AcctStopTime.IsZero() {
-			zap.L().Debug("finalized accounting row already exists for session, skipping create to avoid double-billing",
+			zap.L().Debug("finalized accounting row already exists for session, creating new history row for reused session",
 				zap.String("namespace", "radius"),
 				zap.String("username", acctCtx.Username),
 				zap.String("session_id", online.AcctSessionId),
 				zap.Int64("existing_id", existing.ID),
 			)
-			return nil
 		}
 		// Open row (no AcctStopTime): defensively create a new row so the
 		// session has billing history (this should be rare in normal flow).
