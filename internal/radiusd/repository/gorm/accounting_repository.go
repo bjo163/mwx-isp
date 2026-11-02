@@ -9,7 +9,6 @@ import (
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/radiusd/repository"
 	"github.com/bjo163/mwx-isp/pkg/common"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -113,13 +112,6 @@ func (r *GormAccountingRepository) UpsertStop(ctx context.Context, sessionId str
 		accounting.ID = common.UUIDint64()
 	}
 	accounting.AcctStopTime = time.Now()
-	if err := r.db.WithContext(ctx).Create(accounting).Error; err != nil {
-		zap.L().Error("upsertStop create failed",
-			zap.String("namespace", "radius"),
-			zap.String("session_id", sessionId),
-			zap.Error(err),
-		)
-	}
 	return r.db.WithContext(ctx).Create(accounting).Error
 }
 

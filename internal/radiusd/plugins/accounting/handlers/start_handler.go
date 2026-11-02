@@ -93,21 +93,37 @@ func (h *StartHandler) Handle(acctCtx *accounting.AccountingContext) error {
 		return nil
 	}
 
-	// Create accounting record (only for newly created sessions)
-// First check if an accounting row already exists for this session ID to
-// avoid creating a duplicate when a Stop arrived before this Start (the
-// Start task runs asynchronously after the response is sent, so a Stop can
-// legitimately arrive first and upsert a terminal record).
+	// Create accounting record (only for newly created sessions).
+	// A finalized accounting row from a prior Stop means this Start belongs to
+	// a new session that reuses the same Acct-Session-Id. Start's Create is
+	// idempotent on acct_session_id, so it will either insert a fresh row or be
+	// a no-op; either way we let it proceed rather than preemptively skipping.
+	// If an accounting row already exists (likely from a Stop that arrived before
+	// this Start task ran because the Start task runs asynchronously after the
+	// response is sent), we check whether it has been finalized with AcctStopTime.
+	// If finalized, skip creating a new one to avoid double-billing. If not finalized,
+	// proceed to create a fresh row so the session has billing history.
 	if existing, err := h.accountingRepo.FindBySessionId(acctCtx.Context, online.AcctSessionId); err == nil {
-		// Accounting row already exists (likely from a Stop that arrived before
-		// the Start task ran). Skip creating a new one to avoid double-billing.
-		zap.L().Debug("accounting row already exists for session, skipping create",
+		// Finalized row: a Stop arrived before the Start task and upserted a
+		// terminal record. Skip creating a new accounting row to avoid
+		// double-billing. The existing row remains authoritative.
+		if !existing.AcctStopTime.IsZero() {
+			zap.L().Debug("finalized accounting row already exists for session, skipping create to avoid double-billing",
+				zap.String("namespace", "radius"),
+				zap.String("username", acctCtx.Username),
+				zap.String("session_id", online.AcctSessionId),
+				zap.Int64("existing_id", existing.ID),
+			)
+			return nil
+		}
+		// Open row (no AcctStopTime): defensively create a new row so the
+		// session has billing history (this should be rare in normal flow).
+		zap.L().Debug("open accounting row exists, creating new history row",
 			zap.String("namespace", "radius"),
 			zap.String("username", acctCtx.Username),
 			zap.String("session_id", online.AcctSessionId),
 			zap.Int64("existing_id", existing.ID),
 		)
-		return nil
 	} else if !errors.Is(err, repository.ErrAccountingNotFound) {
 		// Unexpected error checking for existing accounting row
 		zap.L().Error("failed to check for existing accounting row",
