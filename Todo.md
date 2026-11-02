@@ -32,7 +32,8 @@ Lihat [open issues](https://github.com/bjo163/mwx-isp/issues) untuk daftar lengk
 
 - Hanya branch `dev` dan `main` yang aktif (ruleset).
 - Push hanya ke `dev`. `main` dilindungi: CI wajib hijau, linear history, no force push.
-- CI hijau di `dev` → `auto-merge.yml` menyinkronkan `main` ke `dev` bila `dev` tertinggal, lalu membuka (atau memakai kembali) PR `dev → main` dan mempromosikannya dengan **squash, tanpa `--admin`**. Kunci perbaikan 2026-11-02: `main` kini mewajibkan status check berdasarkan **nama job CI** — `Test`, `Frontend Build`, `Build (linux, amd64)` (app `github-actions`) — sebelumnya required check-nya bernama `CI`, sebuah konteks yang tidak pernah diposting job mana pun, sehingga promosi selalu tertolak bagi token Actions yang bukan admin. `linear history` menolak merge commit dan `--rebase` menolak PR yang memuat merge commit sinkronisasi, karena itu squash yang dipakai.
+- CI hijau di `dev` → `auto-merge.yml` membuka (atau memakai kembali) PR `dev → main` dan mempromosikannya dengan **squash, tanpa `--admin`**. Dua hal yang dulu membuatnya macet, keduanya dibereskan 2026-11-02: required check `main` bernama `CI` — konteks yang tidak pernah diposting job mana pun — sekarang diganti nama job aslinya (`Test`, `Frontend Build`, `Build (linux, amd64)`, app `github-actions`); dan `strict` pada required checks dimatikan, karena push yang dilakukan `GITHUB_TOKEN` tidak memicu CI, sehingga setiap upaya bot menyinkronkan `dev` ke `main` justru memutus rantai `workflow_run`. Gerbangnya tetap sama: job ini hanya jalan untuk run CI hijau pada SHA yang dipromosikan, dan SHA itu wajib head dari PR.
+- `main` wajib linear history, jadi merge commit ditolak dan `--rebase` menolak PR yang memuat merge commit — squashing promosi berarti `dev` tidak pernah "membawa" `main`, jadi `dev` selalu tampak tertinggal dan itu sengaja dibiarkan.
 - Tag `v*` di `main` → `release.yml` otomatis rilis.
 
 ---
