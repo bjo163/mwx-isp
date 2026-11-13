@@ -121,6 +121,10 @@ func registerISPRoutes() {
 	webserver.ApiGET("/public/packages", listPublicPackages, packageCatalogRateLimiter())
 	webserver.ApiPOST("/public/register", registerPublicCustomer,
 		publicRegistrationRateLimiter(), middleware.BodyLimit(publicRegistrationBodyLimit))
+	webserver.ApiPOST("/customer-auth/request-otp", requestCustomerOTP, loginRateLimiter(), middleware.BodyLimit("4K"))
+	webserver.ApiPOST("/customer-auth/verify-otp", verifyCustomerOTP, loginRateLimiter(), middleware.BodyLimit("4K"))
+	webserver.ApiGET("/customer-portal/me", getCustomerSelfCare, customerPortalAuth())
+	webserver.ApiPOST("/customer-portal/logout", logoutCustomerPortal, customerPortalAuth())
 	webserver.ApiGET("/dashboard/isp-stats", getISPDashboardStats)
 }
 
