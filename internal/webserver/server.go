@@ -366,8 +366,12 @@ func (s *AdminServer) setupReactAdminStatic() {
 	// Customer self-care uses the same embedded bundle; main.tsx selects its
 	// standalone UI from window.location.pathname. Vite assets remain under
 	// /admin/assets, so they continue to use the single embedded file server.
-	s.root.GET("/customer", renderIndex)
-	s.root.GET("/customer/*", renderIndex)
+	s.root.GET("/customer", func(c echo.Context) error {
+		return c.Redirect(http.StatusFound, "/admin/customer")
+	})
+	s.root.GET("/customer/*", func(c echo.Context) error {
+		return c.Redirect(http.StatusFound, "/admin/customer")
+	})
 
 	// Register /admin/* for the SPA; all routes return index.html
 	s.root.GET("/admin/*", func(c echo.Context) error {

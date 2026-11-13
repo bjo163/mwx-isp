@@ -19,7 +19,7 @@ const loadBranding = async (): Promise<ProductBranding> => {
   }
 };
 
-if (window.location.pathname.startsWith('/customer')) {
+if (window.location.pathname.startsWith('/admin/customer')) {
   // Customer self-care runs outside the staff React Admin authentication shell.
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
