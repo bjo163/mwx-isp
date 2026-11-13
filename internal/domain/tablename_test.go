@@ -140,6 +140,8 @@ func TestTableNameUniqueness(t *testing.T) {
 		"fiber_link":                  true,
 		"subscriber_device_binding":   true,
 		"provisioning_job":            true,
+		"customer_auth_challenge":     true,
+		"customer_portal_session":     true,
 	}
 
 	assert.Equal(t, len(expectedNames), len(tableNames), "Table name count should match")

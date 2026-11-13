@@ -59,4 +59,7 @@ var Tables = []interface{}{
 	&FiberLink{},
 	&SubscriberDeviceBinding{},
 	&ProvisioningJob{},
+	// Customer self-care authentication and sessions.
+	&CustomerAuthChallenge{},
+	&CustomerPortalSession{},
 }
