@@ -124,3 +124,22 @@ func TestVoucherWithoutQuotaRemainsUnlimited(t *testing.T) {
 	require.EqualValues(t, 0, voucher.UsedBytes)
 	require.Equal(t, "used", voucher.Status)
 }
+ 
+func TestVoucherQuotaAggregatesMultipleConcurrentSessions(t *testing.T) {
+	f := newFixture(t, 1000)
+	f.apply(t, StatusStart, "session-a", 0, 0, 0)
+	f.apply(t, StatusInterim, "session-a", 100, 50, 10)
+	f.apply(t, StatusStart, "session-b", 0, 0, 0)
+	f.apply(t, StatusInterim, "session-b", 200, 150, 10)
+	voucher, _ := f.reload(t)
+	require.EqualValues(t, 500, voucher.UsedBytes)
+	var sessions int64
+	require.NoError(t, f.db.WithContext(f.ctx).Model(&domain.VoucherUsageSession{}).Count(&sessions).Error)
+	require.EqualValues(t, 2, sessions)
+}
+
+func TestVoucherQuotaRequiresTenantContext(t *testing.T) {
+	f := newFixture(t, 1000)
+	_, err := ApplyAccounting(context.Background(), f.db, f.user.Username, "session-no-tenant", StatusStart, 0, 0, 0, f.now)
+	require.Error(t, err)
+}

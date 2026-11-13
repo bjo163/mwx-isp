@@ -48,7 +48,8 @@ interface Voucher {
   password: string;
   price: number;
   validity_seconds: number;
-  quota_bytes: number;
+  quota_bytes: number | string;
+  used_bytes?: number | string;
   status: string;
   first_login_at?: string;
   expires_at?: string;
@@ -233,11 +234,22 @@ export const HotspotVouchersPage: React.FC = () => {
     return translate('pages.vouchers.units.minutes', { smart_count: Math.round(seconds / 60) });
   };
 
-  const formatQuota = (bytes: number) => {
-    if (!bytes || bytes <= 0) return translate('pages.vouchers.quota.unlimited');
-    const mb = bytes / (1024 * 1024);
-    const configured = mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb.toFixed(0)} MB`;
-    return translate('pages.vouchers.quota.not_enforced', { configured });
+  const formatDataSize = (rawBytes: number) => {
+    const bytes = Math.max(0, Number(rawBytes) || 0);
+    if (bytes >= 1024 ** 3) return `${(bytes / (1024 ** 3)).toFixed(1)} GB`;
+    if (bytes >= 1024 ** 2) return `${(bytes / (1024 ** 2)).toFixed(0)} MB`;
+    if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${bytes.toFixed(0)} B`;
+  };
+
+  const formatQuota = (rawQuota: number | string, rawUsed: number | string = 0) => {
+    const quota = Number(rawQuota) || 0;
+    const used = Number(rawUsed) || 0;
+    if (quota <= 0) return translate('pages.vouchers.quota.unlimited');
+    return translate('pages.vouchers.quota.usage', {
+      remaining: formatDataSize(Math.max(0, quota - used)),
+      used: formatDataSize(used),
+    });
   };
 
   const totalValue = vouchers.reduce((acc, v) => acc + (v.price || 0), 0);
@@ -404,7 +416,7 @@ export const HotspotVouchersPage: React.FC = () => {
                       Rp {new Intl.NumberFormat('id-ID').format(v.price)}
                     </TableCell>
                     <TableCell>{formatValidity(v.validity_seconds)}</TableCell>
-                    <TableCell>{formatQuota(v.quota_bytes)}</TableCell>
+                    <TableCell>{formatQuota(v.quota_bytes, v.used_bytes ?? 0)}</TableCell>
                     <TableCell>
                       <StatusChip value={v.status} label={translate('pages.vouchers.status.' + v.status, { _: v.status })} />
                     </TableCell>

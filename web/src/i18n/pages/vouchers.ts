@@ -41,6 +41,7 @@ export const vouchersPageMessages = {
       status: {
         active: 'Active',
         used: 'Used / Online',
+        exhausted: 'Quota exhausted',
         expired: 'Expired',
         revoked: 'Revoked',
       },
@@ -71,7 +72,7 @@ export const vouchersPageMessages = {
       },
       quota: {
         unlimited: 'Unlimited (no data cap)',
-        not_enforced: 'Not enforced (%{configured} stored)',
+        usage: '%{remaining} remaining · %{used} used',
       },
       generate: {
         title: 'Generate Hotspot Vouchers',
@@ -84,7 +85,7 @@ export const vouchersPageMessages = {
         prefix_placeholder: 'e.g. HOT, WFI',
         price: 'Price (IDR)',
         validity_hours: 'Validity (Hours)',
-        validity_hint: 'Validity starts at the first successful RADIUS login. Data quota enforcement is not available yet; generated vouchers use unlimited data.',
+        validity_hint: 'Validity and data usage start at the first successful RADIUS login. When the configured quota is exhausted, the credential is disabled and active RADIUS sessions are disconnected.',
         code_length: 'Code Length',
         same_user_pass: 'Username equals Password (1-step login)',
         generating: 'Generating...',
@@ -164,6 +165,7 @@ export const vouchersPageMessages = {
       status: {
         active: 'Aktif',
         used: 'Terpakai / Online',
+        exhausted: 'Kuota habis',
         expired: 'Kedaluwarsa',
         revoked: 'Dicabut',
       },
@@ -194,7 +196,7 @@ export const vouchersPageMessages = {
       },
       quota: {
         unlimited: 'Tanpa Batas (tanpa kuota data)',
-        not_enforced: 'Tidak diterapkan (%{configured} tersimpan)',
+        usage: 'Sisa %{remaining} · Terpakai %{used}',
       },
       generate: {
         title: 'Buat Voucher Hotspot',
@@ -207,7 +209,7 @@ export const vouchersPageMessages = {
         prefix_placeholder: 'mis. HOT, WFI',
         price: 'Harga (IDR)',
         validity_hours: 'Masa Berlaku (Jam)',
-        validity_hint: 'Masa berlaku dimulai pada login RADIUS pertama yang berhasil. Penegakan kuota data belum tersedia; voucher yang dibuat menggunakan data tanpa batas.',
+        validity_hint: 'Masa berlaku dan pemakaian data dimulai pada login RADIUS pertama. Saat kuota habis, kredensial dinonaktifkan dan sesi RADIUS aktif diputus.',
         code_length: 'Panjang Kode',
         same_user_pass: 'Nama Pengguna sama dengan Kata Sandi (login 1 langkah)',
         generating: 'Membuat...',
