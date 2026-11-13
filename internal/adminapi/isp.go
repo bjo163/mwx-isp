@@ -1752,10 +1752,6 @@ func lookupCustomerPortal(c echo.Context) error {
 	})
 }
 
-func handlePaymentWebhook(c echo.Context) error {
-	return fail(c, http.StatusServiceUnavailable, "PAYMENT_PROVIDER_UNCONFIGURED",
-		"Payment callbacks are disabled until a verified payment provider is configured", nil)
-}
 func applySubscriptionFUP(c echo.Context) error {
 	id, err := parseIDParam(c, "id")
 	if err != nil {

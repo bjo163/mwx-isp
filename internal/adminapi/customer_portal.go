@@ -127,10 +127,10 @@ func requestCustomerOTP(c echo.Context) error {
 		return ok(c, generic)
 	}
 
-	provider, ok := GetAppContext(c).(interface {
+	provider, supportsWhatsApp := GetAppContext(c).(interface {
 		WhatsAppManager() (*notify.WhatsAppManager, error)
 	})
-	if !ok {
+	if !supportsWhatsApp {
 		_ = db.Model(&challenge).Update("consumed_at", now).Error
 		return ok(c, generic)
 	}

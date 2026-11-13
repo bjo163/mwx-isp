@@ -334,8 +334,11 @@ func (s *AdminServer) setupReactAdminStatic() {
 	webStaticFS, err := getWebStaticFS()
 	if err != nil {
 		zap.S().Warnf("Failed to load embedded web static files: %v, using development mode", err)
-		// Development mode: read from the local filesystem
+		// Development mode: read from the local filesystem.
 		s.root.Static("/admin", "web/dist/admin")
+		renderDevCustomer := func(c echo.Context) error { return c.File("web/dist/admin/index.html") }
+		s.root.GET("/customer", renderDevCustomer)
+		s.root.GET("/customer/*", renderDevCustomer)
 		return
 	}
 
@@ -359,6 +362,12 @@ func (s *AdminServer) setupReactAdminStatic() {
 
 	// Handle the exact /admin path (without trailing slash)
 	s.root.GET("/admin", renderIndex)
+
+	// Customer self-care uses the same embedded bundle; main.tsx selects its
+	// standalone UI from window.location.pathname. Vite assets remain under
+	// /admin/assets, so they continue to use the single embedded file server.
+	s.root.GET("/customer", renderIndex)
+	s.root.GET("/customer/*", renderIndex)
 
 	// Register /admin/* for the SPA; all routes return index.html
 	s.root.GET("/admin/*", func(c echo.Context) error {
