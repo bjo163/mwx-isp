@@ -36,6 +36,8 @@ const (
 	// ReasonManualSuspension marks actions created when an operator suspends or
 	// terminates a subscription from the admin API.
 	ReasonManualSuspension = "manual_suspension"
+	// ReasonVoucherQuota marks a disconnect required after a prepaid voucher reaches its data quota.
+	ReasonVoucherQuota = "voucher_quota_exhausted"
 
 	// StatusPending is a claimed-but-not-finished action awaiting its next
 	// attempt; StatusRunning is held by one worker; StatusSucceeded,

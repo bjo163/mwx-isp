@@ -168,6 +168,22 @@ func (s *RadiusService) getNas(ctx context.Context, ip, identifier string) (nas 
 
 // GetValidUser retrieves a user by username (or MAC address for MAC auth),
 // caches the result, and rejects disabled or expired accounts.
+
+ // InvalidateUserCacheForTenant removes cached credentials after a lifecycle
+ // change such as prepaid quota exhaustion. New Access-Requests will observe
+ // the disabled database status instead of waiting for the TTL.
+func (s *RadiusService) InvalidateUserCacheForTenant(tenantID int64, username string) {
+	if s == nil || s.userCache == nil || s.appCtx == nil || tenantID <= 0 || username == "" {
+		return
+	}
+	ctx := tenancy.WithTenantID(context.Background(), tenantID)
+	var user domain.RadiusUser
+	if err := s.appCtx.DB().WithContext(ctx).Where("username = ?", username).First(&user).Error; err == nil && user.MacAddr != "" {
+		s.userCache.Delete(radiusUserCacheKey(tenantID, true, user.MacAddr))
+	}
+	s.userCache.Delete(radiusUserCacheKey(tenantID, false, username))
+}
+
 func (s *RadiusService) GetValidUser(usernameOrMac string, macauth bool) (user *domain.RadiusUser, err error) {
 	return s.getValidUser(0, usernameOrMac, macauth)
 }

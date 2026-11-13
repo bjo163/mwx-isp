@@ -50,6 +50,7 @@ var Tables = []interface{}{
 	// Operations: Hotspot, IPAM, and Tickets
 	&HotspotBatch{},
 	&HotspotVoucher{},
+	&VoucherUsageSession{},
 	&IPAMPool{},
 	&TroubleTicket{},
 	&ODP{},

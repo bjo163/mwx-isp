@@ -3,15 +3,20 @@ package radiusd
 import (
 	"context"
 	"net"
+	"time"
 
 	"github.com/bjo163/mwx-isp/internal/app"
+	"github.com/bjo163/mwx-isp/internal/billing/voucherquota"
+	"github.com/bjo163/mwx-isp/internal/domain"
 	radiuserrors "github.com/bjo163/mwx-isp/internal/radiusd/errors"
 	vendorparserspkg "github.com/bjo163/mwx-isp/internal/radiusd/plugins/vendorparsers"
+	"github.com/bjo163/mwx-isp/internal/sessionqueue"
 	"github.com/bjo163/mwx-isp/internal/tenancy"
 	"go.uber.org/zap"
 	"layeh.com/radius"
 	"layeh.com/radius/rfc2865"
 	"layeh.com/radius/rfc2866"
+	"layeh.com/radius/rfc2869"
 )
 
 // AcctService handles RADIUS Accounting-Request packets.
@@ -127,7 +132,9 @@ func (s *AcctService) ServeRADIUS(w radius.ResponseWriter, r *radius.Request) {
 				zap.Int("status_type", int(statusType)),
 				zap.Error(err),
 			)
+			return
 		}
+		applyVoucherQuotaAccounting(ctx, r, username, int(statusType), s.RadiusService)
 	}
 
 	s.submitAcctTask(task, username)
@@ -215,4 +222,49 @@ func (s *AcctService) SendResponse(w radius.ResponseWriter, r *radius.Request) b
 		zap.S().Debug(FmtResponse(resp, r.RemoteAddr))
 	}
 	return true
+}
+
+
+// applyVoucherQuotaAccounting applies prepaid voucher byte limits after the
+// primary RADIUS accounting handler has persisted the packet's session state.
+func applyVoucherQuotaAccounting(ctx context.Context, request *radius.Request, username string, statusType int, service *RadiusService) {
+	if service == nil || service.appCtx == nil || service.appCtx.DB() == nil || request == nil {
+		return
+	}
+	sessionID := rfc2866.AcctSessionID_GetString(request.Packet)
+	if sessionID == "" || username == "" {
+		return
+	}
+	inputBytes := int64(rfc2866.AcctInputOctets_Get(request.Packet)) +
+		int64(rfc2869.AcctInputGigawords_Get(request.Packet))*4294967296
+	outputBytes := int64(rfc2866.AcctOutputOctets_Get(request.Packet)) +
+		int64(rfc2869.AcctOutputGigawords_Get(request.Packet))*4294967296
+	sessionTime := int(rfc2866.AcctSessionTime_Get(request.Packet))
+	result, err := voucherquota.ApplyAccounting(ctx, service.appCtx.DB(), username, sessionID, statusType,
+		inputBytes, outputBytes, sessionTime, time.Now())
+	if err != nil {
+		zap.L().Error("voucher quota accounting failed",
+			zap.String("namespace", "radius"), zap.String("username", username),
+			zap.String("session_id", sessionID), zap.Error(err))
+		return
+	}
+	if !result.Exhausted {
+		return
+	}
+	service.InvalidateUserCacheForTenant(result.Username, username)
+	db := service.appCtx.DB().WithContext(ctx)
+	var online []domain.RadiusOnline
+	if err := db.Where("username = ?", username).Find(&online).Error; err != nil {
+		zap.L().Error("load online sessions for exhausted voucher failed", zap.String("username", username), zap.Error(err))
+		return
+	}
+	for _, session := range online {
+		if _, err := sessionqueue.EnqueueDisconnect(db, session, sessionqueue.ReasonVoucherQuota, time.Now()); err != nil {
+			zap.L().Error("queue disconnect for exhausted voucher failed",
+				zap.String("username", username), zap.String("session_id", session.AcctSessionId), zap.Error(err))
+		}
+	}
+	if retrier, ok := service.appCtx.(interface{ SchedSessionActionRetryTask() }); ok {
+		retrier.SchedSessionActionRetryTask()
+	}
 }
