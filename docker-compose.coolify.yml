@@ -52,6 +52,11 @@ services:
       TOUGHRADIUS_DB_NAME: ${POSTGRES_DB:-mwxisp}
       TOUGHRADIUS_DB_USER: ${POSTGRES_USER:-mwxisp}
       TOUGHRADIUS_DB_PWD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      # Bundled PostgreSQL is isolated on this private Docker bridge. For external
+      # databases set verify-full and mount the CA certificate into this container.
+      TOUGHRADIUS_DB_SSLMODE: ${TOUGHRADIUS_DB_SSLMODE:-disable}
+      TOUGHRADIUS_DB_SSLROOTCERT: ${TOUGHRADIUS_DB_SSLROOTCERT:-}
+      TOUGHRADIUS_DB_CONNECT_TIMEOUT: ${TOUGHRADIUS_DB_CONNECT_TIMEOUT:-5}
       TOUGHRADIUS_RADIUS_ENABLED: "true"
       TOUGHRADIUS_RADIUS_HOST: 0.0.0.0
       TOUGHRADIUS_RADIUS_AUTHPORT: 1812

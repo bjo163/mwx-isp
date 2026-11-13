@@ -24,6 +24,10 @@ Lihat `docker-compose.coolify.yml` di repo.
 | `TOUGHRADIUS_DB_NAME` | mwxisp | Database name |
 | `TOUGHRADIUS_DB_USER` | mwxisp | Database user |
 | `TOUGHRADIUS_DB_PWD` | required | Database password |
+| `TOUGHRADIUS_DB_SSLMODE` | require | PostgreSQL TLS mode; use `verify-full` for external production DB |
+| `TOUGHRADIUS_DB_SSLROOTCERT` | empty | CA bundle path for PostgreSQL TLS verification |
+| `TOUGHRADIUS_DB_SSLCERT` / `TOUGHRADIUS_DB_SSLKEY` | empty | Optional client certificate pair |
+| `TOUGHRADIUS_DB_CONNECT_TIMEOUT` | 5 | Connection timeout in seconds (1–60) |
 | `TOUGHRADIUS_RADIUS_ENABLED` | true | Enable RADIUS |
 | `TOUGHRADIUS_RADIUS_HOST` | 0.0.0.0 | RADIUS host |
 | `TOUGHRADIUS_RADIUS_AUTHPORT` | 1812 | Auth port |
@@ -31,6 +35,12 @@ Lihat `docker-compose.coolify.yml` di repo.
 | `TOUGHRADIUS_RADIUS_RADSEC_PORT` | 2083 | RADSEC port |
 | `TOUGHRADIUS_METRICS_TOKEN` | (empty) | Metrics token |
 | `TOUGHRADIUS_LOGGER_MODE` | production | Logger mode |
+
+## Database safety
+
+PostgreSQL is fail-closed: if the configured host, credentials, TLS handshake, or initial health check fails, the process exits before migrations, schedulers, or listeners start. It never falls back to a new local SQLite file. SQLite is used only when `TOUGHRADIUS_DB_TYPE=sqlite` is explicitly selected.
+
+The bundled Compose Postgres service is reached over the private Docker bridge and uses `TOUGHRADIUS_DB_SSLMODE=disable` by default. For an external PostgreSQL service, set `TOUGHRADIUS_DB_SSLMODE=verify-full` and provide the CA bundle through `TOUGHRADIUS_DB_SSLROOTCERT`. Never use `disable` over an untrusted network.
 
 ## Auto-Deploy
 

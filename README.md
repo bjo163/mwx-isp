@@ -43,7 +43,7 @@ Then open `http://localhost:1816/`. The first boot prints the generated admin pa
 
 Config is a YAML file, resolved in this order (see [config/config.go:534](config/config.go#L534)): explicit `-c` path, `./mwx-isp.yml`, `./toughradius.yml`, `/etc/mwx-isp.yml`, `/etc/toughradius.yml`, then built-in defaults.
 
-Any value can be overridden from the environment with the `TOUGHRADIUS_` prefix — `TOUGHRADIUS_DB_HOST`, `TOUGHRADIUS_DB_TYPE`, `TOUGHRADIUS_WEB_PORT`, `TOUGHRADIUS_RADIUS_AUTHPORT`, `TOUGHRADIUS_LOGGER_MODE`, `TOUGHRADIUS_SYSTEM_WORKER_DIR`, and so on. The full set is enumerated in `LoadConfig` ([config/config.go:570](config/config.go#L570)).
+Any value can be overridden from the environment with the `TOUGHRADIUS_` prefix. PostgreSQL settings include `TOUGHRADIUS_DB_SSLMODE` (`require` by default; use `verify-full` with a CA for external production databases), `TOUGHRADIUS_DB_SSLROOTCERT`, `TOUGHRADIUS_DB_SSLCERT`, `TOUGHRADIUS_DB_SSLKEY`, and `TOUGHRADIUS_DB_CONNECT_TIMEOUT` (5 seconds by default). The included Compose stacks explicitly use `disable` only for their private Docker bridge to the bundled PostgreSQL service. A failed PostgreSQL connection now aborts startup; MWX-ISP never creates a hidden SQLite fallback.
 
 Beyond the YAML overrides there are three standalone variables:
 
