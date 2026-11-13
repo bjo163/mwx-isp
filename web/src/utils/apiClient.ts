@@ -24,7 +24,8 @@ const buildHeaders = (rawHeaders?: HeadersInit) => {
     headers.set('Accept', 'application/json');
   }
   const token = localStorage.getItem('token');
-  if (token) {
+  // Customer self-care can explicitly supply its own bearer token.
+  if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
   return headers;

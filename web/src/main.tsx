@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import App from './App'
+import CustomerSelfCarePage from './pages/CustomerSelfCarePage'
 import { queryClient } from './providers/queryClient'
 import { defaultProductBranding } from './branding/BrandingContext'
 import type { ProductBranding } from './branding/BrandingContext'
@@ -18,13 +19,22 @@ const loadBranding = async (): Promise<ProductBranding> => {
   }
 };
 
-void loadBranding().then((branding) => {
+if (window.location.pathname.startsWith('/customer')) {
+  // Customer self-care runs outside the staff React Admin authentication shell.
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <App initialBranding={branding} />
-        {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
-      </QueryClientProvider>
+      <CustomerSelfCarePage />
     </React.StrictMode>,
   );
-});
+} else {
+  void loadBranding().then((branding) => {
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <App initialBranding={branding} />
+          {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
+        </QueryClientProvider>
+      </React.StrictMode>,
+    );
+  });
+}
