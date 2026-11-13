@@ -10,6 +10,7 @@ import {
   Search as SearchIcon,
   WhatsApp as WhatsAppIcon,
   Wifi as WifiIcon,
+  Payment as PaymentIcon,
   CheckCircle as CheckCircleIcon,
   Lock as LockIcon,
 } from '@mui/icons-material';
@@ -52,6 +53,7 @@ export const CustomerPortalPage = () => {
   const [error, setError] = useState<SurfaceFailure | null>(null);
   const [data, setData] = useState<CustomerPortalData | null>(null);
   const [toast, setToast] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+  const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
 
   const doSearch = async (searchTerm: string) => {
     const q = searchTerm.trim();
@@ -82,6 +84,28 @@ export const CustomerPortalPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     void doSearch(query);
+  };
+
+  const startOnlinePayment = async (invoice: InvoiceItem) => {
+    const invoiceId = String(invoice.id);
+    setPaymentLoading(invoiceId);
+    try {
+      const checkout = await apiRequest<{ redirect_url: string }>(
+        `/portal/invoices/${encodeURIComponent(invoiceId)}/payment-channel`,
+        {
+          method: 'POST',
+          headers: { 'Idempotency-Key': window.crypto.randomUUID() },
+        },
+      );
+      if (!checkout?.redirect_url) {
+        throw new Error('Payment provider did not return a checkout URL.');
+      }
+      window.location.assign(checkout.redirect_url);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Gagal membuat pembayaran online.';
+      setToast({ open: true, message });
+      setPaymentLoading(null);
+    }
   };
 
   const openWhatsAppConfirmation = () => {
@@ -385,9 +409,23 @@ export const CustomerPortalPage = () => {
                                   />
                                 </TableCell>
                                 <TableCell align="right">
-                                  <Typography variant="caption" color="text.secondary">
-                                    {isPaid ? 'Lunas' : 'Konfirmasi manual'}
-                                  </Typography>
+                                  {isPaid ? (
+                                    <Typography variant="caption" color="success.main" fontWeight={700}>Lunas</Typography>
+                                  ) : (
+                                    <Stack spacing={0.75} alignItems="flex-end">
+                                      <Typography variant="caption" color="text.secondary">Belum lunas</Typography>
+                                      <Button
+                                        size="small"
+                                        variant="contained"
+                                        startIcon={<PaymentIcon />}
+                                        disabled={paymentLoading === String(inv.id)}
+                                        onClick={() => void startOnlinePayment(inv)}
+                                        sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+                                      >
+                                        {paymentLoading === String(inv.id) ? 'Menyiapkan...' : 'Bayar Online'}
+                                      </Button>
+                                    </Stack>
+                                  )}
                                 </TableCell>
                               </TableRow>
                             );

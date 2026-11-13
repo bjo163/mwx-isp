@@ -23,6 +23,7 @@ func TestCreateCheckoutUsesServerSideCredentialsAndInvoiceAmount(t *testing.T) {
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
 		require.Equal(t, "MWX-1-2-3", payload.TransactionDetails.OrderID)
 		require.Equal(t, int64(150000), payload.TransactionDetails.GrossAmount)
+		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(createResponse{Token: "snap-token", RedirectURL: "https://" + r.Host + "/snap/v2/vtweb/test-token"})
 	}))
 	defer server.Close()
@@ -37,6 +38,7 @@ func TestCreateCheckoutUsesServerSideCredentialsAndInvoiceAmount(t *testing.T) {
 
 func TestCreateCheckoutRejectsUntrustedRedirect(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(createResponse{Token: "token", RedirectURL: "https://evil.example/snap/v2/vtweb/token"})
 	}))
 	defer server.Close()

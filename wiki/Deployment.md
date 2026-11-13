@@ -36,6 +36,10 @@ Lihat `docker-compose.coolify.yml` di repo.
 | `TOUGHRADIUS_METRICS_TOKEN` | (empty) | Metrics token |
 | `TOUGHRADIUS_LOGGER_MODE` | production | Logger mode |
 
+## Online payments (optional)
+
+To enable Midtrans Snap, set `TOUGHRADIUS_PAYMENT_PROVIDER=midtrans`, choose `TOUGHRADIUS_MIDTRANS_ENVIRONMENT=sandbox` for testing (or `production` for live transactions), and provide the Server Key and Client Key through the deployment secret manager. The webhook endpoint is `POST /api/v1/portal/payments/webhook`; configure that exact HTTPS URL in the Midtrans dashboard. The endpoint is excluded from staff JWT middleware but validates the provider's SHA-512 signature, order ID, amount, and currency before posting to the billing ledger. Duplicate callbacks are idempotent. Partial refunds/chargebacks and mismatches require operator reconciliation. Never commit real keys to Git.
+
 ## Database safety
 
 PostgreSQL is fail-closed: if the configured host, credentials, TLS handshake, or initial health check fails, the process exits before migrations, schedulers, or listeners start. It never falls back to a new local SQLite file. SQLite is used only when `TOUGHRADIUS_DB_TYPE=sqlite` is explicitly selected.

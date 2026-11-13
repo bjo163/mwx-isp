@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -90,7 +91,7 @@ func getInvoicePaymentChannel(c echo.Context) error {
 		return fail(c, http.StatusConflict, "CUSTOMER_NOT_AVAILABLE", "The invoice customer record is unavailable", nil)
 	}
 	now := time.Now()
-	orderID := fmt.Sprintf("MWX-%d-%d-%d", invoice.TenantID, invoice.ID, now.UnixNano())
+	orderID := fmt.Sprintf("MWX-%s-%s-%s", strconv.FormatInt(invoice.TenantID, 36), strconv.FormatInt(invoice.ID, 36), strconv.FormatInt(now.UnixNano(), 36))
 	attempt := domain.PaymentAttempt{
 		InvoiceID: invoice.ID, CustomerID: invoice.CustomerID,
 		Provider: "midtrans", OrderID: orderID, IdempotencyKey: &idempotencyKey,
@@ -231,7 +232,11 @@ func handlePaymentWebhook(c echo.Context) error {
 		if reverseErr != nil && !errors.Is(reverseErr, billing.ErrPaymentNotReversible) {
 			return fail(c, http.StatusInternalServerError, "PAYMENT_REVERSAL_ERROR", "Unable to reconcile the provider reversal", nil)
 		}
-		updates["status"] = status
+		if status == "refund" {
+			updates["status"] = "refunded"
+		} else {
+			updates["status"] = "chargeback"
+		}
 	case "partial_refund", "partial_chargeback":
 		updates["status"] = "reconciliation_required"
 		updates["failure_reason"] = "partial_provider_reversal_requires_manual_reconciliation"

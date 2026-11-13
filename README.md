@@ -43,6 +43,8 @@ Then open `http://localhost:1816/`. The first boot prints the generated admin pa
 
 Config is a YAML file, resolved in this order (see [config/config.go:534](config/config.go#L534)): explicit `-c` path, `./mwx-isp.yml`, `./toughradius.yml`, `/etc/mwx-isp.yml`, `/etc/toughradius.yml`, then built-in defaults.
 
+Online payments are optional. Set `TOUGHRADIUS_PAYMENT_PROVIDER=midtrans`, `TOUGHRADIUS_MIDTRANS_ENVIRONMENT=sandbox|production`, `TOUGHRADIUS_MIDTRANS_SERVER_KEY`, and `TOUGHRADIUS_MIDTRANS_CLIENT_KEY` to enable Midtrans Snap. `TOUGHRADIUS_MIDTRANS_BASE_URL` and `TOUGHRADIUS_PAYMENT_TIMEOUT_SECONDS` are optional. Leave the provider unset to keep online payments disabled. Checkout is created server-side from the invoice balance; webhook settlement requires the Midtrans SHA-512 signature and is idempotent.
+
 Any value can be overridden from the environment with the `TOUGHRADIUS_` prefix. PostgreSQL settings include `TOUGHRADIUS_DB_SSLMODE` (`require` by default; use `verify-full` with a CA for external production databases), `TOUGHRADIUS_DB_SSLROOTCERT`, `TOUGHRADIUS_DB_SSLCERT`, `TOUGHRADIUS_DB_SSLKEY`, and `TOUGHRADIUS_DB_CONNECT_TIMEOUT` (5 seconds by default). The included Compose stacks explicitly use `disable` only for their private Docker bridge to the bundled PostgreSQL service. A failed PostgreSQL connection now aborts startup; MWX-ISP never creates a hidden SQLite fallback.
 
 Beyond the YAML overrides there are three standalone variables:
