@@ -38,3 +38,8 @@ NAS → RADIUS (1812/1813) → radiusd → plugins → backend (Postgres/LDAP)
 ---
 
 *Last updated: 2026-11-02*
+
+
+## FTTH inventory and provisioning boundary
+
+The additive `NetworkAsset`, `FiberLink`, `SubscriberDeviceBinding`, and `ProvisioningJob` models form a tenant-scoped inventory/provisioning foundation. They complement existing `ODP`, `NetNas`, customer ODP fields, and IPAM data; no existing records are rewritten. Device credentials are represented only by a secret reference, never plaintext. The vendor-neutral adapter contract lives in `internal/provisioning`. It has no live vendor implementation yet: discovery/observe are the first integration stage, while apply requires an explicit non-dry-run plan and authenticated operator approval. No device changes are performed by this release.

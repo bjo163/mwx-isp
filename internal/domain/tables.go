@@ -54,4 +54,9 @@ var Tables = []interface{}{
 	&IPAMPool{},
 	&TroubleTicket{},
 	&ODP{},
+	// FTTH inventory and safe desired-state provisioning foundation.
+	&NetworkAsset{},
+	&FiberLink{},
+	&SubscriberDeviceBinding{},
+	&ProvisioningJob{},
 }

@@ -31,3 +31,9 @@ MWX-ISP adalah server RADIUS open-source untuk ISP, enterprise, dan carrier.
 ---
 
 *Last updated: 2026-11-02*
+
+
+## FTTH roadmap status
+
+- Inventory/topology/provisioning contracts are being added additively; the current system does not yet manage live OLT/ONT devices.
+- Vendor-specific adapters and hardware acceptance remain tracked in [issue #139](../../issues/139).

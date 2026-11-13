@@ -508,7 +508,7 @@ var tenantOwnedModels = []interface{}{
 	&domain.InvoiceItem{}, &domain.TenantDocumentTemplate{},
 	&domain.Payment{}, &domain.PaymentAttempt{}, &domain.BillingEvent{}, &domain.DocumentSequence{},
 	&domain.RadiusTrafficSample{}, &domain.SyslogEvent{}, &domain.HotspotBatch{},
-	&domain.HotspotVoucher{}, &domain.VoucherUsageSession{}, &domain.IPAMPool{}, &domain.TroubleTicket{}, &domain.ODP{},
+	&domain.HotspotVoucher{}, &domain.VoucherUsageSession{}, &domain.IPAMPool{}, &domain.TroubleTicket{}, &domain.ODP{}, &domain.NetworkAsset{}, &domain.FiberLink{}, &domain.SubscriberDeviceBinding{}, &domain.ProvisioningJob{},
 }
 
 func (a *Application) dropLegacyTenantUniqueIndices() error {
