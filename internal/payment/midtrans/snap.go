@@ -215,7 +215,7 @@ func VerifyNotification(serverKey string, n Notification) bool {
 		return false
 	}
 	sum := sha512.Sum512([]byte(n.OrderID + n.StatusCode + n.GrossAmount + serverKey))
-	expected := []byte(hex.EncodeToString(sum[:]))
+	expected := sum[:]
 	provided, err := hex.DecodeString(strings.TrimSpace(n.SignatureKey))
 	if err != nil || len(provided) != len(expected) {
 		return false
