@@ -1,7 +1,17 @@
 package app
 
 import (
+	"context"
 	"fmt"
+	"net"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/bjo163/mwx-isp/config"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,25 +28,17 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-// getDatabase returns a database connection based on the configuration type
-func getDatabase(dbConfig config.DBConfig, workdir string) *gorm.DB {
-	dbType := strings.ToLower(dbConfig.Type)
-	switch dbType {
+// getDatabase opens exactly the backend selected by configuration. A failed
+// PostgreSQL connection is a startup error: silently switching to a fresh local
+// SQLite file would split production writes across unrelated databases.
+func getDatabase(dbConfig config.DBConfig, workdir string) (*gorm.DB, error) {
+	switch strings.ToLower(strings.TrimSpace(dbConfig.Type)) {
 	case "sqlite":
-		return getSqliteDatabase(dbConfig, workdir)
+		return getSqliteDatabase(dbConfig, workdir), nil
 	case "postgres", "postgresql":
-		pool, err := getPgDatabase(dbConfig)
-		if err != nil {
-			zap.S().Warnf("⚠️  PostgreSQL connection failed (%v). Falling back to standalone embedded SQLite...", err)
-			sqliteConfig := dbConfig
-			sqliteConfig.Type = "sqlite"
-			sqliteConfig.Name = "mwx-isp.db"
-			return getSqliteDatabase(sqliteConfig, workdir)
-		}
-		return pool
+		return getPgDatabase(dbConfig)
 	default:
-		zap.S().Fatalf("Unsupported database type: %s, supported types: postgres, sqlite", dbConfig.Type)
-		return nil
+		return nil, fmt.Errorf("unsupported database type %q (supported: postgres, sqlite)", dbConfig.Type)
 	}
 }
 
@@ -95,47 +97,100 @@ func getSqliteDatabase(config config.DBConfig, workdir string) *gorm.DB {
 	return pool
 }
 
-// getPgDatabase returns a PostgreSQL database connection or error if connection fails
-func getPgDatabase(config config.DBConfig) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Jakarta",
-		config.Host,
-		config.User,
-		config.Passwd,
-		config.Name,
-		config.Port)
-	pool, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true,
-		SkipDefaultTransaction:                   true,
-		PrepareStmt:                              true,
-		NamingStrategy: schema.NamingStrategy{
-			SingularTable: true, // use singular table name, table for `User` would be `user` with this option enabled
-		},
-		Logger: logger.New(
-			zap.NewStdLog(zap.L()), // io writer
-			logger.Config{
-				SlowThreshold:             time.Millisecond * 200,                                                // Slow SQL threshold
-				LogLevel:                  common.If(config.Debug, logger.Info, logger.Silent).(logger.LogLevel), //nolint:errcheck // type assertion is safe
-				IgnoreRecordNotFoundError: true,                                                                  // Ignore ErrRecordNotFound error for logger
-				Colorful:                  false,                                                                 // Disable color
-			},
-		),
-	})
-	common.Must(err)
-	common.Must(tenancy.RegisterCallbacks(pool))
-	sqlDB, err := pool.DB()
+// postgresDSN builds a safely escaped PostgreSQL URL and rejects ambiguous or
+// unsafe connection settings before any network connection is attempted.
+func postgresDSN(cfg config.DBConfig) (string, error) {
+	host := strings.TrimSpace(cfg.Host)
+	if host == "" || strings.TrimSpace(cfg.Name) == "" || strings.TrimSpace(cfg.User) == "" {
+		return "", fmt.Errorf("PostgreSQL host, database name, and user are required")
+	}
+	if cfg.Port < 1 || cfg.Port > 65535 {
+		return "", fmt.Errorf("PostgreSQL port must be between 1 and 65535")
+	}
+	sslMode := strings.ToLower(strings.TrimSpace(cfg.SSLMode))
+	if sslMode == "" {
+		sslMode = "require"
+	}
+	switch sslMode {
+	case "disable", "allow", "prefer", "require", "verify-ca", "verify-full":
+	default:
+		return "", fmt.Errorf("unsupported PostgreSQL sslmode %q", sslMode)
+	}
+	timeout := cfg.ConnectTimeout
+	if timeout == 0 {
+		timeout = 5
+	}
+	if timeout < 1 || timeout > 60 {
+		return "", fmt.Errorf("PostgreSQL connect timeout must be between 1 and 60 seconds")
+	}
+	if (strings.TrimSpace(cfg.SSLCert) == "") != (strings.TrimSpace(cfg.SSLKey) == "") {
+		return "", fmt.Errorf("PostgreSQL client certificate and key must be configured together")
+	}
+
+	query := url.Values{}
+	query.Set("dbname", cfg.Name)
+	query.Set("sslmode", sslMode)
+	query.Set("connect_timeout", strconv.Itoa(timeout))
+	query.Set("TimeZone", "Asia/Jakarta")
+	if root := strings.TrimSpace(cfg.SSLRootCert); root != "" {
+		query.Set("sslrootcert", root)
+	}
+	if cert := strings.TrimSpace(cfg.SSLCert); cert != "" {
+		query.Set("sslcert", cert)
+		query.Set("sslkey", strings.TrimSpace(cfg.SSLKey))
+	}
+	u := url.URL{
+		Scheme: "postgres",
+		User: url.UserPassword(cfg.User, cfg.Passwd),
+		Host: net.JoinHostPort(host, strconv.Itoa(cfg.Port)),
+		RawQuery: query.Encode(),
+	}
+	return u.String(), nil
+}
+
+// getPgDatabase returns a verified PostgreSQL connection or a startup error.
+// Connection and initial ping are bounded by ConnectTimeout.
+func getPgDatabase(cfg config.DBConfig) (*gorm.DB, error) {
+	dsn, err := postgresDSN(cfg)
 	if err != nil {
 		return nil, err
 	}
-	// Test the actual ping to ensure credentials and connectivity are valid
-	if err := sqlDB.Ping(); err != nil {
-		_ = sqlDB.Close()
-		return nil, err
+	pool, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		SkipDefaultTransaction: true,
+		PrepareStmt: true,
+		NamingStrategy: schema.NamingStrategy{SingularTable: true},
+		Logger: logger.New(
+			zap.NewStdLog(zap.L()),
+			logger.Config{
+				SlowThreshold: time.Millisecond * 200,
+				LogLevel: common.If(cfg.Debug, logger.Info, logger.Silent).(logger.LogLevel), //nolint:errcheck
+				IgnoreRecordNotFoundError: true,
+				Colorful: false,
+			},
+		),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("open PostgreSQL connection: %w", err)
 	}
-	// SetMaxIdleConns sets the maximum number of idle connections in the pool
-	sqlDB.SetMaxIdleConns(config.IdleConn)
-	// SetMaxOpenConns sets the maximum number of open database connections
-	sqlDB.SetMaxOpenConns(config.MaxConn)
-	// SetConnMaxLifetime sets the maximum lifetime a connection can be reused
-	// sqlDB.SetConnMaxLifetime(time.Hour * 8)
+	if err := tenancy.RegisterCallbacks(pool); err != nil {
+		return nil, fmt.Errorf("register PostgreSQL tenant scopes: %w", err)
+	}
+	sqlDB, err := pool.DB()
+	if err != nil {
+		return nil, fmt.Errorf("get PostgreSQL connection pool: %w", err)
+	}
+	timeout := cfg.ConnectTimeout
+	if timeout == 0 {
+		timeout = 5
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(ctx); err != nil {
+		_ = sqlDB.Close()
+		return nil, fmt.Errorf("PostgreSQL health check failed: %w", err)
+	}
+	sqlDB.SetMaxIdleConns(cfg.IdleConn)
+	sqlDB.SetMaxOpenConns(cfg.MaxConn)
 	return pool, nil
 }

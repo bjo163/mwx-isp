@@ -972,3 +972,23 @@ func TestDefaultRadsecCertPaths(t *testing.T) {
 		t.Errorf("Expected default RadsecKey 'private/radsec.tls.key', got '%s'", cfg.Radiusd.RadsecKey)
 	}
 }
+
+
+func TestLoadConfigPostgresTLSOverrides(t *testing.T) {
+	t.Setenv("TOUGHRADIUS_DB_SSLMODE", "verify-full")
+	t.Setenv("TOUGHRADIUS_DB_SSLROOTCERT", "/run/secrets/pg-ca.crt")
+	t.Setenv("TOUGHRADIUS_DB_SSLCERT", "/run/secrets/client.crt")
+	t.Setenv("TOUGHRADIUS_DB_SSLKEY", "/run/secrets/client.key")
+	t.Setenv("TOUGHRADIUS_DB_CONNECT_TIMEOUT", "9")
+
+	cfg := LoadConfig(filepath.Join(t.TempDir(), "missing.yml"))
+	if cfg.Database.SSLMode != "verify-full" {
+		t.Fatalf("expected verify-full sslmode, got %q", cfg.Database.SSLMode)
+	}
+	if cfg.Database.SSLRootCert != "/run/secrets/pg-ca.crt" || cfg.Database.SSLCert != "/run/secrets/client.crt" || cfg.Database.SSLKey != "/run/secrets/client.key" {
+		t.Fatalf("PostgreSQL certificate environment overrides were not loaded")
+	}
+	if cfg.Database.ConnectTimeout != 9 {
+		t.Fatalf("expected 9 second connect timeout, got %d", cfg.Database.ConnectTimeout)
+	}
+}

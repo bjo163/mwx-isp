@@ -187,7 +187,7 @@ func (a *Application) NotifyBillingEvents(ctx context.Context, since time.Time) 
 	return a.notificationOutbox.EnqueueBillingEvents(ctx, since)
 }
 
-func (a *Application) Init(cfg *config.AppConfig) {
+func (a *Application) Init(cfg *config.AppConfig) error {
 	loc, err := time.LoadLocation(cfg.System.Location)
 	if err != nil {
 		zap.S().Error("timezone config error")
@@ -254,15 +254,18 @@ func (a *Application) Init(cfg *config.AppConfig) {
 	if cfg.Database.Type == "" {
 		cfg.Database.Type = "postgres"
 	}
-	a.gormDB = getDatabase(cfg.Database, cfg.System.Workdir)
+	a.gormDB, err = getDatabase(cfg.Database, cfg.System.Workdir)
+	if err != nil {
+		return fmt.Errorf("initialize %s database: %w", cfg.Database.Type, err)
+	}
 	zap.S().Infof("Database connection successful, type: %s", cfg.Database.Type)
 
-	// Ensure database schema is migrated before loading configs
+	// A partially migrated database is not safe to serve. Abort startup before
+	// the scheduler or any HTTP/RADIUS listener can begin accepting traffic.
 	if err := a.MigrateDB(false); err != nil {
-		zap.S().Errorf("database migration failed: %v", err)
-	} else {
-		a.seedSamplesOnFreshInstall()
+		return fmt.Errorf("migrate database schema: %w", err)
 	}
+	a.seedSamplesOnFreshInstall()
 
 	// Create or rotate the bootstrap super-admin before the admin API listens
 	// so a well-known password is never reachable on a fresh or upgraded node.
@@ -286,6 +289,7 @@ func (a *Application) Init(cfg *config.AppConfig) {
 	a.profileCache = NewProfileCache(a.gormDB, DefaultProfileCacheTTL)
 
 	a.initJob()
+	return nil
 }
 
 // seedSamplesOnFreshInstall fills a completely empty installation once so the

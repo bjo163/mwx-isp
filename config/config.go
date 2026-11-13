@@ -53,15 +53,20 @@ const DefaultWebSecret = "9b6de5cc-0731-1203-xxtt-0f568ac9da37" //nolint:gosec /
 //   - TOUGHRADIUS_DB_PWD
 //   - TOUGHRADIUS_DB_DEBUG
 type DBConfig struct {
-	Type     string `yaml:"type"`      // Database type: postgres or sqlite
-	Host     string `yaml:"host"`      // PostgreSQL host address
-	Port     int    `yaml:"port"`      // PostgreSQL port
-	Name     string `yaml:"name"`      // Database name or SQLite file path
-	User     string `yaml:"user"`      // PostgreSQL username
-	Passwd   string `yaml:"passwd"`    // PostgreSQL password
-	MaxConn  int    `yaml:"max_conn"`  // Maximum connections
-	IdleConn int    `yaml:"idle_conn"` // Idle connections
-	Debug    bool   `yaml:"debug"`     // Debug mode
+	Type           string `+"`"+`yaml:"type"`+"`"+`             // Database type: postgres or sqlite
+	Host           string `+"`"+`yaml:"host"`+"`"+`             // PostgreSQL host address
+	Port           int    `+"`"+`yaml:"port"`+"`"+`             // PostgreSQL port
+	Name           string `+"`"+`yaml:"name"`+"`"+`             // Database name or SQLite file path
+	User           string `+"`"+`yaml:"user"`+"`"+`             // PostgreSQL username
+	Passwd         string `+"`"+`yaml:"passwd"`+"`"+`           // PostgreSQL password
+	SSLMode        string `+"`"+`yaml:"sslmode"`+"`"+`          // PostgreSQL TLS mode
+	SSLRootCert    string `+"`"+`yaml:"sslrootcert"`+"`"+`      // Optional PostgreSQL CA certificate path
+	SSLCert        string `+"`"+`yaml:"sslcert"`+"`"+`          // Optional PostgreSQL client certificate path
+	SSLKey         string `+"`"+`yaml:"sslkey"`+"`"+`           // Optional PostgreSQL client key path
+	ConnectTimeout int    `+"`"+`yaml:"connect_timeout"`+"`"+`  // PostgreSQL connection timeout in seconds
+	MaxConn        int    `+"`"+`yaml:"max_conn"`+"`"+`         // Maximum connections
+	IdleConn       int    `+"`"+`yaml:"idle_conn"`+"`"+`        // Idle connections
+	Debug          bool   `+"`"+`yaml:"debug"`+"`"+`            // Debug mode
 }
 
 // SysConfig holds system-level settings for the MWX-ISP application.
@@ -502,10 +507,12 @@ var DefaultAppConfig = &AppConfig{
 		Port:     5432,
 		Name:     "mwxisp",
 		User:     "mwxisp",
-		Passwd:   "",
-		MaxConn:  100,
+		Passwd: "",
+		SSLMode: "require",
+		ConnectTimeout: 5,
+		MaxConn: 100,
 		IdleConn: 10,
-		Debug:    false,
+		Debug: false,
 	},
 	Radiusd: RadiusdConfig{
 		Enabled:      true,
@@ -610,8 +617,19 @@ func LoadConfig(cfile string) *AppConfig {
 	setEnvValue("TOUGHRADIUS_DB_NAME", &cfg.Database.Name)
 	setEnvValue("TOUGHRADIUS_DB_USER", &cfg.Database.User)
 	setEnvValue("TOUGHRADIUS_DB_PWD", &cfg.Database.Passwd)
+	setEnvValue("TOUGHRADIUS_DB_SSLMODE", &cfg.Database.SSLMode)
+	setEnvValue("TOUGHRADIUS_DB_SSLROOTCERT", &cfg.Database.SSLRootCert)
+	setEnvValue("TOUGHRADIUS_DB_SSLCERT", &cfg.Database.SSLCert)
+	setEnvValue("TOUGHRADIUS_DB_SSLKEY", &cfg.Database.SSLKey)
+	setEnvIntValue("TOUGHRADIUS_DB_CONNECT_TIMEOUT", &cfg.Database.ConnectTimeout)
 	setEnvIntValue("TOUGHRADIUS_DB_PORT", &cfg.Database.Port)
 	setEnvBoolValue("TOUGHRADIUS_DB_DEBUG", &cfg.Database.Debug)
+	if cfg.Database.SSLMode == "" {
+		cfg.Database.SSLMode = "require"
+	}
+	if cfg.Database.ConnectTimeout == 0 {
+		cfg.Database.ConnectTimeout = 5
+	}
 
 	// toughradius
 	setEnvValue("TOUGHRADIUS_RADIUS_HOST", &cfg.Radiusd.Host)

@@ -133,7 +133,9 @@ func main() {
 			RTTMillis:      result.RTT.Milliseconds(),
 		}
 	})
-	application.Init(_config)
+	if err := application.Init(_config); err != nil {
+		log.Fatalf("application initialization failed: %v", err)
+	}
 
 	if *initdb {
 		application.InitDb()
