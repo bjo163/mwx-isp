@@ -41,6 +41,7 @@ var Tables = []interface{}{
 	&TenantDocumentTemplate{},
 	&InvoiceDocumentSnapshot{},
 	&Payment{},
+	&PaymentAttempt{},
 	&BillingEvent{},
 	&DocumentSequence{},
 	// Telemetry, MRTG and Syslog
