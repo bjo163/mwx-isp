@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bjo163/mwx-isp/internal/customerportal"
 	"github.com/bjo163/mwx-isp/internal/domain"
 	"github.com/bjo163/mwx-isp/internal/notify"
-	"github.com/bjo163/mwx-isp/internal/tenancy"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -251,18 +249,76 @@ func getCustomerSelfCare(c echo.Context) error {
 	if err := db.Where("customer_id = ?", customerID).Order("id DESC").Limit(10).Find(&subscriptions).Error; err != nil {
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Unable to load subscriptions", nil)
 	}
+	type subscriptionView struct {
+		SubscriptionNo string `json:"subscription_no"`
+		Status string `json:"status"`
+		StartDate time.Time `json:"start_date"`
+		BillingDay int `json:"billing_day"`
+		PackageName string `json:"package_name"`
+		PackagePrice int64 `json:"package_price"`
+	}
+	subscriptionViews := make([]subscriptionView, 0, len(subscriptions))
+	for _, subscription := range subscriptions {
+		view := subscriptionView{
+			SubscriptionNo: subscription.SubscriptionNo,
+			Status: subscription.Status,
+			StartDate: subscription.StartDate,
+			BillingDay: subscription.BillingDay,
+		}
+		var pkg domain.InternetPackage
+		if err := db.Select("name", "price").First(&pkg, subscription.PackageID).Error; err == nil {
+			view.PackageName = pkg.Name
+			view.PackagePrice = pkg.Price
+		}
+		subscriptionViews = append(subscriptionViews, view)
+	}
+
 	var invoices []domain.Invoice
 	if err := db.Where("customer_id = ?", customerID).Order("invoice_date DESC").Limit(24).Find(&invoices).Error; err != nil {
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Unable to load invoices", nil)
 	}
-	var payments []domain.Payment
-	if err := db.Where("customer_id = ?", customerID).Order("paid_at DESC").Limit(24).Find(&payments).Error; err != nil {
+	type paymentView struct {
+		PaymentNo string `json:"payment_no"`
+		InvoiceID int64 `json:"invoice_id,string"`
+		Amount int64 `json:"amount"`
+		Method string `json:"method"`
+		PaidAt time.Time `json:"paid_at"`
+		Status string `json:"status"`
+	}
+	var storedPayments []domain.Payment
+	if err := db.Where("customer_id = ?", customerID).Order("paid_at DESC").Limit(24).Find(&storedPayments).Error; err != nil {
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Unable to load payments", nil)
 	}
-	var tickets []domain.TroubleTicket
-	if err := db.Where("customer_id = ?", customerID).Order("created_at DESC").Limit(20).Find(&tickets).Error; err != nil {
+	payments := make([]paymentView, 0, len(storedPayments))
+	for _, payment := range storedPayments {
+		payments = append(payments, paymentView{
+			PaymentNo: payment.PaymentNo, InvoiceID: payment.InvoiceID,
+			Amount: payment.Amount, Method: payment.Method,
+			PaidAt: payment.PaidAt, Status: payment.Status,
+		})
+	}
+
+	type ticketView struct {
+		TicketNo string `json:"ticket_no"`
+		Subject string `json:"subject"`
+		Category string `json:"category"`
+		Priority string `json:"priority"`
+		Status string `json:"status"`
+		CreatedAt time.Time `json:"created_at"`
+	}
+	var storedTickets []domain.TroubleTicket
+	if err := db.Where("customer_id = ?", customerID).Order("created_at DESC").Limit(20).Find(&storedTickets).Error; err != nil {
 		return fail(c, http.StatusInternalServerError, "DATABASE_ERROR", "Unable to load support tickets", nil)
 	}
+	tickets := make([]ticketView, 0, len(storedTickets))
+	for _, ticket := range storedTickets {
+		tickets = append(tickets, ticketView{
+			TicketNo: ticket.TicketNo, Subject: ticket.Subject,
+			Category: ticket.Category, Priority: ticket.Priority,
+			Status: ticket.Status, CreatedAt: ticket.CreatedAt,
+		})
+	}
+
 	return ok(c, map[string]any{
 		"customer": map[string]any{
 			"customer_no": customer.CustomerNo,
@@ -272,7 +328,7 @@ func getCustomerSelfCare(c echo.Context) error {
 			"address": customer.Address,
 			"status": customer.Status,
 		},
-		"subscriptions": subscriptions,
+		"subscriptions": subscriptionViews,
 		"invoices": invoices,
 		"payments": payments,
 		"tickets": tickets,
@@ -290,8 +346,4 @@ func logoutCustomerPortal(c echo.Context) error {
 	}
 	return ok(c, map[string]bool{"logged_out": true})
 }
-
-// Keep strconv linked here for callers that need string-safe IDs in response
-// adapters without converting int64 values to floating point.
-var _ = strconv.IntSize
 
