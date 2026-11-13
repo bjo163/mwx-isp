@@ -118,6 +118,7 @@ func TestTableNameUniqueness(t *testing.T) {
 		"isp_invoice":                 true,
 		"isp_invoice_item":            true,
 		"isp_payment":                 true,
+		"isp_payment_attempt":         true,
 		"isp_billing_event":           true,
 		"isp_document_sequence":       true,
 		"isp_document_template":       true,
@@ -131,6 +132,7 @@ func TestTableNameUniqueness(t *testing.T) {
 		"syslog_event":                true,
 		"isp_hotspot_batch":           true,
 		"isp_hotspot_voucher":         true,
+		"isp_voucher_usage_session":   true,
 		"isp_ipam_pool":               true,
 		"isp_trouble_ticket":          true,
 		"isp_odp":                     true,
@@ -156,6 +158,7 @@ func TestSyslogEvent_TableName(t *testing.T) {
 func TestOperationsModels_TableName(t *testing.T) {
 	assert.Equal(t, "isp_hotspot_batch", HotspotBatch{}.TableName())
 	assert.Equal(t, "isp_hotspot_voucher", HotspotVoucher{}.TableName())
+	assert.Equal(t, "isp_voucher_usage_session", VoucherUsageSession{}.TableName())
 	assert.Equal(t, "isp_ipam_pool", IPAMPool{}.TableName())
 	assert.Equal(t, "isp_trouble_ticket", TroubleTicket{}.TableName())
 	assert.Equal(t, "isp_odp", ODP{}.TableName())

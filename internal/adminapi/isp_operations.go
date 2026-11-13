@@ -119,9 +119,6 @@ func generateVouchers(c echo.Context) error {
 	if in.ValiditySeconds > 365*24*60*60 {
 		return fail(c, 400, "INVALID_VALIDITY", "Voucher validity cannot exceed 365 days", nil)
 	}
-	if in.QuotaMB > 0 {
-		return fail(c, 400, "QUOTA_NOT_SUPPORTED", "Voucher data quotas are not enforced by the RADIUS accounting path yet; use 0 for unlimited data", nil)
-	}
 	if in.QuotaMB < 0 || in.QuotaMB > (int64(^uint64(0)>>1)/1024/1024) {
 		return fail(c, 400, "INVALID_QUOTA", "Quota must be zero (unlimited) or a positive number of MB", nil)
 	}
@@ -248,6 +245,13 @@ func listVouchers(c echo.Context) error {
 	return paged(c, rows, total, page, size)
 }
 
+func maxInt64(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func checkPublicVoucher(c echo.Context) error {
 	code := strings.TrimSpace(c.QueryParam("code"))
 	if code == "" {
@@ -276,8 +280,9 @@ func checkPublicVoucher(c echo.Context) error {
 		"validity_seconds": v.ValiditySeconds,
 		"quota_bytes":      v.QuotaBytes,
 		"used_bytes":       v.UsedBytes,
-		"quota_enforced":   false,
-		"usage_available":  false,
+		"remaining_bytes":  maxInt64(v.QuotaBytes-v.UsedBytes, 0),
+		"quota_enforced":   v.QuotaBytes > 0,
+		"usage_available":  v.QuotaBytes > 0,
 		"first_login_at":   v.FirstLoginAt,
 		"expires_at":       v.ExpiresAt,
 	})

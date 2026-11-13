@@ -53,20 +53,20 @@ const DefaultWebSecret = "9b6de5cc-0731-1203-xxtt-0f568ac9da37" //nolint:gosec /
 //   - TOUGHRADIUS_DB_PWD
 //   - TOUGHRADIUS_DB_DEBUG
 type DBConfig struct {
-	Type           string `+"`"+`yaml:"type"`+"`"+`             // Database type: postgres or sqlite
-	Host           string `+"`"+`yaml:"host"`+"`"+`             // PostgreSQL host address
-	Port           int    `+"`"+`yaml:"port"`+"`"+`             // PostgreSQL port
-	Name           string `+"`"+`yaml:"name"`+"`"+`             // Database name or SQLite file path
-	User           string `+"`"+`yaml:"user"`+"`"+`             // PostgreSQL username
-	Passwd         string `+"`"+`yaml:"passwd"`+"`"+`           // PostgreSQL password
-	SSLMode        string `+"`"+`yaml:"sslmode"`+"`"+`          // PostgreSQL TLS mode
-	SSLRootCert    string `+"`"+`yaml:"sslrootcert"`+"`"+`      // Optional PostgreSQL CA certificate path
-	SSLCert        string `+"`"+`yaml:"sslcert"`+"`"+`          // Optional PostgreSQL client certificate path
-	SSLKey         string `+"`"+`yaml:"sslkey"`+"`"+`           // Optional PostgreSQL client key path
-	ConnectTimeout int    `+"`"+`yaml:"connect_timeout"`+"`"+`  // PostgreSQL connection timeout in seconds
-	MaxConn        int    `+"`"+`yaml:"max_conn"`+"`"+`         // Maximum connections
-	IdleConn       int    `+"`"+`yaml:"idle_conn"`+"`"+`        // Idle connections
-	Debug          bool   `+"`"+`yaml:"debug"`+"`"+`            // Debug mode
+	Type           string `yaml:"type"`             // Database type: postgres or sqlite
+	Host           string `yaml:"host"`             // PostgreSQL host address
+	Port           int    `yaml:"port"`             // PostgreSQL port
+	Name           string `yaml:"name"`             // Database name or SQLite file path
+	User           string `yaml:"user"`             // PostgreSQL username
+	Passwd         string `yaml:"passwd"`           // PostgreSQL password
+	SSLMode        string `yaml:"sslmode"`          // PostgreSQL TLS mode
+	SSLRootCert    string `yaml:"sslrootcert"`      // Optional PostgreSQL CA certificate path
+	SSLCert        string `yaml:"sslcert"`          // Optional PostgreSQL client certificate path
+	SSLKey         string `yaml:"sslkey"`           // Optional PostgreSQL client key path
+	ConnectTimeout int    `yaml:"connect_timeout"`  // PostgreSQL connection timeout in seconds
+	MaxConn        int    `yaml:"max_conn"`         // Maximum connections
+	IdleConn       int    `yaml:"idle_conn"`        // Idle connections
+	Debug          bool   `yaml:"debug"`            // Debug mode
 }
 
 // SysConfig holds system-level settings for the MWX-ISP application.

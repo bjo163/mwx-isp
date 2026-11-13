@@ -227,10 +227,16 @@ func TestVoucherGenerationRequiresUsablePackageAndRollsBack(t *testing.T) {
 	rec = httptest.NewRecorder()
 	c = CreateTestContext(e, db, req, rec, appCtx)
 	require.NoError(t, generateVouchers(c))
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, http.StatusOK, rec.Code)
 	var batches int64
 	require.NoError(t, db.Model(&domain.HotspotBatch{}).Count(&batches).Error)
-	assert.Zero(t, batches)
+	assert.EqualValues(t, 1, batches)
+	var quotaVoucher domain.HotspotVoucher
+	require.NoError(t, db.Where("package_id = ?", pkg.ID).First(&quotaVoucher).Error)
+	assert.EqualValues(t, 256*1024*1024, quotaVoucher.QuotaBytes)
+	var quotaUser domain.RadiusUser
+	require.NoError(t, db.First(&quotaUser, quotaVoucher.RadiusUserID).Error)
+	assert.Equal(t, "enabled", quotaUser.Status)
 
 	const callbackName = "test:fail_radius_user_create"
 	require.NoError(t, db.Callback().Create().Before("gorm:create").Register(callbackName, func(tx *gorm.DB) {

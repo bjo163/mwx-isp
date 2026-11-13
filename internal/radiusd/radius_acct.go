@@ -251,7 +251,8 @@ func applyVoucherQuotaAccounting(ctx context.Context, request *radius.Request, u
 	if !result.Exhausted {
 		return
 	}
-	service.InvalidateUserCacheForTenant(result.Username, username)
+	tenantID, _ := tenancy.TenantID(ctx)
+	service.InvalidateUserCacheForTenant(tenantID, username)
 	db := service.appCtx.DB().WithContext(ctx)
 	var online []domain.RadiusOnline
 	if err := db.Where("username = ?", username).Find(&online).Error; err != nil {
