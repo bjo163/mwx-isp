@@ -236,8 +236,8 @@ func customerPortalAuth() echo.MiddlewareFunc {
 }
 
 func getCustomerSelfCare(c echo.Context) error {
-	customerID, ok := c.Get("customer_id").(int64)
-	if !ok || customerID <= 0 {
+	customerID, found := c.Get("customer_id").(int64)
+	if !found || customerID <= 0 {
 		return fail(c, http.StatusUnauthorized, "CUSTOMER_AUTH_REQUIRED", "Customer sign-in is required", nil)
 	}
 	db := GetDB(c)
@@ -336,8 +336,8 @@ func getCustomerSelfCare(c echo.Context) error {
 }
 
 func logoutCustomerPortal(c echo.Context) error {
-	sessionID, ok := c.Get("customer_session_id").(int64)
-	if !ok || sessionID <= 0 {
+	sessionID, found := c.Get("customer_session_id").(int64)
+	if !found || sessionID <= 0 {
 		return fail(c, http.StatusUnauthorized, "CUSTOMER_AUTH_REQUIRED", "Customer sign-in is required", nil)
 	}
 	now := time.Now()
