@@ -44,6 +44,7 @@ const CustomerSelfCarePage: React.FC = () => {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
 
   const loadAccount = useCallback(async (accessToken: string) => {
     const result = await apiRequest<CustomerPortalData>('/customer-portal/me', {
@@ -115,6 +116,29 @@ const CustomerSelfCarePage: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Kode verifikasi tidak valid atau kedaluwarsa.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const payInvoice = async (invoiceId: string) => {
+    if (!token) return;
+    setPaymentLoading(invoiceId);
+    setError('');
+    try {
+      const checkout = await apiRequest<{ redirect_url: string }>(
+        '/customer-portal/invoices/' + encodeURIComponent(invoiceId) + '/payment-channel',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + token,
+            'Idempotency-Key': window.crypto.randomUUID(),
+          },
+        },
+      );
+      if (!checkout?.redirect_url) throw new Error('Payment provider tidak mengembalikan tautan pembayaran.');
+      window.location.assign(checkout.redirect_url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Tidak dapat membuat pembayaran online.');
+      setPaymentLoading(null);
     }
   };
 
@@ -229,7 +253,19 @@ const CustomerSelfCarePage: React.FC = () => {
                         <TableRow key={invoice.id}>
                           <TableCell>{invoice.invoice_no}</TableCell><TableCell>{dateTime(invoice.due_date)}</TableCell>
                           <TableCell align="right">{money(invoice.total)}</TableCell><TableCell align="right">{money(invoice.balance)}</TableCell>
-                          <TableCell><Chip size="small" label={invoice.status.toUpperCase()} color={invoice.balance > 0 ? 'warning' : 'success'} /></TableCell>
+                          <TableCell>
+                            <Stack spacing={0.5} alignItems="flex-start">
+                              <Chip size="small" label={invoice.status.toUpperCase()} color={invoice.balance > 0 ? 'warning' : 'success'} />
+                              {invoice.balance > 0 && (
+                                <Button size="small" variant="contained"
+                                  disabled={paymentLoading === String(invoice.id)}
+                                  onClick={() => void payInvoice(String(invoice.id))}
+                                  sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}>
+                                  {paymentLoading === String(invoice.id) ? 'Menyiapkan...' : 'Bayar Online'}
+                                </Button>
+                              )}
+                            </Stack>
+                          </TableCell>
                         </TableRow>
                       ))}</TableBody>
                     </Table>

@@ -235,6 +235,24 @@ func customerPortalAuth() echo.MiddlewareFunc {
 	}
 }
 
+// getCustomerInvoicePaymentChannel verifies invoice ownership before delegating
+// to the shared payment-provider checkout flow.
+func getCustomerInvoicePaymentChannel(c echo.Context) error {
+	customerID, authenticated := c.Get("customer_id").(int64)
+	if !authenticated || customerID <= 0 {
+		return fail(c, http.StatusUnauthorized, "CUSTOMER_AUTH_REQUIRED", "Customer sign-in is required", nil)
+	}
+	id, err := parseIDParam(c, "id")
+	if err != nil {
+		return fail(c, http.StatusBadRequest, "INVALID_ID", "Invalid invoice ID", nil)
+	}
+	var invoice domain.Invoice
+	if err := GetDB(c).First(&invoice, id).Error; err != nil || invoice.CustomerID != customerID {
+		return fail(c, http.StatusNotFound, "INVOICE_NOT_FOUND", "Invoice not found", nil)
+	}
+	return getInvoicePaymentChannel(c)
+}
+
 func getCustomerSelfCare(c echo.Context) error {
 	customerID, found := c.Get("customer_id").(int64)
 	if !found || customerID <= 0 {

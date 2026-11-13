@@ -124,6 +124,7 @@ func registerISPRoutes() {
 	webserver.ApiPOST("/customer-auth/request-otp", requestCustomerOTP, loginRateLimiter(), middleware.BodyLimit("4K"))
 	webserver.ApiPOST("/customer-auth/verify-otp", verifyCustomerOTP, loginRateLimiter(), middleware.BodyLimit("4K"))
 	webserver.ApiGET("/customer-portal/me", getCustomerSelfCare, customerPortalAuth())
+	webserver.ApiPOST("/customer-portal/invoices/:id/payment-channel", getCustomerInvoicePaymentChannel, customerPortalAuth(), portalPaymentChannelRateLimiter())
 	webserver.ApiPOST("/customer-portal/logout", logoutCustomerPortal, customerPortalAuth())
 	webserver.ApiGET("/dashboard/isp-stats", getISPDashboardStats)
 }
