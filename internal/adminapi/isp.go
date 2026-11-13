@@ -115,7 +115,7 @@ func registerISPRoutes() {
 	webserver.ApiPOST("/isp/subscriptions/:id/apply-fup", applySubscriptionFUP, admin)
 	webserver.ApiPOST("/isp/subscriptions/:id/reset-fup", resetSubscriptionFUP, admin)
 	webserver.ApiGET("/portal/lookup", lookupCustomerPortal, portalLookupRateLimiter())
-	webserver.ApiGET("/portal/invoices/:id/payment-channel", getInvoicePaymentChannel, portalPaymentChannelRateLimiter())
+	webserver.ApiPOST("/portal/invoices/:id/payment-channel", getInvoicePaymentChannel, portalPaymentChannelRateLimiter())
 	webserver.ApiPOST("/portal/invoices/:id/simulate-pay", simulateInvoicePayment)
 	webserver.ApiPOST("/portal/payments/webhook", handlePaymentWebhook)
 	webserver.ApiGET("/public/packages", listPublicPackages, packageCatalogRateLimiter())
@@ -1936,11 +1936,6 @@ func resetSubscriptionFUP(c echo.Context) error {
 		"restored_rate_down": profile.DownRate,
 		"message":            "FUP reset and normal speed restored",
 	})
-}
-
-func getInvoicePaymentChannel(c echo.Context) error {
-	return fail(c, http.StatusServiceUnavailable, "PAYMENT_PROVIDER_UNCONFIGURED",
-		"Online payment channels are unavailable until a verified payment provider is configured", nil)
 }
 
 func simulateInvoicePayment(c echo.Context) error {

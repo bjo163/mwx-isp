@@ -137,6 +137,7 @@ var JwtSkipPrefix = []string{
 	apiBasePath + "/auth/tenants/by-subdomain",
 	apiBasePath + "/public/branding",
 	apiBasePath + "/public/packages",
+	apiBasePath + "/portal/payments/webhook",
 	apiBasePath + "/tenant-website/public/",
 	apiBasePath + "/tenant-branding",
 }
